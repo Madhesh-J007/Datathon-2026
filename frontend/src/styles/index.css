@@ -1,0 +1,11 @@
+/*
+  Tailwind entrypoint + design tokens.
+  Purpose: Global styles, Tailwind base/components/utilities layers,
+  and the high-contrast "field mode" theme variables (SAD Section 4.4).
+  Used by: main.tsx (imported once at app root).
+
+  NOTE: Scaffold placeholder only.
+*/
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

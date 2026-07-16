@@ -1,0 +1,37 @@
+# ---------------------------------------------------------------------------
+# AI Engine dependencies (stateless inference microservice, SAD Section 15.1)
+# Install: pip install -r requirements.txt
+# ---------------------------------------------------------------------------
+
+# --- Serving framework ---
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.9.2
+
+# --- Data handling ---
+pandas==2.2.3
+numpy==1.26.4
+
+# --- Modeling (per approved stack: scikit-learn, NetworkX, pandas) ---
+scikit-learn==1.5.2         # risk scoring, anomaly detection, repeat-offender classifier
+networkx==3.3                # co-accused/gang graph construction + community detection
+scipy==1.14.1                 # KDE for hotspot density estimation, supports scikit-learn
+
+# --- Embeddings (MO Similarity Engine, SAD Section 3.4/18.1.3) ---
+sentence-transformers==3.1.1
+
+# --- Forecasting ---
+statsmodels==0.14.3          # SARIMA-equivalent time-series forecasting over pandas series
+
+# --- DB access (read-only training data access, never writes to system of record) ---
+sqlalchemy==2.0.35
+psycopg2-binary==2.9.9
+
+# --- LLM tool-calling orchestrator (AI Assistant, SAD Section 15.4) ---
+# Pin to whichever provider SDK the team selects in Milestone 0 (e.g., anthropic / openai)
+anthropic==0.34.2
+
+# --- Dev / test tooling ---
+pytest==8.3.3
+ruff==0.6.9
+black==24.8.0

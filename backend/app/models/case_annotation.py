@@ -1,0 +1,7 @@
+"""
+SQLAlchemy model for case_annotations (the only investigative write surface). Used by: crud/ layer, alembic migrations.
+
+NOTE: Scaffold placeholder only. Implementation logic to be added
+during the corresponding roadmap milestone. Do not remove this
+file location or name - other modules import from here.
+"""
