@@ -1,7 +1,10 @@
-"""
-SQLAlchemy model for CrimeSubType. Used by: crud/ layer, alembic migrations.
+from sqlalchemy import Column, Integer, String, ForeignKey
+from app.db.base_class import Base
 
-NOTE: Scaffold placeholder only. Implementation logic to be added
-during the corresponding roadmap milestone. Do not remove this
-file location or name - other modules import from here.
-"""
+class CrimeSubType(Base):
+    __tablename__ = "crime_sub_type"
+
+    CrimeSubHeadID = Column(Integer, primary_key=True, index=True)
+    CrimeHeadID = Column(Integer, ForeignKey("crime_type.CrimeHeadID"))
+    CrimeHeadName = Column(String, index=True)
+    SeqID = Column(Integer)

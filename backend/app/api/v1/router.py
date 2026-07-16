@@ -1,7 +1,7 @@
-"""
-Aggregates all endpoint routers (identity, cases, hotspot, network, intelligence, reports, collaboration, notifications, audit, admin, search, assistant) under /api/v1. Used by: main.py.
+from fastapi import APIRouter
+from app.api.v1.endpoints import cases
 
-NOTE: Scaffold placeholder only. Implementation logic to be added
-during the corresponding roadmap milestone. Do not remove this
-file location or name - other modules import from here.
-"""
+api_router = APIRouter()
+
+# Include endpoint routers
+api_router.include_router(cases.router, prefix="/cases", tags=["cases"])

@@ -1,7 +1,13 @@
-"""
-SQLAlchemy model for PoliceStation. Used by: crud/ layer, alembic migrations.
+from sqlalchemy import Column, Integer, String, ForeignKey
+from app.db.base_class import Base
 
-NOTE: Scaffold placeholder only. Implementation logic to be added
-during the corresponding roadmap milestone. Do not remove this
-file location or name - other modules import from here.
-"""
+class PoliceStation(Base):
+    __tablename__ = "police_station"
+
+    UnitID = Column(Integer, primary_key=True, index=True)
+    UnitName = Column(String, index=True)
+    TypeID = Column(Integer)
+    ParentUnit = Column(Integer)
+    StateID = Column(Integer)
+    DistrictID = Column(Integer, ForeignKey("district.DistrictID"))
+    Active = Column(Integer)

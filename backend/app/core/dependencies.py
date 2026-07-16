@@ -1,7 +1,13 @@
-"""
-Shared FastAPI dependency-injection functions: get_db, get_current_user, require_role, require_jurisdiction. Used by: nearly every endpoint module for auth/RBAC enforcement.
+from typing import Generator
+from app.db.session import SessionLocal
 
-NOTE: Scaffold placeholder only. Implementation logic to be added
-during the corresponding roadmap milestone. Do not remove this
-file location or name - other modules import from here.
-"""
+def get_db() -> Generator:
+    """
+    Database session dependency generator.
+    Yields a database session to the handler and closes it after the request is finished.
+    """
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

@@ -1,7 +1,15 @@
-"""
-SQLAlchemy model for Officer. Used by: crud/ layer, alembic migrations.
+from sqlalchemy import Column, Integer, String, ForeignKey
+from app.db.base_class import Base
 
-NOTE: Scaffold placeholder only. Implementation logic to be added
-during the corresponding roadmap milestone. Do not remove this
-file location or name - other modules import from here.
-"""
+class Officer(Base):
+    __tablename__ = "officer"
+
+    OfficerID = Column(Integer, primary_key=True, index=True)
+    PoliceStationID = Column(Integer, ForeignKey("police_station.UnitID"))
+    DistrictID = Column(Integer, ForeignKey("district.DistrictID"))
+    Name = Column(String, index=True)
+    Gender = Column(String)
+    Rank = Column(String)
+    BadgeNumber = Column(String)
+    YearsOfService = Column(Integer)
+    AssignedCaseCount = Column(Integer)

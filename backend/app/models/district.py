@@ -1,7 +1,10 @@
-"""
-SQLAlchemy model for District (existing finalized schema, read-only reference). Used by: crud/ layer, alembic migrations.
+from sqlalchemy import Column, Integer, String
+from app.db.base_class import Base
 
-NOTE: Scaffold placeholder only. Implementation logic to be added
-during the corresponding roadmap milestone. Do not remove this
-file location or name - other modules import from here.
-"""
+class District(Base):
+    __tablename__ = "district"
+
+    DistrictID = Column(Integer, primary_key=True, index=True)
+    DistrictName = Column(String, index=True)
+    StateID = Column(Integer)
+    Active = Column(Integer)

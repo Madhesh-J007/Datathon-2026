@@ -1,6 +1,16 @@
-"""
-FastAPI entrypoint for the AI Engine microservice (stateless inference layer per SAD Section 15.1 - never writes to the system of record). Used by: Core Backend via internal RPC/HTTP calls from services/intelligence_service.py, hotspot_service.py, network_service.py.
+from fastapi import FastAPI
 
-NOTE: Scaffold placeholder only. Model training/inference logic
-to be added during the corresponding roadmap milestone.
-"""
+# Minimal FastAPI instance to stand up the AI Engine microservice.
+# Model inference/embeddings logic will be integrated during Milestone 4/5.
+app = FastAPI(
+    title="KSP AI Engine Service",
+    description="Stateless inference service handling sentence embeddings and predictive hotspots.",
+    version="1.0.0"
+)
+
+@app.get("/health")
+def health_check():
+    return {
+        "status": "online",
+        "service": "ai-engine"
+    }

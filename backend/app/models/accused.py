@@ -1,7 +1,17 @@
-"""
-SQLAlchemy model for Accused. Used by: crud/ layer, alembic migrations.
+from sqlalchemy import Column, Integer, String, ForeignKey
+from app.db.base_class import Base
 
-NOTE: Scaffold placeholder only. Implementation logic to be added
-during the corresponding roadmap milestone. Do not remove this
-file location or name - other modules import from here.
-"""
+class Accused(Base):
+    __tablename__ = "accused"
+
+    AccusedMasterID = Column(Integer, primary_key=True, index=True)
+    CaseMasterID = Column(Integer, ForeignKey("case_master.CaseMasterID"))
+    AccusedName = Column(String, index=True)
+    AgeYear = Column(Integer)
+    GenderID = Column(Integer)
+    PersonID = Column(Integer)
+    Occupation = Column(String)
+    Address = Column(String)
+    CriminalProfileID = Column(Integer)
+    GangID = Column(Integer)
+    IsRepeatOffender = Column(Integer)

@@ -1,7 +1,9 @@
-"""
-SQLAlchemy model for CrimeType. Used by: crud/ layer, alembic migrations.
+from sqlalchemy import Column, Integer, String
+from app.db.base_class import Base
 
-NOTE: Scaffold placeholder only. Implementation logic to be added
-during the corresponding roadmap milestone. Do not remove this
-file location or name - other modules import from here.
-"""
+class CrimeType(Base):
+    __tablename__ = "crime_type"
+
+    CrimeHeadID = Column(Integer, primary_key=True, index=True)
+    CrimeGroupName = Column(String, index=True)
+    Active = Column(Integer)
