@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
+from typing import List
 
 class RelationshipCreate(BaseModel):
     SourcePersonID: int
@@ -27,3 +28,14 @@ class CriminalRelationship(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class GangCommunity(BaseModel):
+    MemberPersonIDs: List[int]
+    Confidence: float
+    Explanation: str
+
+
+class GangCommunityResponse(BaseModel):
+    ModelVersion: str
+    Communities: List[GangCommunity]

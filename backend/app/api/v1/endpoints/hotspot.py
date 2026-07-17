@@ -7,9 +7,19 @@ from app.core.permissions import verify_permission
 from app.models.user import User
 from app.models.case_master import CaseMaster
 from app.middleware.jurisdiction_scope import apply_jurisdiction_filter
-from app.schemas.hotspot import HotspotResponse, HotspotPoint
+from app.schemas.hotspot import HotspotResponse, HotspotPoint, PredictedHotspotResponse
+from app.services import hotspot_service
 
 router = APIRouter()
+
+
+@router.get("/predicted", response_model=PredictedHotspotResponse, summary="Get Predicted Crime Hotspots")
+def get_predicted_hotspots(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(verify_permission("cases:read")),
+):
+    """Return explainable KDE predictions only for the caller's visible jurisdiction."""
+    return hotspot_service.get_predicted_hotspots(db, current_user)
 
 @router.get("", response_model=HotspotResponse, summary="Get Crime Hotspots")
 def get_hotspots(

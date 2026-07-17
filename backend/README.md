@@ -30,3 +30,14 @@ uvicorn app.main:app --reload
 ```
 
 Full endpoint-by-file mapping: see `PROJECT_STRUCTURE.md` at the repo root.
+
+## Phase 4: Similar Case Finder
+
+1. An authorised investigator calls `POST /api/v1/intelligence/embeddings/backfill`
+   to prepare embeddings for visible case narratives.
+2. `GET /api/v1/intelligence/cases/{case_id}/similar` returns cosine-ranked,
+   jurisdiction-scoped matches with plain-language factors explaining the match.
+
+The embedding model and version are configured through `EMBEDDING_MODEL_NAME`
+and `EMBEDDING_MODEL_VERSION`. The configured LaBSE model emits 768 dimensions,
+which matches the pgvector column.

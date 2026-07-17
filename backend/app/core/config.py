@@ -35,7 +35,9 @@ class Settings(BaseSettings):
     LLM_MODEL: str = "claude-sonnet-4-6"
     
     # --- Embeddings ---
-    EMBEDDING_MODEL_NAME: str = "all-MiniLM-L6-v2"
+    # CaseEmbedding uses pgvector(768); LaBSE provides vectors of that size.
+    EMBEDDING_MODEL_NAME: str = "sentence-transformers/LaBSE"
+    EMBEDDING_MODEL_VERSION: str = "phase4-labse-v1"
 
     model_config = SettingsConfigDict(
         env_file=".env",

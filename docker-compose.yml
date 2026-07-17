@@ -71,6 +71,7 @@ services:
       - "8100:8100"
     volumes:
       - ./ai-engine:/app
+      - ./database:/database:ro
 
   frontend:
     build:

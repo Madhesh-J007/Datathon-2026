@@ -37,6 +37,7 @@ from app.models.case_annotation import CaseAnnotation
 from app.models.criminal_relationship import CriminalRelationship
 from app.models.audit_log import AuditLog
 from app.models.case_embedding import CaseEmbedding
+from app.models.ai_model_run import AIModelRun
 
 # Export all models for Alembic and Base metadata detection
 __all__ = [
@@ -69,4 +70,5 @@ __all__ = [
     "CriminalRelationship",
     "AuditLog",
     "CaseEmbedding"
+    ,"AIModelRun"
 ]

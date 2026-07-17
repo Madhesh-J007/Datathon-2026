@@ -4,9 +4,74 @@ from app.core.dependencies import get_db
 from app.core.permissions import verify_permission
 from app.models.user import User
 from app.crud import case_crud
-from app.schemas.intelligence import PredictRiskResponse, RiskFactor
+from app.schemas.intelligence import (
+    EmbeddingBackfillResponse,
+    CrimeTrendForecastResponse,
+    RepeatOffenderResponse,
+    AnomalyResponse,
+    PredictRiskResponse,
+    RiskFactor,
+    SimilarCasesResponse,
+)
+from app.services import intelligence_service
 
 router = APIRouter()
+
+
+@router.get("/anomalies", response_model=AnomalyResponse, summary="Detect Case Anomalies")
+def get_case_anomalies(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(verify_permission("cases:read")),
+):
+    """Return explainable anomaly flags within the active jurisdiction scope."""
+    return intelligence_service.detect_case_anomalies(db, current_user)
+
+
+@router.get("/offenders/{accused_id}/repeat-offender-matches", response_model=RepeatOffenderResponse, summary="Find Repeat-Offender Matches")
+def get_repeat_offender_matches(
+    accused_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(verify_permission("cases:read")),
+):
+    """Return explainable likely repeat-offender matches within permitted case scope."""
+    return intelligence_service.resolve_repeat_offenders(db, accused_id, current_user)
+
+
+@router.get("/forecast/crime-trend", response_model=CrimeTrendForecastResponse, summary="Forecast Crime Trend")
+def get_crime_trend_forecast(
+    horizon_days: int = 7,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(verify_permission("cases:read")),
+):
+    """Return a 1-90 day crime-registration forecast for the caller's jurisdiction."""
+    if not 1 <= horizon_days <= 90:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="horizon_days must be between 1 and 90.")
+    return intelligence_service.forecast_crime_trend(db, current_user, horizon_days)
+
+
+@router.post("/embeddings/backfill", response_model=EmbeddingBackfillResponse, summary="Build Case Embeddings")
+def build_case_embeddings(
+    limit: int = 250,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(verify_permission("cases:update")),
+):
+    """Generate versioned pgvector embeddings only for cases visible to the caller."""
+    if not 1 <= limit <= 1000:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="limit must be between 1 and 1000.")
+    return intelligence_service.backfill_embeddings(db, current_user, limit=limit)
+
+
+@router.get("/cases/{case_id}/similar", response_model=SimilarCasesResponse, summary="Find Similar Cases")
+def get_similar_cases(
+    case_id: int,
+    limit: int = 10,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(verify_permission("cases:read")),
+):
+    """Return explainable, jurisdiction-scoped nearest case matches from pgvector."""
+    if not 1 <= limit <= 25:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="limit must be between 1 and 25.")
+    return intelligence_service.find_similar_cases(db, case_id, current_user, limit=limit)
 
 @router.get("/cases/{case_id}/predict", response_model=PredictRiskResponse, summary="Predict Case Risk Score")
 def predict_case_risk(
@@ -25,35 +90,14 @@ def predict_case_risk(
             detail="Case not found or access denied."
         )
         
-    # Extrapolate risk parameters dynamically based on case gravity heads and status
-    gravity = case.GravityOffenceID or 2
-    if gravity == 1:
-        base_score = 0.82
-        factors = [
-            RiskFactor(FeatureName="GravityOffence", ImpactScore=0.55, Description="Serious non-bailable offence classification."),
-            RiskFactor(FeatureName="TimeElapsed", ImpactScore=0.15, Description="Delay in case registration increases evidentiary degradation risk."),
-            RiskFactor(FeatureName="LocationClustering", ImpactScore=0.12, Description="Registered in a high-density spatial crime hotspot.")
-        ]
-    else:
-        base_score = 0.35
-        factors = [
-            RiskFactor(FeatureName="GravityOffence", ImpactScore=0.20, Description="Standard bailable compoundable offence."),
-            RiskFactor(FeatureName="TimeElapsed", ImpactScore=0.05, Description="Standard registration timeline."),
-            RiskFactor(FeatureName="LocationClustering", ImpactScore=0.10, Description="Registered in a normal crime density zone.")
-        ]
-
-    # Priority modifier
-    if case.InvestigationPriority == "High":
-        base_score = min(1.0, base_score + 0.15)
-        factors.append(
-            RiskFactor(FeatureName="PriorityFlag", ImpactScore=0.15, Description="Manual investigator priority flag raises importance.")
-        )
-
-    risk_level = "High" if base_score >= 0.70 else ("Medium" if base_score >= 0.40 else "Low")
+    result = intelligence_service.predict_case_risk(db, case, current_user)
 
     return PredictRiskResponse(
         CaseMasterID=case_id,
-        AIRiskScore=base_score,
-        RiskLevel=risk_level,
-        TopRiskFactors=factors
+        AIRiskScore=result["score"],
+        RiskLevel=result["risk_level"],
+        TopRiskFactors=[
+            RiskFactor(FeatureName=factor["feature_name"], ImpactScore=factor["impact_score"], Description=factor["description"])
+            for factor in result["top_factors"]
+        ],
     )

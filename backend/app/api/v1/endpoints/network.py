@@ -5,10 +5,19 @@ from app.core.permissions import verify_permission
 from app.models.user import User
 
 # Services & Schemas
-from app.services import relationship_service
-from app.schemas.network import CriminalRelationship, RelationshipCreate, RelationshipVerify
+from app.services import relationship_service, network_service
+from app.schemas.network import CriminalRelationship, GangCommunityResponse, RelationshipCreate, RelationshipVerify
 
 router = APIRouter()
+
+
+@router.get("/gangs", response_model=GangCommunityResponse, summary="Detect Criminal Communities")
+def get_gangs(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(verify_permission("cases:read")),
+):
+    """Return communities inferred only from relationship edges visible to the caller."""
+    return network_service.get_gang_communities(db, current_user)
 
 @router.post("/relationships", response_model=CriminalRelationship, status_code=status.HTTP_201_CREATED, summary="Establish Suspect Link")
 def establish_link(

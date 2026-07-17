@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from serving.router import router as ai_router
 
 # Minimal FastAPI instance to stand up the AI Engine microservice.
 # Model inference/embeddings logic will be integrated during Milestone 4/5.
@@ -7,6 +8,8 @@ app = FastAPI(
     description="Stateless inference service handling sentence embeddings and predictive hotspots.",
     version="1.0.0"
 )
+
+app.include_router(ai_router)
 
 @app.get("/health")
 def health_check():

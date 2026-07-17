@@ -9,6 +9,7 @@ from app.models.user import User
 # CRUD and Services
 from app.crud import case_crud
 from app.services import case_service, witness_service, annotation_service, assignment_service
+from app.utils.pagination import paginate
 
 # Pydantic Schemas
 from app.schemas.case_master import CaseMaster, CaseMasterCreate, PaginatedCaseResponse
@@ -50,15 +51,7 @@ def read_cases(
     if current_user.role and current_user.role.RoleName not in ["Admin", "SCRB_Officer"]:
         applied_scope = "Jurisdiction Bounded"
 
-    return {
-        "data": db_cases,
-        "meta": {
-            "total": total_count,
-            "page": page,
-            "pageSize": page_size
-        },
-        "appliedScope": applied_scope
-    }
+    return paginate(db_cases, total_count, page, page_size, applied_scope)
 
 @router.get("/{case_id}", response_model=CaseMaster, summary="Get Case Details")
 def read_case(
@@ -77,6 +70,49 @@ def read_case(
             detail="Case not found or access denied."
         )
     return db_case
+
+
+def _accessible_case_or_404(db: Session, case_id: int, current_user: User):
+    case = case_crud.get_case_by_id(db, case_id=case_id, user=current_user)
+    if not case:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Case not found or access denied.")
+    return case
+
+
+@router.get("/{case_id}/accused", response_model=list[dict], summary="List Case Accused")
+def list_case_accused(case_id: int, db: Session = Depends(get_db), current_user: User = Depends(verify_permission("cases:read"))):
+    """Return accused profiles attached to an accessible case file."""
+    case = _accessible_case_or_404(db, case_id, current_user)
+    return [{"AccusedMasterID": item.AccusedMasterID, "AccusedName": item.AccusedName, "AgeYear": item.AgeYear,
+             "GenderID": item.GenderID, "Occupation": item.Occupation, "IsRepeatOffender": item.IsRepeatOffender}
+            for item in case.accused_list]
+
+
+@router.get("/{case_id}/victims", response_model=list[dict], summary="List Case Victims")
+def list_case_victims(case_id: int, db: Session = Depends(get_db), current_user: User = Depends(verify_permission("cases:read"))):
+    """Return victim records attached to an accessible case file."""
+    case = _accessible_case_or_404(db, case_id, current_user)
+    return [{column.name: getattr(item, column.name) for column in item.__table__.columns} for item in case.victims]
+
+
+@router.get("/{case_id}/evidence", response_model=list[dict], summary="List Case Evidence")
+def list_case_evidence(case_id: int, db: Session = Depends(get_db), current_user: User = Depends(verify_permission("cases:read"))):
+    """Return evidence inventory attached to an accessible case file."""
+    case = _accessible_case_or_404(db, case_id, current_user)
+    return [{column.name: getattr(item, column.name) for column in item.__table__.columns} for item in case.evidence_items]
+
+
+@router.get("/{case_id}/vehicles", response_model=list[dict], summary="List Case Vehicles")
+def list_case_vehicles(case_id: int, db: Session = Depends(get_db), current_user: User = Depends(verify_permission("cases:read"))):
+    """Return vehicle records attached to an accessible case file."""
+    case = _accessible_case_or_404(db, case_id, current_user)
+    return [{column.name: getattr(item, column.name) for column in item.__table__.columns} for item in case.vehicles]
+
+
+@router.get("/{case_id}/witnesses", response_model=list[Witness], summary="List Case Witnesses")
+def list_case_witnesses(case_id: int, db: Session = Depends(get_db), current_user: User = Depends(verify_permission("cases:read"))):
+    """Return witness statements attached to an accessible case file."""
+    return _accessible_case_or_404(db, case_id, current_user).witnesses
 
 @router.post("", response_model=CaseMaster, status_code=status.HTTP_201_CREATED, summary="Register Case")
 def create_new_case(

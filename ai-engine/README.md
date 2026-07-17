@@ -29,3 +29,10 @@ uvicorn serving.main:app --reload --port 8100
 ```
 
 Full file-by-file mapping: see `PROJECT_STRUCTURE.md` at the repo root.
+
+## Phase 4: Similar Case Finder
+
+`POST /ai/v1/embeddings` accepts one or more case narratives and returns
+L2-normalised LaBSE vectors. The service never receives database credentials
+or performs database writes; the Core Backend owns pgvector persistence and
+access control.
