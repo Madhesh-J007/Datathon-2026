@@ -14,6 +14,11 @@ from app.models.accused import Accused
 from app.models.victim import Victim
 from app.models.evidence import Evidence
 from app.models.vehicle import Vehicle
+from app.models.user import User
+from app.core.security import hash_password
+from app.models.role import Role
+from app.models.permission import Permission
+from app.models.role_permission import RolePermission
 
 logger = logging.getLogger("ksp_backend")
 
@@ -242,6 +247,201 @@ def map_vehicle(row):
     )
 
 
+def seed_officers(db: Session):
+    """
+    Seeds the officer table from Officer.csv. Also generates placeholder officer records
+    for IDs 586 through 3205 to satisfy foreign key references in CaseMaster.csv.
+    """
+    if db.query(Officer).first() is not None:
+        logger.info("Table 'officer' is already seeded.")
+        return
+
+    csv_path = "/database/seeds/data/Officer.csv"
+    if not os.path.exists(csv_path):
+        logger.warning(f"Seed file not found at {csv_path}. Skipping.")
+        return
+
+    # Query a valid police station and district to use as fallbacks for placeholders
+    first_ps = db.query(PoliceStation).first()
+    if not first_ps:
+        logger.error("Cannot seed officers: police_station table is empty!")
+        return
+
+    default_ps_id = first_ps.UnitID
+    default_district_id = first_ps.DistrictID
+
+    logger.info(f"Seeding 'officer' from {csv_path}...")
+    try:
+        objects_to_insert = []
+        existing_ids = set()
+        with open(csv_path, mode='r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                obj = map_officer(row)
+                if obj:
+                    objects_to_insert.append(obj)
+                    existing_ids.add(obj.OfficerID)
+
+        # Generate placeholders for referenced IDs in CaseMaster up to 3205
+        placeholders_count = 0
+        for officer_id in range(1, 3205):
+            if officer_id not in existing_ids:
+                placeholder = Officer(
+                    OfficerID=officer_id,
+                    PoliceStationID=default_ps_id,
+                    DistrictID=default_district_id,
+                    Name=f"Placeholder Officer #{officer_id}",
+                    Gender="Male",
+                    Rank="Sub-Inspector",
+                    BadgeNumber=f"P-{officer_id}",
+                    YearsOfService=5,
+                    AssignedCaseCount=0
+                )
+                objects_to_insert.append(placeholder)
+                placeholders_count += 1
+
+        db.bulk_save_objects(objects_to_insert)
+        db.commit()
+        logger.info(f"Successfully seeded {len(objects_to_insert)} officers ({placeholders_count} placeholders)!")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error seeding 'officer': {e}")
+
+
+def seed_roles_and_permissions(db: Session):
+    """
+    Seeds core RBAC roles, permissions, and grants permissions to roles.
+    """
+    if db.query(Role).first() is not None:
+        logger.info("Table 'roles' is already seeded.")
+        return
+
+    logger.info("Seeding roles and permissions...")
+    try:
+        # 1. Create Roles
+        admin_role = Role(RoleName="Admin", Description="Super Administrator with full statewide scope and access.")
+        scrb_role = Role(RoleName="SCRB_Officer", Description="State Crime Records Bureau officer with statewide read scope.")
+        sho_role = Role(RoleName="SHO", Description="Station House Officer scoped to police station jurisdiction.")
+        constable_role = Role(RoleName="Constable", Description="Beat constable scoped to police station jurisdiction.")
+
+        db.add_all([admin_role, scrb_role, sho_role, constable_role])
+        db.flush()  # Flush to populate RoleIDs
+
+        # 2. Create Permissions
+        permissions = {
+            "cases:read": Permission(PermissionCode="cases:read", Description="Allow reading case file registries."),
+            "cases:create": Permission(PermissionCode="cases:create", Description="Allow registering new crime cases."),
+            "cases:update": Permission(PermissionCode="cases:update", Description="Allow updating existing crime cases."),
+            "cases:delete": Permission(PermissionCode="cases:delete", Description="Allow soft deleting crime cases."),
+            "cases:annotate": Permission(PermissionCode="cases:annotate", Description="Allow writing case journal annotations."),
+            "users:manage": Permission(PermissionCode="users:manage", Description="Allow managing user accounts, roles, and boundaries.")
+        }
+        db.add_all(permissions.values())
+        db.flush()
+
+        # 3. Grant Permissions to Roles
+        # SCRB_Officer gets read permission
+        db.add(RolePermission(RoleID=scrb_role.RoleID, PermissionID=permissions["cases:read"].PermissionID))
+        
+        # SHO gets read, create, update, annotate
+        db.add_all([
+            RolePermission(RoleID=sho_role.RoleID, PermissionID=permissions["cases:read"].PermissionID),
+            RolePermission(RoleID=sho_role.RoleID, PermissionID=permissions["cases:create"].PermissionID),
+            RolePermission(RoleID=sho_role.RoleID, PermissionID=permissions["cases:update"].PermissionID),
+            RolePermission(RoleID=sho_role.RoleID, PermissionID=permissions["cases:annotate"].PermissionID),
+        ])
+
+        # Constable gets read, annotate
+        db.add_all([
+            RolePermission(RoleID=constable_role.RoleID, PermissionID=permissions["cases:read"].PermissionID),
+            RolePermission(RoleID=constable_role.RoleID, PermissionID=permissions["cases:annotate"].PermissionID),
+        ])
+
+        db.commit()
+        logger.info("Successfully seeded roles, permissions, and role-permission junctions!")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error seeding roles and permissions: {e}")
+
+
+def seed_users(db: Session):
+    """
+    Seeds a default user 'ksp_admin' with password 'change_me' linked to OfficerID 1 and Admin role.
+    """
+    if db.query(User).first() is not None:
+        logger.info("Table 'users' is already seeded.")
+        return
+
+    admin_role = db.query(Role).filter(Role.RoleName == "Admin").first()
+    admin_role_id = admin_role.RoleID if admin_role else None
+
+    logger.info("Seeding default user 'ksp_admin'...")
+    try:
+        admin_user = User(
+            Username="ksp_admin",
+            PasswordHash=hash_password("change_me"),
+            Email="admin@ksp.gov.in",
+            OfficerID=1,
+            RoleID=admin_role_id,
+            IsActive=True
+        )
+        db.add(admin_user)
+        db.commit()
+        logger.info("Successfully seeded default user 'ksp_admin'!")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error seeding user: {e}")
+
+def reset_db_sequences(db: Session):
+    """
+    Resets PostgreSQL auto-increment sequences to MAX(id) + 1 to prevent IntegrityErrors
+    after bulk seeding with explicit IDs.
+    """
+    logger.info("Resetting database auto-increment sequences...")
+    # Dictionary mapping sequence name to (table, column)
+    seqs = {
+        "district_DistrictID_seq": ("district", "DistrictID"),
+        "crime_type_CrimeHeadID_seq": ("crime_type", "CrimeHeadID"),
+        "roles_RoleID_seq": ("roles", "RoleID"),
+        "permissions_PermissionID_seq": ("permissions", "PermissionID"),
+        "unit_type_UnitTypeID_seq": ("unit_type", "UnitTypeID"),
+        "case_category_CaseCategoryID_seq": ("case_category", "CaseCategoryID"),
+        "gravity_offence_GravityOffenceID_seq": ("gravity_offence", "GravityOffenceID"),
+        "case_status_master_CaseStatusID_seq": ("case_status_master", "CaseStatusID"),
+        "act_ActCode_seq": ("act", "ActCode"),
+        "police_station_UnitID_seq": ("police_station", "UnitID"),
+        "crime_sub_type_CrimeSubHeadID_seq": ("crime_sub_type", "CrimeSubHeadID"),
+        "section_SectionID_seq": ("section", "SectionID"),
+        "officer_OfficerID_seq": ("officer", "OfficerID"),
+        "users_UserID_seq": ("users", "UserID"),
+        "case_master_CaseMasterID_seq": ("case_master", "CaseMasterID"),
+        "user_jurisdictions_UserJurisdictionID_seq": ("user_jurisdictions", "UserJurisdictionID"),
+        "criminal_relationships_RelationshipID_seq": ("criminal_relationships", "RelationshipID"),
+        "audit_log_AuditLogID_seq": ("audit_log", "AuditLogID"),
+        "accused_AccusedMasterID_seq": ("accused", "AccusedMasterID"),
+        "victim_VictimMasterID_seq": ("victim", "VictimMasterID"),
+        "evidence_EvidenceID_seq": ("evidence", "EvidenceID"),
+        "vehicle_VehicleID_seq": ("vehicle", "VehicleID"),
+        "witness_WitnessMasterID_seq": ("witness", "WitnessMasterID"),
+        "case_assignments_CaseAssignmentID_seq": ("case_assignments", "CaseAssignmentID"),
+        "case_annotations_AnnotationID_seq": ("case_annotations", "AnnotationID"),
+        "case_embedding_EmbeddingID_seq": ("case_embedding", "EmbeddingID")
+    }
+    
+    from sqlalchemy import text
+    try:
+        for seq, (table, col) in seqs.items():
+            max_val_query = db.execute(text(f'SELECT MAX("{col}") FROM "{table}"'))
+            max_val = max_val_query.scalar()
+            if max_val is not None:
+                db.execute(text(f'SELECT setval(\'"{seq}"\', {max_val}, true)'))
+        db.commit()
+        logger.info("Successfully reset all auto-increment sequences!")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error resetting sequences: {e}")
+
+
 # --- Orchestrated Seeding Pipeline ---
 
 def seed_database(db: Session):
@@ -257,7 +457,7 @@ def seed_database(db: Session):
     seed_table(db, CrimeSubType, "CrimeSubType.csv", map_crime_sub_type)
     
     # 3. Level 2 Dependencies (Officer depends on PS & District)
-    seed_table(db, Officer, "Officer.csv", map_officer)
+    seed_officers(db)
     
     # 4. CaseMaster (Core Entity)
     seed_table(db, CaseMaster, "CaseMaster.csv", map_case_master)
@@ -267,3 +467,10 @@ def seed_database(db: Session):
     seed_table(db, Victim, "Victim.csv", map_victim)
     seed_table(db, Evidence, "Evidence.csv", map_evidence)
     seed_table(db, Vehicle, "Vehicle.csv", map_vehicle)
+    
+    # 6. Default Roles & Identity Seeding
+    seed_roles_and_permissions(db)
+    seed_users(db)
+
+    # 7. Sync Auto-increment Sequences
+    reset_db_sequences(db)

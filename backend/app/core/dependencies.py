@@ -1,5 +1,15 @@
 from typing import Generator
+from fastapi import Depends, HTTPException, status, Request
+from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
+from app.core import security
+from app.crud import user_crud
+from app.models.user import User
+from app.models.officer import Officer
+
+# OAuth2 Scheme mapping to the versioned authentication endpoint
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
 
 def get_db() -> Generator:
     """
@@ -11,3 +21,79 @@ def get_db() -> Generator:
         yield db
     finally:
         db.close()
+
+def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)) -> User:
+    """
+    Dependency that decodes the access token and returns the current authenticated User.
+    Raises 401 Unauthorized if the token is invalid or expired.
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    payload = security.decode_token(token)
+    if not payload or payload.get("type") != "access":
+        raise credentials_exception
+    
+    user_id_str = payload.get("sub")
+    if not user_id_str:
+        raise credentials_exception
+        
+    try:
+        user_id = int(user_id_str)
+    except ValueError:
+        raise credentials_exception
+        
+    user = user_crud.get_user_by_id(db, user_id)
+    if not user:
+        raise credentials_exception
+    
+    # Set context user ID for database-wide auditing listeners
+    from app.core.context import current_user_id as ctx_user_id
+    ctx_user_id.set(user.UserID)
+    
+    return user
+
+def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
+    """
+    Dependency that checks if the authenticated user account is active.
+    """
+    if not current_user.IsActive:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User account is deactivated"
+        )
+    return current_user
+
+def get_current_officer(db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)) -> Officer:
+    """
+    Dependency that returns the Officer record associated with the authenticated User.
+    Raises 403 Forbidden if the user is not linked to the Officer roster.
+    """
+    if not current_user.OfficerID:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The current user account is not linked to an officer profile"
+        )
+    officer = db.query(Officer).filter(Officer.OfficerID == current_user.OfficerID).first()
+    if not officer:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Linked officer profile not found"
+        )
+    return officer
+
+def rate_limit_dependency(request: Request):
+    """
+    Dependency that enforces rate limiting based on client IP.
+    """
+    import logging
+    logger = logging.getLogger("ksp_backend")
+    client_ip = request.client.host if request.client else "unknown"
+    if not security.check_rate_limit(client_ip, limit=100, window=60):
+        logger.warning(f"Rate limit exceeded | IP: {client_ip}")
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Rate limit exceeded. Please try again later."
+        )

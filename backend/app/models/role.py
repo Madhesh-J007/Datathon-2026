@@ -1,7 +1,9 @@
-"""
-SQLAlchemy models for roles, permissions, role_permissions. Used by: crud/ layer, alembic migrations.
+from sqlalchemy import Column, Integer, String
+from app.db.base_class import Base
 
-NOTE: Scaffold placeholder only. Implementation logic to be added
-during the corresponding roadmap milestone. Do not remove this
-file location or name - other modules import from here.
-"""
+class Role(Base):
+    __tablename__ = "roles"
+
+    RoleID = Column(Integer, primary_key=True, index=True)
+    RoleName = Column(String, unique=True, nullable=False)
+    Description = Column(String, nullable=True)

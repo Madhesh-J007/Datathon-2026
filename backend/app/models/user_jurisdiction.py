@@ -1,7 +1,10 @@
-"""
-SQLAlchemy model for user_jurisdictions (RBAC data-scope mapping). Used by: crud/ layer, alembic migrations.
+from sqlalchemy import Column, Integer, ForeignKey
+from app.db.base_class import Base
 
-NOTE: Scaffold placeholder only. Implementation logic to be added
-during the corresponding roadmap milestone. Do not remove this
-file location or name - other modules import from here.
-"""
+class UserJurisdiction(Base):
+    __tablename__ = "user_jurisdictions"
+
+    UserJurisdictionID = Column(Integer, primary_key=True, index=True)
+    UserID = Column(Integer, ForeignKey("users.UserID"), nullable=False)
+    DistrictID = Column(Integer, ForeignKey("district.DistrictID"), nullable=True)
+    UnitID = Column(Integer, ForeignKey("police_station.UnitID"), nullable=True)

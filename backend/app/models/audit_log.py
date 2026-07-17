@@ -1,7 +1,21 @@
-"""
-SQLAlchemy model for the append-only audit_log (SAD Section 20). Used by: crud/ layer, alembic migrations.
+from sqlalchemy import Column, Integer, String, ForeignKey, Text, DateTime, BigInteger
+from sqlalchemy.sql import func
+from app.db.base_class import Base
 
-NOTE: Scaffold placeholder only. Implementation logic to be added
-during the corresponding roadmap milestone. Do not remove this
-file location or name - other modules import from here.
-"""
+class AuditLog(Base):
+    __tablename__ = "audit_log"
+
+    AuditLogID = Column(BigInteger, primary_key=True, index=True)
+    Timestamp = Column(DateTime(timezone=True), default=func.now(), nullable=False, index=True)
+    UserID = Column(Integer, ForeignKey("users.UserID"), nullable=True, index=True)
+    Action = Column(String, nullable=False)
+    ModuleName = Column(String, nullable=False)
+    ResourceID = Column(String, nullable=True)
+    ClientIP = Column(String, nullable=True)
+    UserAgent = Column(String, nullable=True)
+    ScopeAccessed = Column(String, nullable=True)
+    XReason = Column(Text, nullable=True)
+
+    # --- Compliance State Logging ---
+    OldValue = Column(Text, nullable=True)
+    NewValue = Column(Text, nullable=True)

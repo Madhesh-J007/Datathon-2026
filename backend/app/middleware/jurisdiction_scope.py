@@ -1,7 +1,61 @@
-"""
-Injects the authenticated user jurisdiction_scope into every CaseMaster-touching query per SAD Section 21.2 (row-level enforcement, not per-handler). Used by: crud/ layer for cases, accused, victims, evidence, network, hotspot.
+from sqlalchemy import or_
+from sqlalchemy.orm import Session, Query
+from app.models.user import User
+from app.models.case_master import CaseMaster
+from app.models.police_station import PoliceStation
+from app.models.user_jurisdiction import UserJurisdiction
+from app.models.officer import Officer
 
-NOTE: Scaffold placeholder only. Implementation logic to be added
-during the corresponding roadmap milestone. Do not remove this
-file location or name - other modules import from here.
-"""
+def apply_jurisdiction_filter(query: Query, db: Session, user: User, model_class=CaseMaster) -> Query:
+    """
+    Enforces row-level geographic scoping.
+    - Admins/SCRB_Officers bypass filtering (Statewide scope).
+    - Other users (Constables, SHOs) are restricted to their user_jurisdictions.
+    - Fallback defaults to the user's own officer assigned PoliceStationID and DistrictID.
+    """
+    if user.role and user.role.RoleName in ["Admin", "SCRB_Officer"]:
+        return query
+
+    # Load explicit override scopes for the user
+    jurisdictions = db.query(UserJurisdiction).filter(UserJurisdiction.UserID == user.UserID).all()
+    
+    ps_ids = []
+    district_ids = []
+    
+    for j in jurisdictions:
+        if j.UnitID:
+            ps_ids.append(j.UnitID)
+        elif j.DistrictID:
+            district_ids.append(j.DistrictID)
+            
+    # Fallback to the officer profile details if no specific scopes are overridden
+    if not ps_ids and not district_ids:
+        if user.OfficerID:
+            officer = db.query(Officer).filter(Officer.OfficerID == user.OfficerID).first()
+            if officer:
+                ps_ids.append(officer.PoliceStationID)
+                district_ids.append(officer.DistrictID)
+                
+    # If no scope can be resolved, force empty results
+    if not ps_ids and not district_ids:
+        return query.filter(False)
+
+    # Construct filtering criteria
+    filters = []
+    if ps_ids:
+        filters.append(model_class.PoliceStationID.in_(ps_ids))
+    if district_ids:
+        # Resolve all unit IDs that belong to the allowed districts
+        subquery = db.query(PoliceStation.UnitID).filter(PoliceStation.DistrictID.in_(district_ids)).subquery()
+        filters.append(model_class.PoliceStationID.in_(subquery))
+
+    # Assigned Cases & Investigating Officer scope
+    if model_class == CaseMaster and user.OfficerID:
+        from app.models.case_assignment import CaseAssignment
+        assignment_subquery = db.query(CaseAssignment.CaseMasterID).filter(
+            CaseAssignment.OfficerID == user.OfficerID,
+            CaseAssignment.IsActive == True
+        ).subquery()
+        filters.append(model_class.CaseMasterID.in_(assignment_subquery))
+
+    return query.filter(or_(*filters))

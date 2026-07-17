@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
 from app.db.base_class import Base
+from sqlalchemy.orm import relationship
 
 class Officer(Base):
     __tablename__ = "officer"
@@ -13,3 +14,6 @@ class Officer(Base):
     BadgeNumber = Column(String)
     YearsOfService = Column(Integer)
     AssignedCaseCount = Column(Integer)
+
+    # --- ORM Relationships ---
+    assignments = relationship("CaseAssignment", back_populates="officer", cascade="all, delete-orphan")

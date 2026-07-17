@@ -1,7 +1,46 @@
-"""
-Cross-district collaboration request/approval endpoints (SAD Section 14). Used by: frontend collaboration module.
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from typing import List
 
-NOTE: Scaffold placeholder only. Implementation logic to be added
-during the corresponding roadmap milestone. Do not remove this
-file location or name - other modules import from here.
-"""
+from app.core.dependencies import get_db
+from app.core.permissions import verify_permission
+from app.models.user import User
+from app.crud import case_crud, case_annotation_crud, case_assignment_crud
+from app.schemas.case import CaseAnnotation
+from app.schemas.officer import CaseAssignment
+
+router = APIRouter()
+
+@router.get("/cases/{case_id}/annotations", response_model=List[CaseAnnotation], summary="Get Case Annotations")
+def read_annotations(
+    case_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(verify_permission("cases:read"))
+):
+    """
+    Retrieves all collaborative notes and annotations log for a specific case, verifying scope.
+    """
+    case = case_crud.get_case_by_id(db, case_id, current_user)
+    if not case:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Case not found or access denied."
+        )
+    return case_annotation_crud.get_annotations_by_case(db, case_id)
+
+@router.get("/cases/{case_id}/assignments", response_model=List[CaseAssignment], summary="Get Case Assignments")
+def read_assignments(
+    case_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(verify_permission("cases:read"))
+):
+    """
+    Retrieves the historical and active investigator assignments for a specific case, verifying scope.
+    """
+    case = case_crud.get_case_by_id(db, case_id, current_user)
+    if not case:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Case not found or access denied."
+        )
+    return case_assignment_crud.get_assignments_by_case(db, case_id)

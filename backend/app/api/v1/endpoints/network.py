@@ -1,7 +1,45 @@
-"""
-Network graph, gang detection, link-explanation endpoints (SAD Section 10.4). Used by: frontend network module.
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from app.core.dependencies import get_db
+from app.core.permissions import verify_permission
+from app.models.user import User
 
-NOTE: Scaffold placeholder only. Implementation logic to be added
-during the corresponding roadmap milestone. Do not remove this
-file location or name - other modules import from here.
-"""
+# Services & Schemas
+from app.services import relationship_service
+from app.schemas.network import CriminalRelationship, RelationshipCreate, RelationshipVerify
+
+router = APIRouter()
+
+@router.post("/relationships", response_model=CriminalRelationship, status_code=status.HTTP_201_CREATED, summary="Establish Suspect Link")
+def establish_link(
+    relationship_in: RelationshipCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(verify_permission("cases:update"))
+):
+    """
+    Creates a new suspect network relationship connection (edge).
+    """
+    return relationship_service.establish_suspect_link(
+        db=db,
+        source_person_id=relationship_in.SourcePersonID,
+        target_person_id=relationship_in.TargetPersonID,
+        rel_type=relationship_in.RelationshipType,
+        current_user=current_user
+    )
+
+@router.put("/relationships/{relationship_id}/verify", response_model=CriminalRelationship, summary="Verify Suspect Link")
+def verify_link(
+    relationship_id: int,
+    verification_in: RelationshipVerify,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(verify_permission("cases:update"))
+):
+    """
+    Applies verification status (Confirmed/Disputed/Pending) to a suspect relationship connection.
+    """
+    return relationship_service.verify_suspect_link(
+        db=db,
+        relationship_id=relationship_id,
+        verify_status=verification_in.Status,
+        current_user=current_user
+    )

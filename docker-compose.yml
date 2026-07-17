@@ -15,7 +15,9 @@ version: "3.9"
 
 services:
   postgres:
-    image: postgis/postgis:15-3.4    # PostGIS pre-installed; pgvector extension enabled via init SQL
+    build:
+      context: .
+      dockerfile: database/Dockerfile
     container_name: ksp_postgres
     restart: unless-stopped
     environment:

@@ -11,8 +11,11 @@ from app.db.init_db import seed_database
 from app.db.base import Base
 import logging
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Configure logging with a structured format
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - [%(name)s] - [%(filename)s:%(lineno)d] - %(message)s"
+)
 logger = logging.getLogger("ksp_backend")
 
 @asynccontextmanager
@@ -21,8 +24,15 @@ async def lifespan(app: FastAPI):
     Lifespan context manager that handles startup database migrations
     (automatic table creation) and seeds initial datasets.
     """
+    # Register SQLAlchemy event listeners for automated auditing
+    from app.middleware.audit_listeners import register_audit_listeners
+    register_audit_listeners()
+
     logger.info("Initializing database schema...")
     try:
+        # Enable pgvector extension before creating tables that use the Vector type
+        with engine.begin() as conn:
+            conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
         # Create all tables defined in SQLAlchemy models if they do not exist
         Base.metadata.create_all(bind=engine)
         logger.info("Database schema initialized successfully.")
@@ -38,12 +48,30 @@ async def lifespan(app: FastAPI):
 
     yield
 
+from fastapi import Depends
+from app.core.dependencies import rate_limit_dependency
+
 app = FastAPI(
     title="KSP Crime Intelligence & Investigation Platform",
     description="Core Backend API handling cases, network graph analytics, hotspots, and user RBAC.",
     version="1.0.0",
+    dependencies=[Depends(rate_limit_dependency)],
     lifespan=lifespan
 )
+
+# Centralized exception handling
+from app.core.exceptions import KSPException
+from sqlalchemy.exc import IntegrityError
+from fastapi.exceptions import RequestValidationError
+from app.core.handlers import (
+    ksp_exception_handler, db_integrity_error_handler,
+    validation_exception_handler, unhandled_exception_handler
+)
+
+app.add_exception_handler(KSPException, ksp_exception_handler)
+app.add_exception_handler(IntegrityError, db_integrity_error_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(Exception, unhandled_exception_handler)
 
 # CORS middleware configuration
 if settings.CORS_ALLOWED_ORIGINS:
@@ -64,7 +92,21 @@ else:
         allow_headers=["*"],
     )
 
+# OWASP Security Headers Middleware
+@app.middleware("http")
+async def add_security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; frame-ancestors 'none';"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
+
 # Include v1 router prefix
+from app.middleware.audit_hook import AuditLoggingMiddleware
+app.add_middleware(AuditLoggingMiddleware)
+
 app.include_router(api_router, prefix="/api/v1")
 
 @app.get("/health")
