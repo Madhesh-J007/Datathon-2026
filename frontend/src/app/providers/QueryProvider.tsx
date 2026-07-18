@@ -1,10 +1,20 @@
-/**
- * React Query client provider (server-state cache) per SAD Section 4.3. Used by: App.tsx.
- *
- * NOTE: Scaffold placeholder only. Implementation to be added
- * during the corresponding roadmap milestone.
- */
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactNode, useState } from "react";
 
-export default function QueryProvider() {
-  return null;
+export default function QueryProvider({ children }: { children: ReactNode }) {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            refetchOnWindowFocus: false,
+            retry: 1,
+            staleTime: 5 * 60 * 1000,
+          },
+        },
+      })
+  );
+
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }
+

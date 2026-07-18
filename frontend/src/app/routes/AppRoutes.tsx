@@ -1,10 +1,61 @@
-/**
- * React Router route table mapping paths to module pages, incl. role-guarded routes (SAD Section 11 sidebar mapping). Used by: App.tsx.
- *
- * NOTE: Scaffold placeholder only. Implementation to be added
- * during the corresponding roadmap milestone.
- */
+import { Routes, Route, Navigate } from "react-router-dom";
+import ProtectedRoute from "./ProtectedRoute";
+import AppShell from "../../components/layout/AppShell";
+
+// Modules
+import Login from "../../modules/auth";
+import Dashboard from "../../modules/dashboard";
+import Investigation from "../../modules/investigation";
+import Hotspot from "../../modules/hotspot";
+import Network from "../../modules/network";
+import Predictive from "../../modules/predictive";
+import Reports from "../../modules/reports";
+import Collaboration from "../../modules/collaboration";
+import Admin from "../../modules/admin";
 
 export default function AppRoutes() {
-  return null;
+  return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <AppShell />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route path="dashboard" element={<Dashboard activeTab="executive" />} />
+        <Route path="workspace" element={<Dashboard activeTab="workspace" />} />
+        
+        {/* Cases list and details */}
+        <Route path="cases" element={<Investigation />} />
+        <Route path="cases/:id" element={<Investigation />} />
+        
+        {/* GIS Map & Hotspots */}
+        <Route path="map" element={<Hotspot activeTab="gis" />} />
+        <Route path="hotspots" element={<Hotspot activeTab="dashboard" />} />
+        
+        {/* Network graph */}
+        <Route path="network" element={<Network />} />
+        
+        {/* Analytics & Predictive */}
+        <Route path="predictive" element={<Predictive />} />
+        
+        {/* Collaboration Requests */}
+        <Route path="collaboration" element={<Collaboration />} />
+        
+        {/* Reports */}
+        <Route path="reports" element={<Reports />} />
+        
+        {/* Admin management */}
+        <Route path="admin" element={<Admin />} />
+        
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Route>
+    </Routes>
+  );
 }
+

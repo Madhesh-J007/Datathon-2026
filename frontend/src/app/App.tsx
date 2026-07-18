@@ -1,10 +1,17 @@
-/**
- * Root application component: mounts providers and the router outlet. Used by: main.tsx.
- *
- * NOTE: Scaffold placeholder only. Implementation to be added
- * during the corresponding roadmap milestone.
- */
+import { BrowserRouter } from "react-router-dom";
+import AuthProvider from "./providers/AuthProvider";
+import QueryProvider from "./providers/QueryProvider";
+import AppRoutes from "./routes/AppRoutes";
 
 export default function App() {
-  return null;
+  return (
+    <QueryProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryProvider>
+  );
 }
+

@@ -1,10 +1,39 @@
-/**
- * Route wrapper enforcing auth + role/module access before rendering (frontend mirror of backend RBAC per SAD Section 8). Used by: AppRoutes.tsx.
- *
- * NOTE: Scaffold placeholder only. Implementation to be added
- * during the corresponding roadmap milestone.
- */
+import { Navigate } from "react-router-dom";
+import { useAuth } from "../providers/AuthProvider";
+import { ReactNode } from "react";
 
-export default function ProtectedRoute() {
-  return null;
+interface ProtectedRouteProps {
+  children: ReactNode;
+  requiredRoles?: string[];
+}
+
+export default function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps) {
+  const { token, user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-[#0b0f19] text-slate-400">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>
+          <span className="text-sm font-semibold tracking-wider uppercase text-blue-500">
+            KSP Command Center Security Guard...
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!token || !user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (requiredRoles && requiredRoles.length > 0) {
+    const userRole = user.role?.RoleName || "";
+    const hasRole = requiredRoles.includes(userRole);
+    if (!hasRole) {
+      return <Navigate to="/dashboard" replace />;
+    }
+  }
+
+  return <>{children}</>;
 }

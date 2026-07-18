@@ -5,4 +5,11 @@
  * during the corresponding roadmap milestone.
  */
 
-export {};
+import { apiClient } from "./apiClient";
+
+export const assistantService = {
+  async queryAssistant(query: string) {
+    const response = await apiClient.post("/assistant/query", { query });
+    return response.data;
+  },
+};

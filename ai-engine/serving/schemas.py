@@ -24,6 +24,10 @@ class RiskPredictionRequest(BaseModel):
 class RiskFactor(BaseModel):
     feature_name: str
     impact_score: float
+    feature: str
+    contribution: float
+    percentage: float
+    direction: str
     description: str
 
 
@@ -31,7 +35,23 @@ class RiskPredictionResponse(BaseModel):
     score: float
     risk_level: str
     model_version: str
+    confidence: float
+    confidence_meaning: str
+    summary: str
     top_factors: list[RiskFactor]
+
+
+class GlobalFeatureRanking(BaseModel):
+    feature_name: str
+    global_importance: float
+    average_contribution: float
+
+
+class GlobalExplainabilityResponse(BaseModel):
+    model_type: str
+    total_features: int
+    ranking: list[GlobalFeatureRanking]
+
 
 
 class HotspotCase(BaseModel):

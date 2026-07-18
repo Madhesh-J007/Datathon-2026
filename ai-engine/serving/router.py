@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status
 
 from config import settings
 from models.mo_similarity.embeddings import embed_texts
-from models.risk_scoring.scorer import predict_risk
+from models.risk_scoring.scorer import predict_risk, _model
 from models.hotspot.predictor import predict_hotspots
 from models.forecasting.forecaster import forecast_crime_trend
 from models.repeat_offender.resolver import resolve_repeat_offenders
@@ -12,7 +12,7 @@ from serving.schemas import (
     EmbeddingRequest, EmbeddingResponse, HotspotPredictionRequest, HotspotPredictionResponse,
     AnomalyFinding, AnomalyRequest, AnomalyResponse, ForecastRequest, ForecastResponse, NetworkCommunity,
     NetworkCommunityRequest, NetworkCommunityResponse, OffenderProfile, RepeatOffenderRequest, RepeatOffenderResponse,
-    RepeatOffenderMatch, RiskPredictionRequest, RiskPredictionResponse,
+    RepeatOffenderMatch, RiskPredictionRequest, RiskPredictionResponse, GlobalExplainabilityResponse,
 )
 
 router = APIRouter(prefix="/ai/v1", tags=["similarity"])
@@ -43,6 +43,18 @@ def score_case_risk(payload: RiskPredictionRequest) -> RiskPredictionResponse:
         return RiskPredictionResponse(**predict_risk(payload.model_dump()))
     except Exception as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Risk model unavailable.") from exc
+
+
+@router.get("/risk-score/global-explainability", response_model=GlobalExplainabilityResponse)
+def get_global_explanations() -> GlobalExplainabilityResponse:
+    """Return model-level global explainability stats for dashboards."""
+    try:
+        from models.risk_scoring.explain import get_global_explainability
+        model = _model()
+        return GlobalExplainabilityResponse(**get_global_explainability(model))
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Global explanation data unavailable.") from exc
+
 
 
 @router.post("/hotspots/predict", response_model=HotspotPredictionResponse)

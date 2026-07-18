@@ -1,10 +1,118 @@
-/**
- * Generic sortable/paginated table used across all list views. Used by: cases, officers, network, admin modules.
- *
- * NOTE: Scaffold placeholder only. Implementation to be added
- * during the corresponding roadmap milestone.
- */
+import { ReactNode } from "react";
 
-export default function DataTable() {
-  return null;
+interface Column {
+  header: string;
+  accessorKey: string;
+  render?: (row: any) => ReactNode;
+}
+
+interface Meta {
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+interface DataTableProps {
+  columns: Column[];
+  data: any[];
+  loading?: boolean;
+  onRowClick?: (row: any) => void;
+  meta?: Meta;
+  onPageChange?: (page: number) => void;
+}
+
+export default function DataTable({
+  columns,
+  data,
+  loading = false,
+  onRowClick,
+  meta,
+  onPageChange,
+}: DataTableProps) {
+  return (
+    <div className="flex flex-col h-full bg-[#111827] border border-[#1e293b] rounded overflow-hidden select-none">
+      <div className="flex-1 overflow-auto">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-[#0f1524] border-b border-[#1e293b]">
+              {columns.map((col, idx) => (
+                <th
+                  key={idx}
+                  className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400 font-mono"
+                >
+                  {col.header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#1e293b] text-slate-200">
+            {loading ? (
+              Array.from({ length: 5 }).map((_, rIdx) => (
+                <tr key={rIdx} className="animate-pulse">
+                  {columns.map((_, cIdx) => (
+                    <td key={cIdx} className="px-4 py-3.5">
+                      <div className="h-4 bg-slate-800 rounded w-2/3"></div>
+                    </td>
+                  ))}
+                </tr>
+              ))
+            ) : data.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={columns.length}
+                  className="px-4 py-8 text-center text-xs text-slate-500 font-mono"
+                >
+                  No matching record entries found in jurisdiction logs.
+                </td>
+              </tr>
+            ) : (
+              data.map((row, rIdx) => (
+                <tr
+                  key={rIdx}
+                  onClick={() => onRowClick && onRowClick(row)}
+                  className={`text-xs transition-colors ${
+                    onRowClick ? "cursor-pointer hover:bg-[#151c2e]" : ""
+                  }`}
+                >
+                  {columns.map((col, cIdx) => (
+                    <td key={cIdx} className="px-4 py-3 leading-relaxed">
+                      {col.render ? col.render(row) : row[col.accessorKey]}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {meta && onPageChange && (
+        <div className="bg-[#0f1524] border-t border-[#1e293b] px-4 py-3 flex items-center justify-between text-xs text-slate-400 font-mono">
+          <div>
+            Showing <span className="text-slate-200">{(meta.page - 1) * meta.pageSize + 1}</span> to{" "}
+            <span className="text-slate-200">
+              {Math.min(meta.page * meta.pageSize, meta.total)}
+            </span>{" "}
+            of <span className="text-slate-200">{meta.total}</span> records
+          </div>
+          <div className="flex gap-2">
+            <button
+              disabled={meta.page <= 1}
+              onClick={() => onPageChange(meta.page - 1)}
+              className="px-2.5 py-1 rounded bg-[#111827] border border-[#1e293b] hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-[#111827] text-[10px]"
+            >
+              Previous
+            </button>
+            <button
+              disabled={meta.page * meta.pageSize >= meta.total}
+              onClick={() => onPageChange(meta.page + 1)}
+              className="px-2.5 py-1 rounded bg-[#111827] border border-[#1e293b] hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-[#111827] text-[10px]"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

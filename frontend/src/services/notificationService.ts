@@ -1,8 +1,9 @@
-/**
- * Typed client for /notifications endpoints. Used by: corresponding module's hooks/components.
- *
- * NOTE: Scaffold placeholder only. Implementation to be added
- * during the corresponding roadmap milestone.
- */
+import { apiClient } from "./apiClient";
 
-export {};
+export const notificationService = {
+  async getNotifications() {
+    const response = await apiClient.get("/notifications");
+    return response.data;
+  },
+};
+

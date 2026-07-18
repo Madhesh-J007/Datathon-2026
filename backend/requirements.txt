@@ -10,7 +10,7 @@ uvicorn[standard]==0.30.6
 # --- Database / ORM / migrations ---
 sqlalchemy==2.0.35
 alembic==1.13.2
-psycopg2-binary==2.9.9
+psycopg2-binary>=2.9.9
 geoalchemy2==0.15.2        # PostGIS geography column support (SAD Section 6.2)
 pgvector==0.3.4            # pgvector embedding column support (SAD Section 3.3)
 

@@ -1,10 +1,266 @@
-/**
- * Persistent top bar: search entry point, notifications bell, user menu. Used by: app shell.
- *
- * NOTE: Scaffold placeholder only. Implementation to be added
- * during the corresponding roadmap milestone.
- */
+import { useState, useEffect, useRef } from "react";
+import { useAuth } from "../../app/providers/AuthProvider";
+import { notificationService } from "../../services/notificationService";
+import { searchService } from "../../services/searchService";
+import { Bell, Search, ShieldAlert, CheckCircle, Clock } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function TopBar() {
-  return null;
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [showWalkthrough, setShowWalkthrough] = useState(false);
+
+  const notificationRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    notificationService.getNotifications()
+      .then((data) => setNotifications(data))
+      .catch((err) => console.error("Failed to load notifications", err));
+  }, []);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSearchResults(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (searchQuery.trim().length < 2) {
+      setSearchResults(null);
+      setShowSearchResults(false);
+      return;
+    }
+
+    const delayDebounce = setTimeout(async () => {
+      setIsSearching(true);
+      setShowSearchResults(true);
+      try {
+        const data = await searchService.unifiedSearch(searchQuery);
+        setSearchResults(data);
+      } catch (err) {
+        console.error("Search failed", err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounce);
+  }, [searchQuery]);
+
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
+
+  return (
+    <header className="h-16 bg-[#090d16] border-b border-[#1e293b] flex items-center justify-between px-6 select-none relative z-40">
+      <div ref={searchRef} className="w-96 relative">
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search Case #, Accused name, evidence..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-[#111827] border border-[#1e293b] text-slate-200 text-xs rounded pl-9 pr-4 py-2 focus:outline-none focus:border-blue-500 transition-colors"
+          />
+          <Search className="absolute left-3 top-2.5 text-slate-500" size={14} />
+        </div>
+
+        {showSearchResults && (
+          <div className="absolute top-12 left-0 w-[480px] bg-[#0d1322] border border-[#1e293b] rounded shadow-2xl p-4 max-h-[400px] overflow-y-auto z-50">
+            <h3 className="text-[10px] text-blue-500 font-mono uppercase tracking-wider mb-2">
+              Unified Search Results
+            </h3>
+            {isSearching ? (
+              <div className="text-center py-4 text-xs text-slate-500">Querying police logs...</div>
+            ) : !searchResults || (searchResults.cases?.length === 0 && searchResults.accused?.length === 0 && searchResults.evidence?.length === 0) ? (
+              <div className="text-center py-4 text-xs text-slate-500">No matching records found.</div>
+            ) : (
+              <div className="space-y-3">
+                {searchResults.cases?.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-300 mb-1 border-b border-[#1e293b] pb-1">Cases</h4>
+                    <ul className="space-y-1">
+                      {searchResults.cases.map((c: any) => (
+                        <li key={c.CaseMasterID}>
+                          <Link
+                            to={`/cases/${c.CaseMasterID}`}
+                            onClick={() => setShowSearchResults(false)}
+                            className="block hover:bg-[#151c2e] p-1.5 rounded transition-colors"
+                          >
+                            <span className="text-blue-400 font-semibold text-xs">{c.CaseNo}</span>
+                            <p className="text-[10px] text-slate-400 truncate">{c.BriefFacts}</p>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {searchResults.accused?.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-300 mb-1 border-b border-[#1e293b] pb-1">Accused Persons</h4>
+                    <ul className="space-y-1">
+                      {searchResults.accused.map((a: any) => (
+                        <li key={a.AccusedMasterID}>
+                          <Link
+                            to={`/cases/${a.CaseMasterID}`}
+                            onClick={() => setShowSearchResults(false)}
+                            className="block hover:bg-[#151c2e] p-1.5 rounded transition-colors"
+                          >
+                            <span className="text-amber-400 font-semibold text-xs">{a.AccusedName}</span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {searchResults.evidence?.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-300 mb-1 border-b border-[#1e293b] pb-1">Evidence Items</h4>
+                    <ul className="space-y-1">
+                      {searchResults.evidence.map((e: any) => (
+                        <li key={e.EvidenceID}>
+                          <Link
+                            to={`/cases/${e.CaseMasterID}`}
+                            onClick={() => setShowSearchResults(false)}
+                            className="block hover:bg-[#151c2e] p-1.5 rounded transition-colors"
+                          >
+                            <span className="text-emerald-400 font-semibold text-xs">{e.EvidenceType}</span>
+                            <p className="text-[10px] text-slate-400 truncate">{e.Description}</p>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center gap-6">
+        <button
+          onClick={() => setShowWalkthrough(!showWalkthrough)}
+          className={`flex items-center gap-1.5 border rounded px-2.5 py-1 text-xs font-mono transition-colors ${
+            showWalkthrough
+              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 animate-pulse font-bold"
+              : "bg-slate-800/40 text-slate-400 border-slate-700/60 hover:text-slate-200"
+          }`}
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+          <span>Walkthrough Guide</span>
+        </button>
+
+        <div ref={notificationRef} className="relative">
+          <button
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="text-slate-400 hover:text-slate-200 relative p-1 transition-colors focus:outline-none"
+          >
+            <Bell size={18} />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-[9px] font-bold text-white leading-none">
+                {unreadCount}
+              </span>
+            )}
+          </button>
+
+          {showNotifications && (
+            <div className="absolute right-0 top-8 w-80 bg-[#0d1322] border border-[#1e293b] rounded shadow-2xl max-h-[360px] overflow-y-auto z-50">
+              <div className="p-3 border-b border-[#1e293b] flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-200">Alert Center</span>
+                <span className="text-[10px] text-slate-500 font-mono">{notifications.length} alerts</span>
+              </div>
+              <div className="divide-y divide-[#1e293b]">
+                {notifications.map((n) => (
+                  <div key={n.id} className={`p-3 hover:bg-[#151c2e] transition-colors ${!n.is_read ? "bg-[#0f172a]" : ""}`}>
+                    <div className="flex items-start gap-2.5">
+                      {!n.is_read ? (
+                        <ShieldAlert className="text-red-400 flex-shrink-0 mt-0.5" size={14} />
+                      ) : (
+                        <CheckCircle className="text-slate-500 flex-shrink-0 mt-0.5" size={14} />
+                      )}
+                      <div>
+                        <h4 className="text-xs font-semibold text-slate-200">{n.title}</h4>
+                        <p className="text-[10px] text-slate-400 leading-normal mt-0.5">{n.message}</p>
+                        <div className="flex items-center gap-1 text-[8px] text-slate-500 mt-1 font-mono">
+                          <Clock size={8} />
+                          <span>{new Date(n.created_at).toLocaleTimeString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 border-l border-[#1e293b] pl-6">
+          <div className="text-right">
+            <span className="block text-xs font-bold text-slate-200">{user?.Username}</span>
+            <span className="text-[9px] text-slate-500 font-mono tracking-wider uppercase">
+              {user?.role?.RoleName || "Officer"}
+            </span>
+          </div>
+          <div className="w-8 h-8 rounded bg-gradient-to-br from-blue-700 to-indigo-900 border border-blue-500/30 flex items-center justify-center font-bold text-xs text-white">
+            {user?.Username?.substring(0, 2).toUpperCase() || "SI"}
+          </div>
+        </div>
+      </div>
+
+      {showWalkthrough && (
+        <div className="fixed right-4 top-20 w-80 bg-[#0d1322] border border-[#1e293b] rounded shadow-2xl p-5 z-50 animate-slide-in select-none">
+          <div className="flex items-center justify-between border-b border-[#1e293b] pb-3 mb-4">
+            <div>
+              <span className="text-[9px] text-emerald-400 font-mono uppercase font-bold tracking-widest">Presenter Console</span>
+              <h4 className="text-xs font-bold text-slate-200">Command Center Walkthrough</h4>
+            </div>
+            <button
+              onClick={() => setShowWalkthrough(false)}
+              className="text-slate-500 hover:text-slate-300 text-xs font-bold font-mono"
+            >
+              Close
+            </button>
+          </div>
+
+          <div className="space-y-3.5">
+            {[
+              { title: "Landing Page: AI Briefing", desc: "Showcase live situation briefings, critical alert lists, and operational health.", target: "/dashboard" },
+              { title: "GIS Mapping: Hotspot Playback", desc: "Open the GIS map, drag the playback slider to watch hotspots shift.", target: "/map" },
+              { title: "Investigation: pgvector Similarities", desc: "Check dossier indexes and trigger side-by-side similarities.", target: "/cases" },
+              { title: "Accused Networks: Louvain Clusters", desc: "Animate suspect relationships and highlight linked communities.", target: "/network" },
+            ].map((step, idx) => (
+              <div
+                key={idx}
+                onClick={() => {
+                  navigate(step.target);
+                }}
+                className="p-3 bg-[#111827] border border-[#1e293b] hover:border-emerald-500/40 rounded transition-all cursor-pointer flex gap-3 text-xs"
+              >
+                <div className="w-5 h-5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold font-mono text-[10px] flex-shrink-0 mt-0.5">
+                  {idx + 1}
+                </div>
+                <div>
+                  <h5 className="font-bold text-slate-200">{step.title}</h5>
+                  <p className="text-[10px] text-slate-400 mt-0.5 leading-relaxed font-sans">{step.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </header>
+  );
 }
