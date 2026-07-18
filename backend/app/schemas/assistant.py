@@ -7,3 +7,4 @@ class AssistantQueryRequest(BaseModel):
 class AssistantQueryResponse(BaseModel):
     answer: str
     source_case_ids: List[int]
+    model_version: str

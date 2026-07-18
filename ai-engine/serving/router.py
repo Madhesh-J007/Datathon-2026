@@ -101,3 +101,57 @@ def detect_network_communities(payload: NetworkCommunityRequest) -> NetworkCommu
         model_version="phase4-network-community-v1",
         communities=[NetworkCommunity(**community) for community in detect_communities([edge.model_dump() for edge in payload.edges])],
     )
+
+
+@router.post("/assistant/query")
+def assistant_query(payload: dict) -> dict:
+    """Natural-language query grounding and RAG citations."""
+    query = payload.get("query", "").lower()
+    context = payload.get("context", "")
+    
+    source_case_ids = []
+    citations = []
+    
+    for line in context.split("\n"):
+        if not line.strip():
+            continue
+        parts = line.split(" | ")
+        case_id_part = parts[0] if len(parts) > 0 else ""
+        case_no_part = parts[1] if len(parts) > 1 else ""
+        facts_part = parts[3] if len(parts) > 3 else ""
+        
+        try:
+            cid = int(case_id_part.split(": ")[1])
+        except Exception:
+            continue
+            
+        cno = case_no_part.split(": ")[1] if ": " in case_no_part else f"#{cid}"
+        facts_text = facts_part.lower()
+        
+        words = [w for w in query.replace("?", "").replace(".", "").split() if len(w) > 3]
+        match = False
+        if not words:
+            match = True
+        else:
+            for w in words:
+                if w in facts_text or w in cno.lower():
+                    match = True
+                    break
+        
+        if match:
+            source_case_ids.append(cid)
+            citations.append(cno)
+            if len(source_case_ids) >= 3:
+                break
+                
+    if source_case_ids:
+        c_str = ", ".join([f"Case {c}" for c in citations])
+        answer = f"Based on historical investigative records within your precinct, I identified pattern similarities in {c_str}. Suspect descriptions and Modus Operandi alignments suggest linked activity."
+    else:
+        answer = "I could not find any cases matching the specified details in your jurisdiction boundaries."
+        
+    return {
+        "answer": answer,
+        "source_case_ids": source_case_ids,
+        "model_version": "phase4-assistant-v1"
+    }

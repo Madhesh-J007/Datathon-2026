@@ -38,6 +38,9 @@ from app.models.criminal_relationship import CriminalRelationship
 from app.models.audit_log import AuditLog
 from app.models.case_embedding import CaseEmbedding
 from app.models.ai_model_run import AIModelRun
+from app.models.report_job import ReportJob
+from app.models.notification import Notification
+from app.models.collaboration_request import CollaborationRequest
 
 # Export all models for Alembic and Base metadata detection
 __all__ = [
@@ -69,6 +72,9 @@ __all__ = [
     "CaseAnnotation",
     "CriminalRelationship",
     "AuditLog",
-    "CaseEmbedding"
-    ,"AIModelRun"
+    "CaseEmbedding",
+    "AIModelRun",
+    "ReportJob",
+    "Notification",
+    "CollaborationRequest"
 ]

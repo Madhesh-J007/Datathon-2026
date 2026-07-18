@@ -1,12 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
+from typing import List
 
 from app.core.dependencies import get_db
 from app.core.permissions import verify_permission
 from app.models.user import User
+from app.models.report_job import ReportJob
 from app.crud import case_crud
-from app.schemas.report import ReportSummary
+from app.schemas.report import ReportSummary, ReportJobOut, ReportHistoryResponse
+from app.services import report_service
 
 router = APIRouter()
 
@@ -35,4 +39,57 @@ def get_case_report_summary(
         TotalVictims=len(case.victims),
         TotalEvidence=len(case.evidence_items),
         ReportGeneratedAt=datetime.now(timezone.utc)
+    )
+
+@router.post("/cases/{case_id}/generate", response_model=ReportJobOut, summary="Trigger PDF Report Generation")
+def generate_case_report(
+    case_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(verify_permission("cases:read"))
+):
+    """
+    Triggers the asynchronous generation of a PDF case report dossier.
+    """
+    return report_service.create_report_job(db, case_id, current_user)
+
+@router.get("/history", response_model=ReportHistoryResponse, summary="Get Report History")
+def get_reports_history(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(verify_permission("cases:read"))
+):
+    """
+    Retrieves all generated case reports within the user's jurisdiction scope.
+    """
+    history = report_service.get_report_history(db, current_user)
+    return ReportHistoryResponse(history=history)
+
+@router.get("/jobs/{report_job_id}", response_model=ReportJobOut, summary="Get Report Job Status")
+def get_report_job_status(
+    report_job_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(verify_permission("cases:read"))
+):
+    """
+    Retrieves status of a running report generation job.
+    """
+    return report_service.get_report_job(db, report_job_id, current_user)
+
+@router.get("/jobs/{report_job_id}/download", summary="Download PDF Report")
+def download_pdf_report(
+    report_job_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Downloads the compiled PDF bytes. Bypass strict auth scopes to allow simple href downloads.
+    """
+    job = db.query(ReportJob).filter(ReportJob.ReportJobID == report_job_id).first()
+    if not job or not job.PDFBytes:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="PDF report file is not ready or does not exist."
+        )
+    return Response(
+        content=job.PDFBytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=case_dossier_{job.CaseMasterID}.pdf"}
     )

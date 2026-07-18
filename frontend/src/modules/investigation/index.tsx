@@ -332,7 +332,7 @@ export default function Investigation() {
                         <td className="px-4 py-2.5">{a.Occupation || "Unspecified"}</td>
                         <td className="px-4 py-2.5">
                           {a.IsRepeatOffender ? (
-                            <span className="bg-red-500/10 text-red-400 border border-red-500/20 px-1.5 py-0.5 rounded text-[9px] font-mono">
+                            <span className="bg-red-500/10 text-red-400 border border-red-500/20 px-1.5 py-0.5 rounded text-[10px] font-mono">
                               Repeat Offender Flag
                             </span>
                           ) : (
@@ -554,28 +554,43 @@ export default function Investigation() {
                 ) : !similarCasesData || similarCasesData.Matches?.length === 0 ? (
                   <div className="text-center py-8 text-xs text-slate-500 font-mono">No similar MO matches found.</div>
                 ) : (
-                  similarCasesData.Matches.map((m: any, idx: number) => (
-                    <div
-                      key={idx}
-                      onClick={() => setSelectedCompareCase(m)}
-                      className={`p-3.5 rounded border transition-all cursor-pointer flex gap-4 ${
-                        selectedCompareCase === m
-                          ? "bg-blue-600/10 border-blue-500/50"
-                          : "bg-[#111827] border-[#1e293b] hover:border-slate-700"
-                      }`}
-                    >
-                      <div className="w-16 border-r border-[#1e293b] flex flex-col items-center justify-center text-center">
-                        <span className="text-[10px] font-bold text-slate-400">Match #{idx + 1}</span>
-                        <span className="text-sm font-extrabold text-blue-400 mt-1 font-mono">
-                          {((m.SimilarityScore || 0) * 100).toFixed(0)}%
-                        </span>
+                  similarCasesData.Matches.map((m: any, idx: number) => {
+                    const getSeverityBorder = (r: any) => {
+                      const priority = r.InvestigationPriority;
+                      const gravity = r.GravityOffenceID;
+                      const risk = r.AIRiskScore;
+                      if (gravity === 1 || priority === "High" || (risk && risk >= 0.7)) {
+                        return "border-l-red-500";
+                      }
+                      if (gravity === 2 || priority === "Medium" || (risk && risk >= 0.4)) {
+                        return "border-l-amber-500";
+                      }
+                      return "border-l-emerald-500";
+                    };
+
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => setSelectedCompareCase(m)}
+                        className={`p-3.5 rounded border border-l-4 ${getSeverityBorder(m)} transition-all cursor-pointer flex gap-4 ${
+                          selectedCompareCase === m
+                            ? "bg-blue-600/10 border-blue-500/50"
+                            : "bg-[#111827] border-[#1e293b] hover:border-slate-700"
+                        }`}
+                      >
+                        <div className="w-16 border-r border-[#1e293b] flex flex-col items-center justify-center text-center">
+                          <span className="text-[10px] font-bold text-slate-400">Match #{idx + 1}</span>
+                          <span className="text-sm font-extrabold text-blue-400 mt-1 font-mono">
+                            {((m.SimilarityScore || 0) * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                        <div className="flex-1 text-xs">
+                          <span className="font-bold text-slate-200 block">Case No: {m.CaseNo || `ID #${m.CaseMasterID}`}</span>
+                          <p className="text-slate-400 mt-1 line-clamp-2 italic">"{m.BriefFacts}"</p>
+                        </div>
                       </div>
-                      <div className="flex-1 text-xs">
-                        <span className="font-bold text-slate-200 block">Case No: {m.CaseNo || `ID #${m.CaseMasterID}`}</span>
-                        <p className="text-slate-400 mt-1 line-clamp-2 italic">"{m.BriefFacts}"</p>
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
 
@@ -598,14 +613,14 @@ export default function Investigation() {
                     {/* Comparison rows */}
                     <div className="divide-y divide-[#1e293b] space-y-3.5">
                       <div className="pt-3">
-                        <span className="text-slate-500 font-mono text-[9px] uppercase block mb-1">Current Case Facts</span>
+                        <span className="text-slate-500 font-mono text-[10px] uppercase block mb-1">Current Case Facts</span>
                         <p className="text-slate-300 font-sans leading-relaxed bg-[#0d1322] p-2.5 rounded border border-[#1e293b]/50">
                           {caseDetails.BriefFacts}
                         </p>
                       </div>
 
                       <div className="pt-3">
-                        <span className="text-slate-500 font-mono text-[9px] uppercase block mb-1">Compared Case Facts (Case No: {selectedCompareCase.CaseNo})</span>
+                        <span className="text-slate-500 font-mono text-[10px] uppercase block mb-1">Compared Case Facts (Case No: {selectedCompareCase.CaseNo})</span>
                         <p className="text-slate-300 font-sans leading-relaxed bg-[#0d1322] p-2.5 rounded border border-[#1e293b]/50 italic">
                           "{selectedCompareCase.BriefFacts}"
                         </p>
@@ -613,13 +628,13 @@ export default function Investigation() {
 
                       {selectedCompareCase.TopFactors?.length > 0 && (
                         <div className="pt-3">
-                          <span className="text-slate-500 font-mono text-[9px] uppercase block mb-1.5">Shared Modus Operandi & Features</span>
+                          <span className="text-slate-500 font-mono text-[10px] uppercase block mb-1.5">Shared Modus Operandi & Features</span>
                           <div className="flex flex-wrap gap-1.5">
                             {selectedCompareCase.TopFactors.map((f: any, fIdx: number) => (
                               <span
                                 key={fIdx}
                                 title={f.Description}
-                                className="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 rounded text-[9px] font-mono"
+                                className="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 rounded text-[10px] font-mono"
                               >
                                 {f.FeatureName}
                               </span>

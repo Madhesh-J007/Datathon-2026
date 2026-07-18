@@ -66,7 +66,7 @@ export default function KpiCard({
           {value}
         </span>
         {trend && (
-          <span className={`text-[9px] px-1.5 py-0.5 rounded border font-mono ${getTrendColor()}`}>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded border font-mono ${getTrendColor()}`}>
             {trend}
           </span>
         )}
@@ -77,7 +77,7 @@ export default function KpiCard({
           {badges.map((badge, idx) => (
             <span
               key={idx}
-              className={`text-[8px] px-1.5 py-0.5 rounded border font-mono ${getTrendColor(badge.type)}`}
+              className={`text-[10px] px-1.5 py-0.5 rounded border font-mono ${getTrendColor(badge.type)}`}
             >
               {badge.label}
             </span>

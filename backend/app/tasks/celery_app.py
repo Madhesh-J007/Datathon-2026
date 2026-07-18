@@ -1,7 +1,17 @@
-"""
-Celery application instance + broker/backend config (Redis). Used by: report generation, notification fan-out, batch AI scoring triggers.
+from celery import Celery
+from app.core.config import settings
 
-NOTE: Scaffold placeholder only. Implementation logic to be added
-during the corresponding roadmap milestone. Do not remove this
-file location or name - other modules import from here.
-"""
+celery_app = Celery(
+    "tasks",
+    broker=settings.REDIS_URL,
+    backend=settings.REDIS_URL,
+    include=["app.tasks.report_tasks", "app.tasks.notification_tasks"]
+)
+
+celery_app.conf.update(
+    task_serializer="json",
+    accept_content=["json"],
+    result_serializer="json",
+    timezone="UTC",
+    enable_utc=True,
+)

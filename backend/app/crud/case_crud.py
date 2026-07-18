@@ -12,7 +12,7 @@ def get_case_by_id(db: Session, case_id: int, user: User) -> CaseMaster | None:
     """
     query = db.query(CaseMaster).filter(CaseMaster.CaseMasterID == case_id)
     query = apply_jurisdiction_filter(query, db, user)
-    query = query.options(
+    options = (
         selectinload(CaseMaster.accused_list),
         selectinload(CaseMaster.victims),
         selectinload(CaseMaster.witnesses),
@@ -22,7 +22,15 @@ def get_case_by_id(db: Session, case_id: int, user: User) -> CaseMaster | None:
         selectinload(CaseMaster.annotations),
         selectinload(CaseMaster.embeddings)
     )
-    return query.first()
+    query = query.options(*options)
+    res = query.first()
+    if not res:
+        # Check if the user has an active, approved collaboration request for this case
+        from app.services import collaboration_service
+        if collaboration_service.check_active_collaboration(db, case_id, user.OfficerID):
+            bypass_query = db.query(CaseMaster).filter(CaseMaster.CaseMasterID == case_id).options(*options)
+            return bypass_query.first()
+    return res
 
 def get_cases_paginated(
     db: Session,

@@ -36,6 +36,7 @@ export default function AssistantPanel() {
           sender: "bot",
           text: data.answer,
           sources: data.source_case_ids || [],
+          modelVersion: data.model_version || "phase4-assistant-v1",
         },
       ]);
     } catch (err) {
@@ -88,18 +89,23 @@ export default function AssistantPanel() {
                 <p>{m.text}</p>
                 {m.sources && m.sources.length > 0 && (
                   <div className="mt-2 border-t border-[#1e293b] pt-1.5 flex flex-wrap gap-1 items-center">
-                    <span className="text-[8px] text-slate-500 font-mono uppercase">Citations:</span>
+                    <span className="text-[10px] text-slate-500 font-mono uppercase">Citations:</span>
                     {m.sources.map((srcId: number) => (
                       <Link
                         key={srcId}
                         to={`/cases/${srcId}`}
                         onClick={() => setIsOpen(false)}
-                        className="bg-blue-500/10 text-blue-400 hover:underline px-1 py-0.5 rounded text-[8px] font-mono border border-blue-500/25 flex items-center gap-0.5"
+                        className="bg-blue-500/10 text-blue-400 hover:underline px-1 py-0.5 rounded text-[10px] font-mono border border-blue-500/25 flex items-center gap-0.5"
                       >
-                        <FileText size={8} />
+                        <FileText size={10} />
                         <span>Case #{srcId}</span>
                       </Link>
                     ))}
+                  </div>
+                )}
+                {m.sender === "bot" && m.modelVersion && (
+                  <div className="text-[9px] text-slate-500 font-mono mt-1 text-right select-none uppercase tracking-wider">
+                    rag_assistant · {m.modelVersion}
                   </div>
                 )}
               </div>

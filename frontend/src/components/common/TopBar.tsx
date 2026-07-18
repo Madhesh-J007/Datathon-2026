@@ -10,19 +10,26 @@ export default function TopBar() {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [showWalkthrough, setShowWalkthrough] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState(false);
 
   const notificationRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    notificationService.getNotifications()
-      .then((data) => setNotifications(data))
-      .catch((err) => console.error("Failed to load notifications", err));
+    // Check if demo query param is set or was previously toggled
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("demo") === "true") {
+      setIsDemoMode(true);
+      localStorage.setItem("demo_mode", "true");
+    } else if (localStorage.getItem("demo_mode") === "true") {
+      setIsDemoMode(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -36,6 +43,14 @@ export default function TopBar() {
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    setIsLoadingNotifications(true);
+    notificationService.getNotifications()
+      .then((data) => setNotifications(data))
+      .catch((err) => console.error("Failed to load notifications", err))
+      .finally(() => setIsLoadingNotifications(false));
   }, []);
 
   useEffect(() => {
@@ -83,14 +98,20 @@ export default function TopBar() {
               Unified Search Results
             </h3>
             {isSearching ? (
-              <div className="text-center py-4 text-xs text-slate-500">Querying police logs...</div>
+              <div className="space-y-3 py-2">
+                <div className="flex flex-col gap-2 animate-pulse">
+                  <div className="h-3.5 bg-slate-800 rounded w-1/4 mb-1"></div>
+                  <div className="h-10 bg-slate-800/60 rounded w-full"></div>
+                  <div className="h-10 bg-slate-800/60 rounded w-full"></div>
+                </div>
+              </div>
             ) : !searchResults || (searchResults.cases?.length === 0 && searchResults.accused?.length === 0 && searchResults.evidence?.length === 0) ? (
-              <div className="text-center py-4 text-xs text-slate-500">No matching records found.</div>
+              <div className="text-center py-4 text-xs text-slate-500 font-mono">No matching records found.</div>
             ) : (
               <div className="space-y-3">
                 {searchResults.cases?.length > 0 && (
                   <div>
-                    <h4 className="text-xs font-bold text-slate-300 mb-1 border-b border-[#1e293b] pb-1">Cases</h4>
+                    <h4 className="text-xs font-bold text-slate-300 mb-1 border-b border-[#1e293b] pb-1 font-mono">Cases</h4>
                     <ul className="space-y-1">
                       {searchResults.cases.map((c: any) => (
                         <li key={c.CaseMasterID}>
@@ -109,7 +130,7 @@ export default function TopBar() {
                 )}
                 {searchResults.accused?.length > 0 && (
                   <div>
-                    <h4 className="text-xs font-bold text-slate-300 mb-1 border-b border-[#1e293b] pb-1">Accused Persons</h4>
+                    <h4 className="text-xs font-bold text-slate-300 mb-1 border-b border-[#1e293b] pb-1 font-mono">Accused Persons</h4>
                     <ul className="space-y-1">
                       {searchResults.accused.map((a: any) => (
                         <li key={a.AccusedMasterID}>
@@ -127,7 +148,7 @@ export default function TopBar() {
                 )}
                 {searchResults.evidence?.length > 0 && (
                   <div>
-                    <h4 className="text-xs font-bold text-slate-300 mb-1 border-b border-[#1e293b] pb-1">Evidence Items</h4>
+                    <h4 className="text-xs font-bold text-slate-300 mb-1 border-b border-[#1e293b] pb-1 font-mono">Evidence Items</h4>
                     <ul className="space-y-1">
                       {searchResults.evidence.map((e: any) => (
                         <li key={e.EvidenceID}>
@@ -151,17 +172,19 @@ export default function TopBar() {
       </div>
 
       <div className="flex items-center gap-6">
-        <button
-          onClick={() => setShowWalkthrough(!showWalkthrough)}
-          className={`flex items-center gap-1.5 border rounded px-2.5 py-1 text-xs font-mono transition-colors ${
-            showWalkthrough
-              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 animate-pulse font-bold"
-              : "bg-slate-800/40 text-slate-400 border-slate-700/60 hover:text-slate-200"
-          }`}
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-          <span>Walkthrough Guide</span>
-        </button>
+        {isDemoMode && (
+          <button
+            onClick={() => setShowWalkthrough(!showWalkthrough)}
+            className={`flex items-center gap-1.5 border rounded px-2.5 py-1 text-xs font-mono transition-colors ${
+              showWalkthrough
+                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 animate-pulse font-bold"
+                : "bg-slate-800/40 text-slate-400 border-slate-700/60 hover:text-slate-200"
+            }`}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+            <span>Walkthrough Guide</span>
+          </button>
+        )}
 
         <div ref={notificationRef} className="relative">
           <button
@@ -170,7 +193,7 @@ export default function TopBar() {
           >
             <Bell size={18} />
             {unreadCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-[9px] font-bold text-white leading-none">
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white leading-none">
                 {unreadCount}
               </span>
             )}
@@ -179,29 +202,52 @@ export default function TopBar() {
           {showNotifications && (
             <div className="absolute right-0 top-8 w-80 bg-[#0d1322] border border-[#1e293b] rounded shadow-2xl max-h-[360px] overflow-y-auto z-50">
               <div className="p-3 border-b border-[#1e293b] flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-200">Alert Center</span>
+                <span className="text-xs font-bold text-slate-200 font-mono">Alert Center</span>
                 <span className="text-[10px] text-slate-500 font-mono">{notifications.length} alerts</span>
               </div>
               <div className="divide-y divide-[#1e293b]">
-                {notifications.map((n) => (
-                  <div key={n.id} className={`p-3 hover:bg-[#151c2e] transition-colors ${!n.is_read ? "bg-[#0f172a]" : ""}`}>
-                    <div className="flex items-start gap-2.5">
-                      {!n.is_read ? (
-                        <ShieldAlert className="text-red-400 flex-shrink-0 mt-0.5" size={14} />
-                      ) : (
-                        <CheckCircle className="text-slate-500 flex-shrink-0 mt-0.5" size={14} />
-                      )}
-                      <div>
-                        <h4 className="text-xs font-semibold text-slate-200">{n.title}</h4>
-                        <p className="text-[10px] text-slate-400 leading-normal mt-0.5">{n.message}</p>
-                        <div className="flex items-center gap-1 text-[8px] text-slate-500 mt-1 font-mono">
-                          <Clock size={8} />
-                          <span>{new Date(n.created_at).toLocaleTimeString()}</span>
-                        </div>
+                {isLoadingNotifications ? (
+                  <div className="p-3 space-y-3">
+                    <div className="flex gap-2.5 animate-pulse">
+                      <div className="w-4 h-4 rounded-full bg-slate-800"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3 bg-slate-800 rounded w-1/3"></div>
+                        <div className="h-2 bg-slate-800 rounded w-5/6"></div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2.5 animate-pulse">
+                      <div className="w-4 h-4 rounded-full bg-slate-800"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3 bg-slate-800 rounded w-1/4"></div>
+                        <div className="h-2 bg-slate-800 rounded w-2/3"></div>
                       </div>
                     </div>
                   </div>
-                ))}
+                ) : notifications.length === 0 ? (
+                  <div className="text-center py-6 text-xs text-slate-500 font-mono italic">
+                    No notifications or alert events logged.
+                  </div>
+                ) : (
+                  notifications.map((n) => (
+                    <div key={n.id} className={`p-3 hover:bg-[#151c2e] transition-colors ${!n.is_read ? "bg-[#0f172a]" : ""}`}>
+                      <div className="flex items-start gap-2.5">
+                        {!n.is_read ? (
+                          <ShieldAlert className="text-red-400 flex-shrink-0 mt-0.5" size={14} />
+                        ) : (
+                          <CheckCircle className="text-slate-500 flex-shrink-0 mt-0.5" size={14} />
+                        )}
+                        <div>
+                          <h4 className="text-xs font-semibold text-slate-200">{n.title}</h4>
+                          <p className="text-[10px] text-slate-400 leading-normal mt-0.5">{n.message}</p>
+                          <div className="flex items-center gap-1 text-[10px] text-slate-500 mt-1 font-mono">
+                            <Clock size={8} />
+                            <span>{new Date(n.created_at).toLocaleTimeString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}
@@ -210,7 +256,7 @@ export default function TopBar() {
         <div className="flex items-center gap-2 border-l border-[#1e293b] pl-6">
           <div className="text-right">
             <span className="block text-xs font-bold text-slate-200">{user?.Username}</span>
-            <span className="text-[9px] text-slate-500 font-mono tracking-wider uppercase">
+            <span className="text-[10px] text-slate-500 font-mono tracking-wider uppercase">
               {user?.role?.RoleName || "Officer"}
             </span>
           </div>
@@ -224,7 +270,7 @@ export default function TopBar() {
         <div className="fixed right-4 top-20 w-80 bg-[#0d1322] border border-[#1e293b] rounded shadow-2xl p-5 z-50 animate-slide-in select-none">
           <div className="flex items-center justify-between border-b border-[#1e293b] pb-3 mb-4">
             <div>
-              <span className="text-[9px] text-emerald-400 font-mono uppercase font-bold tracking-widest">Presenter Console</span>
+              <span className="text-[10px] text-emerald-400 font-mono uppercase font-bold tracking-widest">Presenter Console</span>
               <h4 className="text-xs font-bold text-slate-200">Command Center Walkthrough</h4>
             </div>
             <button

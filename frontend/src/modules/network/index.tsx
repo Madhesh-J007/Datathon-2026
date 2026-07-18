@@ -39,13 +39,14 @@ export default function NetworkModule() {
                 <div key={idx} className="bg-[#151c2e] border border-[#1e293b] p-3 rounded text-xs leading-relaxed">
                   <div className="flex justify-between items-center mb-1">
                     <span className="font-bold text-slate-200">Syndicate Group #{idx + 1}</span>
-                    <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1 rounded text-[9px] font-mono">
+                    <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 rounded text-[10px] font-mono">
                       {(g.Confidence * 100).toFixed(0)}% Conf
                     </span>
                   </div>
                   <p className="text-slate-400 text-[10px] italic">"{g.Explanation}"</p>
-                  <div className="mt-2 text-[9px] text-slate-500 font-mono">
-                    Members: {g.MemberPersonIDs?.length || 0} suspects
+                  <div className="mt-2 text-[10px] text-slate-500 font-mono flex justify-between items-center gap-1.5">
+                    <span>Members: {g.MemberPersonIDs?.length || 0} suspects</span>
+                    <span className="text-slate-600 uppercase tracking-wider text-[9px]">louvain_community · {gangData?.model_version || "phase4-network-community-v1"}</span>
                   </div>
                 </div>
               ))}

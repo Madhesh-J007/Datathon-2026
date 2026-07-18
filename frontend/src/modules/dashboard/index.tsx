@@ -226,7 +226,7 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
             ))}
           </div>
         </div>
-        <div className="text-[9px] text-slate-500 flex-shrink-0 flex items-center gap-1">
+        <div className="text-[10px] text-slate-500 flex-shrink-0 flex items-center gap-1">
           <RefreshCw className="animate-spin text-slate-600" size={10} />
           <span>Realtime Feed</span>
         </div>
@@ -319,7 +319,7 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
                 Mission Critical Alerts Queue
               </h3>
             </div>
-            <span className="bg-red-500/10 text-red-400 border border-red-500/20 text-[9px] px-1.5 py-0.5 rounded font-mono">
+            <span className="bg-red-500/10 text-red-400 border border-red-500/20 text-[10px] px-1.5 py-0.5 rounded font-mono">
               Action Required
             </span>
           </div>
@@ -347,9 +347,9 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
               </div>
             ) : (
               anomaliesData.Findings.map((finding: any, idx: number) => (
-                <div key={idx} className="p-3 bg-red-500/5 border border-red-500/15 rounded flex justify-between items-start">
+                <div key={idx} className="p-3 bg-red-500/5 border border-red-500/15 border-l-4 border-l-red-500 rounded flex justify-between items-start">
                   <div>
-                    <span className="text-[9px] bg-red-500/10 text-red-400 px-1 rounded font-mono font-bold">ANOMALY DETECTED</span>
+                    <span className="text-[10px] bg-red-500/10 text-red-400 px-1 rounded font-mono font-bold">ANOMALY DETECTED</span>
                     <h4 className="font-semibold text-slate-200 mt-1 font-mono">Case ID #{finding.CaseMasterID}</h4>
                     <p className="text-[10px] text-slate-400 mt-0.5 font-mono">
                       Factors: {finding.Factors?.join(", ") || "Statistical deviation in incident timeline."}
@@ -373,7 +373,7 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
                 AI Recommended Actions Center
               </h3>
             </div>
-            <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[9px] px-1.5 py-0.5 rounded font-mono">
+            <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] px-1.5 py-0.5 rounded font-mono">
               Decision Support
             </span>
           </div>
@@ -381,40 +381,40 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
           <div className="flex-1 overflow-y-auto space-y-2.5 pr-2">
             <div className="p-3 bg-blue-500/5 border border-blue-500/10 rounded flex justify-between items-center text-xs">
               <div className="space-y-1">
-                <span className="text-[9px] text-blue-400 font-mono uppercase font-bold tracking-wider">Reinforce Patrol Route</span>
+                <span className="text-[10px] text-blue-400 font-mono uppercase font-bold tracking-wider">Reinforce Patrol Route</span>
                 <h4 className="font-bold text-slate-200">Deploy Unit to Hotspot Zone 3</h4>
                 <p className="text-[10px] text-slate-400">Reason: Burglary probability spikes between 18:00 - 22:00.</p>
               </div>
               <div className="text-right flex-shrink-0">
-                <span className="block text-[8px] text-slate-500 font-mono">Conf / Priority</span>
+                <span className="block text-[10px] text-slate-500 font-mono">Conf / Priority</span>
                 <span className="text-blue-400 font-bold font-mono">92%</span>
-                <span className="block text-[9px] text-red-400 font-bold uppercase font-mono">CRITICAL</span>
+                <span className="block text-[10px] text-red-400 font-bold uppercase font-mono">CRITICAL</span>
               </div>
             </div>
 
             <div className="p-3 bg-blue-500/5 border border-blue-500/10 rounded flex justify-between items-center text-xs">
               <div className="space-y-1">
-                <span className="text-[9px] text-blue-400 font-mono uppercase font-bold tracking-wider">Dossier Assignment</span>
+                <span className="text-[10px] text-blue-400 font-mono uppercase font-bold tracking-wider">Dossier Assignment</span>
                 <h4 className="font-bold text-slate-200">Assign Senior Investigator to KSP-102</h4>
                 <p className="text-[10px] text-slate-400">Reason: Complex cross-circle linkages require specialized MO experience.</p>
               </div>
               <div className="text-right flex-shrink-0">
-                <span className="block text-[8px] text-slate-500 font-mono">Conf / Priority</span>
+                <span className="block text-[10px] text-slate-500 font-mono">Conf / Priority</span>
                 <span className="text-blue-400 font-bold font-mono">87%</span>
-                <span className="block text-[9px] text-amber-400 font-bold uppercase font-mono">HIGH</span>
+                <span className="block text-[10px] text-amber-400 font-bold uppercase font-mono">HIGH</span>
               </div>
             </div>
 
             <div className="p-3 bg-blue-500/5 border border-blue-500/10 rounded flex justify-between items-center text-xs">
               <div className="space-y-1">
-                <span className="text-[9px] text-blue-400 font-mono uppercase font-bold tracking-wider">Organized Crime Review</span>
+                <span className="text-[10px] text-blue-400 font-mono uppercase font-bold tracking-wider">Organized Crime Review</span>
                 <h4 className="font-bold text-slate-200">Escalate Gang Alpha Similarity Linkage</h4>
                 <p className="text-[10px] text-slate-400">Reason: Co-accused network indicates active community boundary expansions.</p>
               </div>
               <div className="text-right flex-shrink-0">
-                <span className="block text-[8px] text-slate-500 font-mono">Conf / Priority</span>
+                <span className="block text-[10px] text-slate-500 font-mono">Conf / Priority</span>
                 <span className="text-blue-400 font-bold font-mono">81%</span>
-                <span className="block text-[9px] text-amber-400 font-bold uppercase font-mono">HIGH</span>
+                <span className="block text-[10px] text-amber-400 font-bold uppercase font-mono">HIGH</span>
               </div>
             </div>
           </div>
@@ -429,7 +429,7 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
                 Chronological Mission Timeline
               </h3>
             </div>
-            <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] px-1.5 py-0.5 rounded font-mono">
+            <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] px-1.5 py-0.5 rounded font-mono">
               Live Feed
             </span>
           </div>
@@ -519,20 +519,20 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-xs text-slate-300">
           <div className="p-3 bg-[#151c2e] border border-[#1e293b] rounded">
-            <span className="text-slate-500 block font-mono text-[9px] uppercase">Threat Level Index</span>
+            <span className="text-slate-500 block font-mono text-[10px] uppercase">Threat Level Index</span>
             <span className="text-red-400 font-bold text-sm block mt-1">STAGE II (ELEVATED)</span>
           </div>
           <div className="p-3 bg-[#151c2e] border border-[#1e293b] rounded">
-            <span className="text-slate-500 block font-mono text-[9px] uppercase">Officer Availability</span>
+            <span className="text-slate-500 block font-mono text-[10px] uppercase">Officer Availability</span>
             <span className="text-emerald-400 font-bold text-sm block mt-1">87% Active Shift</span>
           </div>
           <div className="p-3 bg-[#151c2e] border border-[#1e293b] rounded">
-            <span className="text-slate-500 block font-mono text-[9px] uppercase">Resource Allocation</span>
+            <span className="text-slate-500 block font-mono text-[10px] uppercase">Resource Allocation</span>
             <span className="text-slate-100 font-bold text-sm block mt-1">94% Capacity Utilized</span>
           </div>
           <div className="p-3 bg-[#151c2e] border border-[#1e293b] rounded flex items-center justify-between">
             <div>
-              <span className="text-slate-500 block font-mono text-[9px] uppercase">Platform Health</span>
+              <span className="text-slate-500 block font-mono text-[10px] uppercase">Platform Health</span>
               <span className="text-emerald-400 font-bold text-sm block mt-1">ONLINE</span>
             </div>
             <Server className="text-emerald-400 animate-pulse" size={16} />

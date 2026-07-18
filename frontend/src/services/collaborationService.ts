@@ -1,33 +1,13 @@
-// Simple local state for mocked collaboration requests to show reactivity
-let mockRequests = [
-  {
-    CollaborationRequestID: 1,
-    CaseMasterID: 1002,
-    RequestingOfficerID: 4,
-    Justification: "Suspect matches MO of housebreaking syndicate in Belagavi circle.",
-    RequestStatus: "Pending",
-  },
-  {
-    CollaborationRequestID: 2,
-    CaseMasterID: 1005,
-    RequestingOfficerID: 7,
-    Justification: "Need access to victim's call log details to verify alibi.",
-    RequestStatus: "Approved",
-  },
-];
+import { apiClient } from "./apiClient";
 
 export const collaborationService = {
   async getCollaborationRequests() {
-    // Simulate API fetch delay
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    return mockRequests;
+    const response = await apiClient.get("/collaboration/requests");
+    return response.data;
   },
 
   async approveCollaborationRequest(requestId: number) {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    mockRequests = mockRequests.map((req) =>
-      req.CollaborationRequestID === requestId ? { ...req, RequestStatus: "Approved" } : req
-    );
-    return { status: "success", message: "Request approved" };
+    const response = await apiClient.post(`/collaboration/requests/${requestId}/approve`);
+    return response.data;
   },
 };

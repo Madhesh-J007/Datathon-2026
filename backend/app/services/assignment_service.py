@@ -59,6 +59,17 @@ def assign_officer_to_case(
         db_assignment = case_assignment_crud.create_assignment(db, assignment_data)
         officer_service.increment_caseload(db, officer_id)
         
+        # Trigger dynamic in-app notification for the assigned officer
+        assigned_user = db.query(User).filter(User.OfficerID == officer_id).first()
+        if assigned_user:
+            from app.services import notification_service
+            notification_service.create_notification(
+                db,
+                user_id=assigned_user.UserID,
+                title="New Investigator Assignment",
+                message=f"You have been assigned as {role} on Case #{case.CaseNo}."
+            )
+        
         # Log the audit action
         audit_service.log_action(
             db=db,

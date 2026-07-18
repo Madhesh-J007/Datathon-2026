@@ -1,7 +1,15 @@
-"""
-SQLAlchemy model for collaboration_requests (SAD Section 14). Used by: crud/ layer, alembic migrations.
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy.sql import func
+from app.db.base_class import Base
 
-NOTE: Scaffold placeholder only. Implementation logic to be added
-during the corresponding roadmap milestone. Do not remove this
-file location or name - other modules import from here.
-"""
+class CollaborationRequest(Base):
+    __tablename__ = "collaboration_requests"
+
+    CollaborationRequestID = Column(Integer, primary_key=True, index=True)
+    CaseMasterID = Column(Integer, ForeignKey("case_master.CaseMasterID"), nullable=False)
+    RequestingOfficerID = Column(Integer, ForeignKey("officer.OfficerID"), nullable=False)
+    Justification = Column(String, nullable=True)
+    RequestStatus = Column(String, default="Pending", nullable=False)  # Pending, Approved, Denied
+    ApprovedAt = Column(DateTime(timezone=True), nullable=True)
+    ExpiryAt = Column(DateTime(timezone=True), nullable=True)
+    CreatedAt = Column(DateTime(timezone=True), default=func.now(), nullable=False)

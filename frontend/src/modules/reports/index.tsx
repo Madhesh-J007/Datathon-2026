@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { reportService } from "../../services/reportService";
 import { FileText, Download, CheckCircle } from "lucide-react";
 
 export default function Reports() {
   const queryClient = useQueryClient();
+  const [confirmSubmit, setConfirmSubmit] = useState(false);
 
   // Fetch report logs history
   const { data: historyData, isLoading } = useQuery({
@@ -44,7 +46,14 @@ export default function Reports() {
               e.preventDefault();
               const form = e.currentTarget;
               const caseId = parseInt((form.elements.namedItem("caseId") as HTMLInputElement).value);
-              if (caseId) generateMutation.mutate(caseId);
+              if (caseId) {
+                if (!confirmSubmit) {
+                  setConfirmSubmit(true);
+                } else {
+                  generateMutation.mutate(caseId);
+                  setConfirmSubmit(false);
+                }
+              }
             }}
             className="space-y-3 pt-2"
           >
@@ -61,13 +70,32 @@ export default function Reports() {
               />
             </div>
 
-            <button
-              type="submit"
-              disabled={generateMutation.isPending}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white rounded py-2 text-xs font-semibold uppercase tracking-wider transition-colors"
-            >
-              {generateMutation.isPending ? "Compiling Dossier..." : "Compile PDF Report"}
-            </button>
+            {confirmSubmit ? (
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={generateMutation.isPending}
+                  className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-red-800 text-white rounded py-2 text-xs font-semibold uppercase tracking-wider transition-colors"
+                >
+                  {generateMutation.isPending ? "Compiling..." : "Confirm Compile"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmSubmit(false)}
+                  className="bg-slate-700 hover:bg-slate-600 text-slate-200 rounded py-2 px-3 text-xs font-semibold uppercase tracking-wider transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                type="submit"
+                disabled={generateMutation.isPending}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white rounded py-2 text-xs font-semibold uppercase tracking-wider transition-colors border border-blue-500/30 shadow-lg shadow-blue-500/10"
+              >
+                {generateMutation.isPending ? "Compiling Dossier..." : "Compile PDF Report"}
+              </button>
+            )}
           </form>
         </div>
 

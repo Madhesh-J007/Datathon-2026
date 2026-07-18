@@ -2,12 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from app.core.dependencies import get_db
+from app.core.dependencies import get_db, get_current_active_user
 from app.core.permissions import verify_permission
 from app.models.user import User
 from app.crud import case_crud, case_annotation_crud, case_assignment_crud
 from app.schemas.case import CaseAnnotation
 from app.schemas.officer import CaseAssignment
+from app.schemas.collaboration import CollaborationRequestOut, CollaborationApprovalResponse
+from app.services import collaboration_service
 
 router = APIRouter()
 
@@ -44,3 +46,25 @@ def read_assignments(
             detail="Case not found or access denied."
         )
     return case_assignment_crud.get_assignments_by_case(db, case_id)
+
+@router.get("/requests", response_model=List[CollaborationRequestOut], summary="List Collaboration Requests")
+def list_collab_requests(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Lists all cross-jurisdiction data access requests visible to the active user.
+    """
+    return collaboration_service.get_collaboration_requests(db, current_user)
+
+@router.post("/requests/{request_id}/approve", response_model=CollaborationApprovalResponse, summary="Approve Collaboration Request")
+def approve_collab_request(
+    request_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Approves a pending collaboration request, granting a time-boxed data access window.
+    """
+    collaboration_service.approve_collaboration_request(db, request_id, current_user)
+    return CollaborationApprovalResponse(status="success", message="Request approved")

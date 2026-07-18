@@ -219,7 +219,7 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
 
             <div className="space-y-3">
               <div>
-                <label className="block text-[9px] uppercase font-mono text-slate-400 mb-1">District Division</label>
+                <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">District Division</label>
                 <select
                   value={filters.district}
                   onChange={(e) => setFilters({ ...filters, district: e.target.value })}
@@ -233,7 +233,7 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
               </div>
 
               <div>
-                <label className="block text-[9px] uppercase font-mono text-slate-400 mb-1">Incident Keywords</label>
+                <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Incident Keywords</label>
                 <input
                   type="text"
                   placeholder="e.g. theft, assault..."
@@ -312,7 +312,7 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
                     >
                       <div className="flex justify-between items-center mb-1">
                         <span className="text-[10px] font-bold text-slate-300">Zone #{idx + 1}</span>
-                        <span className={`text-[9px] font-mono px-1 rounded ${
+                        <span className={`text-[10px] font-mono px-1 rounded ${
                           isHigh ? "text-red-400 bg-red-500/10 border border-red-500/20" :
                           "text-amber-400 bg-amber-500/10 border border-amber-500/20"
                         }`}>
@@ -359,8 +359,11 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
         {selectedHotspot && (
           <div className="absolute bottom-20 left-4 right-4 bg-[#0d1322]/95 border border-blue-500/30 rounded shadow-2xl p-4 z-20 flex justify-between items-center gap-6 animate-slide-up select-none backdrop-blur">
             <div className="flex-1 space-y-1">
-              <span className="text-[8px] bg-red-500/10 text-red-400 border border-red-500/20 px-1.5 py-0.5 rounded font-mono font-bold uppercase tracking-wider">
+              <span className="text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 px-1.5 py-0.5 rounded font-mono font-bold uppercase tracking-wider">
                 AI Hotspot Zone Intelligence Match
+              </span>
+              <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 rounded font-mono font-bold uppercase tracking-wider ml-2">
+                kernel_density · {predictedData?.model_version || "phase4-kde-hotspot-v1"}
               </span>
               <h4 className="text-xs font-bold text-slate-100 font-mono mt-1">
                 Location Coordinates: {selectedHotspot.latitude.toFixed(4)} N, {selectedHotspot.longitude.toFixed(4)} E
@@ -402,7 +405,7 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
               {isPlaying ? <Pause size={14} /> : <Play size={14} />}
             </button>
             <div className="text-xs">
-              <span className="block text-[8px] text-slate-500 uppercase font-mono">Simulation Hour</span>
+              <span className="block text-[10px] text-slate-500 uppercase font-mono">Simulation Hour</span>
               <span className="font-bold text-slate-200 font-mono">{timeHour.toString().padStart(2, "0")}:00 hrs</span>
             </div>
           </div>
@@ -420,7 +423,7 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
               }}
               className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
             />
-            <div className="flex justify-between text-[8px] text-slate-500 font-mono mt-1 px-1">
+            <div className="flex justify-between text-[10px] text-slate-500 font-mono mt-1 px-1">
               <span>00:00</span>
               <span>04:00</span>
               <span>08:00</span>
@@ -432,7 +435,7 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
           </div>
 
           <div className="bg-blue-500/10 border border-blue-500/20 rounded px-3 py-1.5 text-right flex-shrink-0">
-            <span className="block text-[8px] text-slate-500 font-mono uppercase">Patrol Alignment</span>
+            <span className="block text-[10px] text-slate-500 font-mono uppercase">Patrol Alignment</span>
             <span className="text-blue-400 font-bold text-[10px] font-mono">Dynamic route active</span>
           </div>
         </div>

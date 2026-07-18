@@ -84,15 +84,14 @@ services:
     ports:
       - "5173:80"
 
-  # celery-worker:
-  #   build:
-  #     context: ./backend
-  #   command: celery -A app.tasks.celery_app worker --loglevel=info
-  #   env_file: .env
-  #   depends_on:
-  #     - redis
-  #     - postgres
-  #   # Uncomment once report generation / notification tasks (Roadmap Milestone 8) are implemented.
+  celery-worker:
+    build:
+      context: ./backend
+    command: celery -A app.tasks.celery_app worker --loglevel=info
+    env_file: .env
+    depends_on:
+      - redis
+      - postgres
 
 volumes:
   postgres_data:

@@ -35,6 +35,7 @@ export default function DataTable({
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-[#0f1524] border-b border-[#1e293b]">
+              <th className="w-1 px-0 py-3"></th>
               {columns.map((col, idx) => (
                 <th
                   key={idx}
@@ -49,6 +50,9 @@ export default function DataTable({
             {loading ? (
               Array.from({ length: 5 }).map((_, rIdx) => (
                 <tr key={rIdx} className="animate-pulse">
+                  <td className="w-1 p-0">
+                    <div className="w-1 h-8 bg-slate-800"></div>
+                  </td>
                   {columns.map((_, cIdx) => (
                     <td key={cIdx} className="px-4 py-3.5">
                       <div className="h-4 bg-slate-800 rounded w-2/3"></div>
@@ -59,28 +63,49 @@ export default function DataTable({
             ) : data.length === 0 ? (
               <tr>
                 <td
-                  colSpan={columns.length}
+                  colSpan={columns.length + 1}
                   className="px-4 py-8 text-center text-xs text-slate-500 font-mono"
                 >
                   No matching record entries found in jurisdiction logs.
                 </td>
               </tr>
             ) : (
-              data.map((row, rIdx) => (
-                <tr
-                  key={rIdx}
-                  onClick={() => onRowClick && onRowClick(row)}
-                  className={`text-xs transition-colors ${
-                    onRowClick ? "cursor-pointer hover:bg-[#151c2e]" : ""
-                  }`}
-                >
-                  {columns.map((col, cIdx) => (
-                    <td key={cIdx} className="px-4 py-3 leading-relaxed">
-                      {col.render ? col.render(row) : row[col.accessorKey]}
+              data.map((row, rIdx) => {
+                const getSeverityColorClass = (r: any) => {
+                  const priority = r.InvestigationPriority;
+                  const gravity = r.GravityOffenceID;
+                  const risk = r.AIRiskScore;
+                  if (priority === undefined && gravity === undefined && risk === undefined) {
+                    return "bg-transparent";
+                  }
+                  if (gravity === 1 || priority === "High" || (risk && risk >= 0.7)) {
+                    return "bg-red-500";
+                  }
+                  if (gravity === 2 || priority === "Medium" || (risk && risk >= 0.4)) {
+                    return "bg-amber-500";
+                  }
+                  return "bg-emerald-500";
+                };
+
+                return (
+                  <tr
+                    key={rIdx}
+                    onClick={() => onRowClick && onRowClick(row)}
+                    className={`text-xs transition-colors ${
+                      onRowClick ? "cursor-pointer hover:bg-[#151c2e]" : ""
+                    }`}
+                  >
+                    <td className="w-1 p-0">
+                      <div className={`w-1 h-8 ${getSeverityColorClass(row)}`}></div>
                     </td>
-                  ))}
-                </tr>
-              ))
+                    {columns.map((col, cIdx) => (
+                      <td key={cIdx} className="px-4 py-3 leading-relaxed">
+                        {col.render ? col.render(row) : row[col.accessorKey]}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

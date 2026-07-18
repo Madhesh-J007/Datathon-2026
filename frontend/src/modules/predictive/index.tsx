@@ -125,7 +125,7 @@ export default function Predictive() {
                   <div>
                     <h4 className="font-semibold text-slate-200">Patrol Route Target #{idx + 1}</h4>
                     <p className="text-[10px] text-slate-400 mt-0.5">Coordinates: {h.latitude.toFixed(4)} N, {h.longitude.toFixed(4)} E</p>
-                    <p className="text-[9px] text-slate-500 font-mono mt-1">Factors: {h.top_factors?.join(", ")}</p>
+                    <p className="text-[10px] text-slate-500 font-mono mt-1">Factors: {h.top_factors?.join(", ")}</p>
                   </div>
                   <div className="text-right">
                     <span className="block text-[10px] text-slate-300 font-mono">Confidence</span>
