@@ -1,7 +1,5 @@
-"""Append-only audit writes for AI capabilities."""
-
 import json
-
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from app.models.ai_model_run import AIModelRun

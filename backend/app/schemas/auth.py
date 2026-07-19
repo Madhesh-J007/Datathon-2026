@@ -14,6 +14,14 @@ class TokenResponse(BaseModel):
 class TokenRefreshRequest(BaseModel):
     refresh_token: str
 
+class RoleOut(BaseModel):
+    RoleID: int
+    RoleName: str
+    Description: str
+
+    class Config:
+        from_attributes = True
+
 class UserOut(BaseModel):
     UserID: int
     Username: str
@@ -21,6 +29,7 @@ class UserOut(BaseModel):
     OfficerID: Optional[int] = None
     IsActive: bool
     CreatedAt: datetime
+    role: Optional[RoleOut] = None
 
     class Config:
         from_attributes = True

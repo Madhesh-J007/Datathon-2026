@@ -22,5 +22,6 @@ def query_assistant(
     
     return AssistantQueryResponse(
         answer=result["answer"],
-        source_case_ids=result["source_case_ids"]
+        source_case_ids=result["source_case_ids"],
+        model_version=result.get("model_version", "phase4-assistant-v1")
     )

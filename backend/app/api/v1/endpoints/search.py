@@ -44,7 +44,7 @@ def unified_search(
     evidence_query = db.query(Evidence).join(CaseMaster, Evidence.CaseMasterID == CaseMaster.CaseMasterID)
     evidence_query = apply_jurisdiction_filter(evidence_query, db, current_user, model_class=CaseMaster)
     evidence = evidence_query.filter(
-        Evidence.EvidenceName.ilike(f"%{q}%")
+        Evidence.EvidenceType.ilike(f"%{q}%")
     ).limit(10).all()
 
     return {

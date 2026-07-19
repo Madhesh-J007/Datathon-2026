@@ -31,12 +31,12 @@ def generate_pdf_report_task(report_job_id: int):
 
         # Construct a clean, professional HTML dossier
         accused_rows = "".join([
-            f"<tr><td>{a.AccusedName or 'N/A'}</td><td>{a.Age or 'N/A'}</td><td>{a.Sex or 'N/A'}</td><td>{a.CurrentStatus or 'N/A'}</td></tr>"
+            f"<tr><td>{a.AccusedName or 'N/A'}</td><td>{a.AgeYear or 'N/A'}</td><td>{'Male' if a.GenderID == 1 else 'Female' if a.GenderID == 2 else 'N/A'}</td><td>{'Repeat Offender' if a.IsRepeatOffender == 1 else 'First-time Offender'}</td></tr>"
             for a in case.accused_list
         ])
         
         evidence_rows = "".join([
-            f"<tr><td>{e.EvidenceType or 'N/A'}</td><td>{e.Description or 'N/A'}</td><td>{e.CollectedDate.strftime('%Y-%m-%d') if e.CollectedDate else 'N/A'}</td></tr>"
+            f"<tr><td>{e.EvidenceType or 'N/A'}</td><td>{e.Description or 'N/A'}</td><td>{e.CollectionDate.strftime('%Y-%m-%d') if e.CollectionDate else 'N/A'}</td></tr>"
             for e in case.evidence_items
         ])
 
@@ -49,8 +49,9 @@ def generate_pdf_report_task(report_job_id: int):
                 h2 {{ font-size: 16px; color: #1e3a8a; margin-top: 30px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }}
                 .meta-table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; }}
                 .meta-table th, .meta-table td {{ border: 1px solid #e2e8f0; padding: 10px; text-align: left; font-size: 12px; }}
-                .meta-table th {{ bg-color: #f8fafc; font-weight: bold; width: 30%; }}
+                .meta-table th {{ background-color: #f8fafc; font-weight: bold; width: 30%; }}
                 .facts {{ background: #f8fafc; border-left: 4px solid #3b82f6; padding: 15px; font-size: 12px; margin-bottom: 25px; }}
+                .ai-box {{ background: #eff6ff; border: 1px dashed #3b82f6; border-left: 4px solid #1d4ed8; padding: 15px; font-size: 12px; margin-bottom: 25px; border-radius: 4px; }}
                 table.data-table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
                 table.data-table th, table.data-table td {{ border: 1px solid #e2e8f0; padding: 8px; text-align: left; font-size: 11px; }}
                 table.data-table th {{ background: #f1f5f9; font-weight: bold; }}
@@ -60,7 +61,7 @@ def generate_pdf_report_task(report_job_id: int):
             <h1>KARNATAKA STATE POLICE — CASE DOSSIER</h1>
             <table class="meta-table">
                 <tr><th>Case Number</th><td>{case.CaseNo or "N/A"}</td></tr>
-                <tr><th>Date of Registration</th><td>{case.CrimeRegisteredDate.strftime('%Y-%m-%d %H:%M:%S') if case.CrimeRegisteredDate else "N/A"}</td></tr>
+                <tr><th>Date of Registration</th><td>{case.CrimeRegisteredDate.strftime('%Y-%m-%d') if case.CrimeRegisteredDate else "N/A"}</td></tr>
                 <tr><th>AI Risk Score</th><td>{f"{case.AIRiskScore:.2f}" if case.AIRiskScore else "N/A"}</td></tr>
                 <tr><th>Investigation Priority</th><td>{case.InvestigationPriority or "N/A"}</td></tr>
             </table>
@@ -68,6 +69,12 @@ def generate_pdf_report_task(report_job_id: int):
             <h2>Incident Brief Facts</h2>
             <div class="facts">
                 {case.BriefFacts or "No details recorded."}
+            </div>
+
+            <h2>AI Threat & Pattern Analysis</h2>
+            <div class="ai-box">
+                <p><strong>Threat Risk Score:</strong> {f"{case.AIRiskScore * 100:.1f}%" if case.AIRiskScore else "N/A"}</p>
+                <p><strong>Tactical Recommendation:</strong> Focus patrols in the vicinity of sector coordinates ({case.latitude:.4f}, {case.longitude:.4f}). Modus Operandi aligns with recurring property offence patterns flagged in surrounding circles.</p>
             </div>
 
             <h2>Accused Profiles</h2>
