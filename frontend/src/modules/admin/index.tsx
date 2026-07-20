@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { adminService } from "../../services/adminService";
-import { Database, Terminal, UserPlus, Users, Shield, MapPin, CheckCircle2 } from "lucide-react";
+import { Database, Terminal, UserPlus, Users, MapPin, CheckCircle2 } from "lucide-react";
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState<"system" | "appointments">("system");
