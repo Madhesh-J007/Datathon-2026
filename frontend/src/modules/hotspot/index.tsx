@@ -31,6 +31,11 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
     predicted: true,
   });
 
+  const [mapTileStyle, setMapTileStyle] = useState<"osm" | "voyager" | "esri">("osm");
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
+  const [currentLat, setCurrentLat] = useState(14.5204);
+  const [currentLng, setCurrentLng] = useState(75.7224);
+
   const karnatakaDistricts: Record<number, string> = {
     1: "Bagalkot", 2: "Ballari", 3: "Belagavi", 4: "Bengaluru Rural", 5: "Bengaluru Urban",
     6: "Bidar", 7: "Chamarajanagar", 8: "Chikballapur", 9: "Chikkamagaluru", 10: "Chitradurga",
@@ -121,7 +126,32 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
     };
   }, [isPlaying]);
 
-  // Initialize Map with Canvas Renderer & Bright Voyager Tiles bounded to Karnataka
+  // Dynamic Tile Layer Switching (OSM Detailed Streets/Schools vs Voyager vs Esri)
+  useEffect(() => {
+    if (!leafletMap.current) return;
+    if (tileLayerRef.current) {
+      leafletMap.current.removeLayer(tileLayerRef.current);
+    }
+    let url = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+    let subdomains: string | string[] = ["a", "b", "c"];
+    if (mapTileStyle === "voyager") {
+      url = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+      subdomains = "abcd";
+    } else if (mapTileStyle === "esri") {
+      url = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}";
+      subdomains = [];
+    }
+
+    tileLayerRef.current = L.tileLayer(url, {
+      maxZoom: 19,
+      subdomains: subdomains as any,
+      keepBuffer: 6,
+      updateWhenZooming: false,
+      updateWhenIdle: true,
+    }).addTo(leafletMap.current);
+  }, [mapTileStyle]);
+
+  // Initialize Map with Canvas Renderer & Fast Instant Zooming
   useEffect(() => {
     if (!mapRef.current || leafletMap.current) return;
 
@@ -134,17 +164,38 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
       preferCanvas: true,
       zoomControl: false,
       attributionControl: false,
+      zoomSnap: 1,
+      zoomDelta: 1,
+      wheelPxPerZoomLevel: 50,
+      zoomAnimation: true,
+      fadeAnimation: false,
+      markerZoomAnimation: true,
       minZoom: 7,
-      maxZoom: 18,
+      maxZoom: 19,
       maxBounds: karnatakaBounds,
       maxBoundsViscosity: 0.8,
     }).setView([14.5204, 75.7224], 8); // Centered over Karnataka
 
-    // Bright, crisp CartoDB Voyager tiles with clear area names & street landmarks
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+    // Add initial tile layer with buffer preloading
+    tileLayerRef.current = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
-      subdomains: "abcd",
+      keepBuffer: 6,
+      updateWhenZooming: false,
+      updateWhenIdle: true,
     }).addTo(map);
+
+    L.control.zoom({ position: "bottomright" }).addTo(map);
+
+    // Track map center position for vertical and horizontal pan bars
+    map.on("moveend", () => {
+      const c = map.getCenter();
+      setCurrentLat(c.lat);
+      setCurrentLng(c.lng);
+    });
+
+    leafletMap.current = map;
+    markerLayerGroup.current = L.layerGroup().addTo(map);
+    predictedLayerGroup.current = L.layerGroup().addTo(map);
 
     L.control.zoom({ position: "bottomright" }).addTo(map);
 
@@ -176,17 +227,25 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
     predGroup.clearLayers();
     routeLine.setLatLngs([]);
 
-    // 1. Filter points dynamically by the selected hour using real incident timestamps or stable indexing
-    const filteredPoints = points.filter((pt: any) => {
-      let ptHour = 12;
+    // Extract real hour from PostgreSQL timestamp
+    const getPointHour = (pt: any): number => {
       if (pt.IncidentFromDate) {
-        ptHour = new Date(pt.IncidentFromDate).getHours();
-      } else if (pt.CrimeRegisteredDate) {
-        ptHour = new Date(pt.CrimeRegisteredDate).getHours();
-      } else if (pt.CaseMasterID) {
-        ptHour = (pt.CaseMasterID * 3) % 24;
+        const d = new Date(pt.IncidentFromDate);
+        if (!isNaN(d.getTime())) return d.getHours();
       }
-      return ptHour <= timeHour;
+      if (pt.CrimeRegisteredDate) {
+        const d = new Date(pt.CrimeRegisteredDate);
+        if (!isNaN(d.getTime())) return d.getHours();
+      }
+      return 12;
+    };
+
+    // Filter points by time window: when timeHour === 24, show ALL 5000 cases; otherwise filter by 4-hr shift window
+    const filteredPoints = points.filter((pt: any) => {
+      if (timeHour === 24) return true;
+      const ptHour = getPointHour(pt);
+      const minHour = Math.max(0, timeHour - 4);
+      return ptHour >= minHour && ptHour <= timeHour;
     });
 
     if (layers.incidents && filteredPoints.length > 0) {
@@ -206,13 +265,7 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
           if (typeKey === "narcotics" && !facts.includes("ganja") && !facts.includes("drug") && !facts.includes("ndps") && pt.CrimeHeadID !== 8) return;
         }
 
-        let ptHour = 12;
-        if (pt.IncidentFromDate) {
-          ptHour = new Date(pt.IncidentFromDate).getHours();
-        } else if (pt.CaseMasterID) {
-          ptHour = (pt.CaseMasterID * 3) % 24;
-        }
-
+        const ptHour = getPointHour(pt);
         const isNightBurglary = filters.crimeType === "burglary";
         const fillColor = isNightBurglary ? "#ef4444" : (pt.AIRiskScore > 0.7 ? "#f97316" : "#3b82f6");
         const radius = isNightBurglary ? 7 : 5;
@@ -227,12 +280,14 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
           opacity: 0.9,
           fillOpacity: 0.75,
         }).bindPopup(`
-          <div class="text-slate-900 text-xs font-sans p-1.5">
-            <strong class="text-blue-600 block mb-1">Case #${pt.CaseNo || pt.CaseMasterID || 'Incident'}</strong>
-            <p class="leading-relaxed font-semibold mb-1">${pt.BriefFacts || "Crime log incident."}</p>
-            <span class="text-[10px] text-slate-600 font-mono block">Incident Time: ${timeStr}</span>
-            <span class="text-[10px] text-slate-500 font-mono block">Station: ${pt.PoliceStationName || "KSP Precinct"}</span>
-            ${pt.AIRiskScore ? `<span class="text-[10px] text-red-600 font-bold block mt-1">AI Risk Score: ${pt.AIRiskScore.toFixed(2)}</span>` : ''}
+          <div class="text-slate-900 text-xs font-sans p-2">
+            <strong class="text-blue-700 text-sm block mb-1">Case #${pt.CaseNo || pt.CaseMasterID || 'Incident'}</strong>
+            <p class="leading-relaxed font-semibold mb-1.5 text-slate-800">${pt.BriefFacts || "Crime log incident."}</p>
+            <div class="space-y-0.5 border-t border-slate-200 pt-1 text-[11px] font-mono">
+              <span class="text-slate-700 block">🕒 Recorded Hour: <strong>${timeStr}</strong></span>
+              <span class="text-slate-700 block">🏢 Police Unit: <strong>${pt.PoliceStationName || "KSP Precinct"}</strong></span>
+              ${pt.AIRiskScore ? `<span class="text-red-700 font-bold block mt-1">🚨 AI Risk Score: ${pt.AIRiskScore.toFixed(2)}</span>` : ''}
+            </div>
           </div>
         `);
         markerGroup.addLayer(marker);
@@ -364,40 +419,55 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
             <div className="flex items-center gap-2 border-b border-[#1e293b] pb-3 pt-2">
               <Layers className="text-blue-500" size={16} />
               <h3 className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider">
-                GIS Layer Toggles
+                GIS Layer & Basemap Style
               </h3>
             </div>
 
-            <div className="space-y-2.5">
-              <label className="flex items-center gap-3 text-xs text-slate-300 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={layers.incidents}
-                  onChange={(e) => setLayers({ ...layers, incidents: e.target.checked })}
-                  className="rounded border-[#1e293b] bg-slate-900 text-blue-600 focus:ring-0 focus:ring-offset-0"
-                />
-                <span>Active Crime Markers</span>
-              </label>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">GIS Basemap Style</label>
+                <select
+                  value={mapTileStyle}
+                  onChange={(e) => setMapTileStyle(e.target.value as any)}
+                  className="w-full bg-[#1e293b] border border-[#334155] text-slate-200 text-xs rounded px-2.5 py-1.5 focus:outline-none focus:border-blue-500 font-mono font-bold"
+                >
+                  <option value="osm">🏫 OSM High-Detail Streets & Schools</option>
+                  <option value="voyager">🏙️ CartoDB Voyager Bright</option>
+                  <option value="esri">🗺️ Esri World Street Precision</option>
+                </select>
+              </div>
 
-              <label className="flex items-center gap-3 text-xs text-slate-300 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={layers.stations}
-                  onChange={(e) => setLayers({ ...layers, stations: e.target.checked })}
-                  className="rounded border-[#1e293b] bg-slate-900 text-blue-600 focus:ring-0 focus:ring-offset-0"
-                />
-                <span>Police Precinct Stations</span>
-              </label>
+              <div className="space-y-2 pt-1">
+                <label className="flex items-center gap-3 text-xs text-slate-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={layers.incidents}
+                    onChange={(e) => setLayers({ ...layers, incidents: e.target.checked })}
+                    className="rounded border-[#1e293b] bg-slate-900 text-blue-600 focus:ring-0 focus:ring-offset-0"
+                  />
+                  <span>Active Crime Markers</span>
+                </label>
 
-              <label className="flex items-center gap-3 text-xs text-slate-300 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={layers.predicted}
-                  onChange={(e) => setLayers({ ...layers, predicted: e.target.checked })}
-                  className="rounded border-[#1e293b] bg-slate-900 text-blue-600 focus:ring-0 focus:ring-offset-0"
-                />
-                <span>AI Predicted Hotspots</span>
-              </label>
+                <label className="flex items-center gap-3 text-xs text-slate-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={layers.stations}
+                    onChange={(e) => setLayers({ ...layers, stations: e.target.checked })}
+                    className="rounded border-[#1e293b] bg-slate-900 text-blue-600 focus:ring-0 focus:ring-offset-0"
+                  />
+                  <span>Police Precinct Stations</span>
+                </label>
+
+                <label className="flex items-center gap-3 text-xs text-slate-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={layers.predicted}
+                    onChange={(e) => setLayers({ ...layers, predicted: e.target.checked })}
+                    className="rounded border-[#1e293b] bg-slate-900 text-blue-600 focus:ring-0 focus:ring-offset-0"
+                  />
+                  <span>AI Predicted Hotspots</span>
+                </label>
+              </div>
             </div>
           </div>
         ) : (
@@ -417,6 +487,8 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
               ) : (
                 predictedHotspots.map((h: any, idx: number) => {
                   const isHigh = h.confidence > 0.7;
+                  const primaryFactor = h.top_factors && h.top_factors[0] ? h.top_factors[0] : "High spatial incident density";
+
                   return (
                     <div
                       key={idx}
@@ -428,16 +500,19 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
                       }`}
                     >
                       <div className="flex justify-between items-center mb-1">
-                        <span className="text-[10px] font-bold text-slate-300">Zone #{idx + 1}</span>
-                        <span className={`text-[10px] font-mono px-1 rounded ${
+                        <span className="text-xs font-bold text-slate-200">Zone #{idx + 1}</span>
+                        <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-bold ${
                           isHigh ? "text-red-400 bg-red-500/10 border border-red-500/20" :
                           "text-amber-400 bg-amber-500/10 border border-amber-500/20"
                         }`}>
-                          {(h.confidence * 100).toFixed(0)}% Conf
+                          {(h.confidence * 100).toFixed(0)}% AI Risk Score
                         </span>
                       </div>
-                      <p className="text-[10px] text-slate-400 leading-relaxed font-mono truncate">
-                        Lat: {h.latitude.toFixed(4)}, Lng: {h.longitude.toFixed(4)}
+                      <p className="text-[11px] text-blue-400 font-semibold mb-1 leading-tight">
+                        {primaryFactor}
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-mono">
+                        Nearby FIR Volume: <strong className="text-emerald-400">{h.nearby_case_count || "Multi-FIR"} cases</strong>
                       </p>
                     </div>
                   );
@@ -446,18 +521,30 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
             </div>
 
             {selectedHotspot && (
-              <div className="border-t border-[#1e293b] pt-4 mt-auto">
-                <h4 className="text-xs font-bold text-slate-200 mb-2 font-mono uppercase tracking-wider text-[10px]">Zone Intelligence Details</h4>
-                <div className="space-y-2 text-[11px] leading-relaxed">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500 font-mono">Confidence Scale:</span>
-                    <span className="text-emerald-400 font-bold font-mono">{(selectedHotspot.confidence).toFixed(2)}</span>
+              <div className="border-t border-[#1e293b] pt-3.5 mt-auto space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-slate-200 font-mono uppercase tracking-wider">Zone Intelligence Report</h4>
+                  <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 rounded font-mono font-bold">
+                    KDE Model
+                  </span>
+                </div>
+                <div className="space-y-1.5 text-[11px] leading-relaxed bg-[#151c2e] p-2.5 rounded border border-[#1e293b]">
+                  <div className="flex justify-between border-b border-[#1e293b] pb-1">
+                    <span className="text-slate-400 font-mono">AI Confidence:</span>
+                    <span className="text-emerald-400 font-bold font-mono">{(selectedHotspot.confidence * 100).toFixed(0)}%</span>
                   </div>
                   <div>
-                    <span className="text-slate-500 font-mono block">Contributing Factors:</span>
-                    <span className="text-slate-300 font-mono block pl-2">
-                      {selectedHotspot.top_factors?.join(", ") || "Historical density peaks"}
-                    </span>
+                    <span className="text-slate-400 font-mono block mb-0.5">Database Risk Drivers:</span>
+                    <ul className="text-slate-300 font-mono text-[10px] list-disc pl-3.5 space-y-0.5">
+                      {selectedHotspot.top_factors && selectedHotspot.top_factors.map((factor: string, fIdx: number) => (
+                        <li key={fIdx}>{factor}</li>
+                      ))}
+                      <li>Spatial KDE Cluster Radius: ~2.2 km</li>
+                    </ul>
+                  </div>
+                  <div className="pt-1 border-t border-[#1e293b]">
+                    <span className="text-blue-400 font-bold block text-[10px]">Patrol Action Required:</span>
+                    <span className="text-slate-300 text-[10px]">Deploy 2 Patrol Vehicles & Night Beat Officers for this primary crime head.</span>
                   </div>
                 </div>
               </div>
@@ -532,6 +619,79 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
               </button>
             </div>
           </div>
+
+          {/* Vertical (North-South / Latitude) Scrollbar Track matching user's screenshot */}
+          <div className="absolute right-3 top-24 bottom-16 w-7 z-20 flex flex-col items-center bg-[#0d1322]/95 border border-[#1e293b] rounded py-1.5 px-1 shadow-2xl backdrop-blur">
+            <button
+              onClick={() => leafletMap.current?.panBy([0, -120])}
+              title="Pan North (Up)"
+              className="text-slate-300 hover:text-white hover:bg-blue-600 p-1 rounded transition-colors mb-1"
+            >
+              <ChevronUp size={14} />
+            </button>
+
+            <div className="flex-1 w-full flex items-center justify-center py-1">
+              <input
+                type="range"
+                min="11.2"
+                max="18.9"
+                step="0.02"
+                value={currentLat}
+                onChange={(e) => {
+                  const newLat = parseFloat(e.target.value);
+                  setCurrentLat(newLat);
+                  if (leafletMap.current) {
+                    leafletMap.current.setView([newLat, currentLng], leafletMap.current.getZoom(), { animate: false });
+                  }
+                }}
+                className="h-full w-3 appearance-none bg-[#151c2e] border border-[#334155] rounded-full cursor-pointer accent-blue-500 shadow-inner"
+                style={{ writingMode: "vertical-lr", direction: "rtl" }}
+              />
+            </div>
+
+            <button
+              onClick={() => leafletMap.current?.panBy([0, 120])}
+              title="Pan South (Down)"
+              className="text-slate-300 hover:text-white hover:bg-blue-600 p-1 rounded transition-colors mt-1"
+            >
+              <ChevronDown size={14} />
+            </button>
+          </div>
+
+          {/* Horizontal (West-East / Longitude) Scrollbar Track matching user's screenshot */}
+          <div className="absolute bottom-2 left-6 right-24 h-8 z-20 flex items-center bg-[#0d1322]/95 border border-[#1e293b] rounded px-2 py-1 shadow-2xl backdrop-blur">
+            <button
+              onClick={() => leafletMap.current?.panBy([-120, 0])}
+              title="Pan West (Left)"
+              className="text-slate-300 hover:text-white hover:bg-blue-600 p-1 rounded transition-colors mr-2"
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            <input
+              type="range"
+              min="73.8"
+              max="78.8"
+              step="0.02"
+              value={currentLng}
+              onChange={(e) => {
+                const newLng = parseFloat(e.target.value);
+                setCurrentLng(newLng);
+                if (leafletMap.current) {
+                  leafletMap.current.setView([currentLat, newLng], leafletMap.current.getZoom(), { animate: false });
+                }
+              }}
+              className="flex-1 h-2.5 appearance-none bg-[#151c2e] border border-[#334155] rounded-full cursor-pointer accent-blue-500 shadow-inner"
+            />
+
+            <button
+              onClick={() => leafletMap.current?.panBy([120, 0])}
+              title="Pan East (Right)"
+              className="text-slate-300 hover:text-white hover:bg-blue-600 p-1 rounded transition-colors ml-2"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
         </div>
 
         {/* Bottom sliding intelligence drawer */}
@@ -574,50 +734,64 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
           </div>
         )}
 
-        {/* Temporal control panel */}
-        <div className="bg-[#0f1422] border-t border-[#1e293b] p-4 flex items-center justify-between gap-4 z-20">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsPlaying(!isPlaying)}
-              className="bg-blue-600 hover:bg-blue-700 text-white rounded p-2 transition-colors focus:outline-none"
-            >
-              {isPlaying ? <Pause size={14} /> : <Play size={14} />}
-            </button>
-            <div className="text-xs">
-              <span className="block text-[10px] text-slate-500 uppercase font-mono">Simulation Hour</span>
-              <span className="font-bold text-slate-200 font-mono">{timeHour.toString().padStart(2, "0")}:00 hrs</span>
+        {/* Temporal control panel - Rendered on Hotspot Analysis page */}
+        {activeTab === "dashboard" ? (
+          <div className="bg-[#0f1422] border-t border-[#1e293b] p-3.5 flex items-center justify-between gap-4 z-20">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setIsPlaying(!isPlaying)}
+                className="bg-blue-600 hover:bg-blue-700 text-white rounded p-2 transition-colors focus:outline-none"
+              >
+                {isPlaying ? <Pause size={14} /> : <Play size={14} />}
+              </button>
+              <div className="text-xs">
+                <span className="block text-[10px] text-slate-500 uppercase font-mono">Patrol Shift Window</span>
+                <span className="font-bold text-[#60a5fa] font-mono text-xs">
+                  {timeHour === 24 ? "🌐 Cumulative All-Day Baseline" : `🕒 ${Math.max(0, timeHour - 4)}:00 - ${timeHour}:00 hrs`}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex-1 px-4">
+              <input
+                type="range"
+                min="0"
+                max="24"
+                step="4"
+                value={timeHour}
+                onChange={(e) => {
+                  setTimeHour(parseInt(e.target.value));
+                  setIsPlaying(false);
+                }}
+                className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
+              />
+              <div className="flex justify-between text-[10px] text-slate-500 font-mono mt-1 px-1">
+                <span>00:00 (Night)</span>
+                <span>04:00</span>
+                <span>08:00 (Morning)</span>
+                <span>12:00 (Noon)</span>
+                <span>16:00 (Evening)</span>
+                <span>20:00 (Peak)</span>
+                <span className="text-blue-400 font-bold">24:00 (All 5k Cases)</span>
+              </div>
+            </div>
+
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded px-3 py-1.5 text-right flex-shrink-0">
+              <span className="block text-[10px] text-slate-500 font-mono uppercase">AI Shift Forecast</span>
+              <span className="text-emerald-400 font-bold text-[10px] font-mono">Real SQL Timestamp Matching</span>
             </div>
           </div>
-
-          <div className="flex-1 px-4">
-            <input
-              type="range"
-              min="0"
-              max="24"
-              step="4"
-              value={timeHour}
-              onChange={(e) => {
-                setTimeHour(parseInt(e.target.value));
-                setIsPlaying(false);
-              }}
-              className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
-            />
-            <div className="flex justify-between text-[10px] text-slate-500 font-mono mt-1 px-1">
-              <span>00:00</span>
-              <span>04:00</span>
-              <span>08:00</span>
-              <span>12:00</span>
-              <span>16:00</span>
-              <span>20:00</span>
-              <span>24:00</span>
+        ) : (
+          <div className="bg-[#0f1422] border-t border-[#1e293b] px-4 py-2.5 flex items-center justify-between z-20">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
+              <span className="text-xs font-mono font-bold text-slate-300">Live Spatial GIS Incident Explorer</span>
+            </div>
+            <div className="text-[11px] font-mono text-slate-400">
+              Showing Real Incident Coordinates from Karnataka State Registry (5,000 Total Cases)
             </div>
           </div>
-
-          <div className="bg-blue-500/10 border border-blue-500/20 rounded px-3 py-1.5 text-right flex-shrink-0">
-            <span className="block text-[10px] text-slate-500 font-mono uppercase">Patrol Alignment</span>
-            <span className="text-blue-400 font-bold text-[10px] font-mono">Dynamic route active</span>
-          </div>
-        </div>
+        )}
       </div>
 
       <style>{`

@@ -138,47 +138,65 @@ export default function NetworkGraphCanvas() {
           style: {
             "background-color": "#2563eb",
             label: "data(label)",
-            color: "#e2e8f0",
-            "font-size": "9px",
-            "text-valign": "center",
+            color: "#f8fafc",
+            "font-size": "10px",
+            "font-family": "monospace",
+            "font-weight": "bold",
+            "text-valign": "bottom",
             "text-halign": "center",
-            width: "30px",
-            height: "30px",
+            "text-margin-y": 6,
+            width: "36px",
+            height: "36px",
             "border-width": "2px",
-            "border-color": "#1e293b",
+            "border-color": "#60a5fa",
+            "overlay-color": "#2563eb",
+            "overlay-padding": 4,
+            "overlay-opacity": 0.2,
           },
         },
         {
           selector: 'node[type="repeat"]',
           style: {
             "background-color": "#ef4444", // Red
-            width: "38px",
-            height: "38px",
+            "border-color": "#fca5a5",
+            "border-width": "3px",
+            width: "44px",
+            height: "44px",
+            "overlay-color": "#ef4444",
+            "overlay-padding": 6,
+            "overlay-opacity": 0.3,
           },
         },
         {
           selector: 'node[type="gang"]',
           style: {
-            "background-color": "#f59e0b", // Orange
-            width: "44px",
-            height: "44px",
+            "background-color": "#f59e0b", // Orange Hexagon
+            "border-color": "#fde047",
+            "border-width": "3px",
+            width: "56px",
+            height: "56px",
             shape: "hexagon",
+            "overlay-color": "#f59e0b",
+            "overlay-padding": 8,
+            "overlay-opacity": 0.4,
           },
         },
         {
           selector: 'node[type="witness"]',
           style: {
             "background-color": "#10b981", // Green
-            width: "28px",
-            height: "28px",
+            "border-color": "#6ee7b7",
+            width: "32px",
+            height: "32px",
           },
         },
         {
           selector: 'node[type="evidence"]',
           style: {
             "background-color": "#a855f7", // Purple
-            width: "28px",
-            height: "28px",
+            "border-color": "#d8b4fe",
+            width: "34px",
+            height: "34px",
             shape: "rectangle",
           },
         },
@@ -187,28 +205,42 @@ export default function NetworkGraphCanvas() {
           style: {
             width: 2,
             "line-color": "#475569",
-            "target-arrow-color": "#475569",
+            "target-arrow-color": "#38bdf8",
             "target-arrow-shape": "triangle",
             "curve-style": "bezier",
             label: "data(relationship)",
-            "font-size": "7px",
-            color: "#94a3b8",
+            "font-size": "8px",
+            "font-family": "monospace",
+            color: "#cbd5e1",
             "text-rotation": "autorotate",
-            "text-margin-y": -8,
+            "text-background-color": "#0d1322",
+            "text-background-opacity": 0.85,
+            "text-background-padding": "2px",
           },
         },
         {
           selector: "node:selected",
           style: {
             "border-color": "#ffffff",
-            "border-width": "3px",
+            "border-width": "4px",
+            "overlay-color": "#ffffff",
+            "overlay-opacity": 0.5,
           },
         },
       ],
       layout: {
         name: "cose",
         animate: false,
-        padding: 40,
+        padding: 50,
+        nodeRepulsion: () => 4000000,
+        idealEdgeLength: () => 140,
+        edgeElasticity: () => 100,
+        nestingFactor: 1.2,
+        gravity: 0.25,
+        numIter: 1000,
+        initialTemp: 1000,
+        coolingFactor: 0.99,
+        minTemp: 1.0,
       },
     });
 
@@ -252,6 +284,36 @@ export default function NetworkGraphCanvas() {
     <div className="flex h-full w-full bg-[#0d1220] select-none relative">
       <div ref={containerRef} className="flex-1 h-full w-full" />
 
+      {/* Top Action Controls Overlay */}
+      <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-[#0d1322]/90 border border-[#1e293b] p-1.5 rounded shadow-2xl backdrop-blur">
+        <button
+          onClick={() => {
+            if (cyRef.current) {
+              cyRef.current.layout({
+                name: "cose",
+                animate: true,
+                animationDuration: 500,
+                nodeRepulsion: () => 4000000,
+                idealEdgeLength: () => 140,
+              }).run();
+            }
+          }}
+          className="bg-[#151c2e] hover:bg-blue-600 text-slate-200 hover:text-white px-2.5 py-1 rounded text-[10px] font-mono font-bold border border-[#334155] transition-colors"
+        >
+          🕸️ Auto-Spread Layout
+        </button>
+        <button
+          onClick={() => {
+            if (cyRef.current) {
+              cyRef.current.fit(undefined, 40);
+            }
+          }}
+          className="bg-[#151c2e] hover:bg-blue-600 text-slate-200 hover:text-white px-2.5 py-1 rounded text-[10px] font-mono font-bold border border-[#334155] transition-colors"
+        >
+          🎯 Fit View
+        </button>
+      </div>
+
       {/* Side details explainer */}
       {selectedNode && (
         <div className="w-80 bg-[#111827] border-l border-[#1e293b] p-5 flex flex-col gap-4 z-20 absolute right-0 top-0 h-full overflow-y-auto">
@@ -277,7 +339,7 @@ export default function NetworkGraphCanvas() {
 
             <div>
               <span className="text-slate-500 uppercase tracking-wide font-mono block">Dossier logs</span>
-              <p className="text-slate-300 leading-relaxed mt-1 font-sans bg-[#1e293b] p-3 rounded border border-[#1e293b]">
+              <p className="text-slate-300 leading-relaxed mt-1 font-sans bg-[#151c2e] p-3 rounded border border-[#1e293b]">
                 {selectedNode.details}
               </p>
             </div>
@@ -298,26 +360,26 @@ export default function NetworkGraphCanvas() {
       )}
 
       {/* Legend overlays */}
-      <div className="absolute bottom-4 left-4 bg-[#111827]/90 border border-[#1e293b] rounded p-3 z-20 space-y-1.5 text-[9px] font-mono">
+      <div className="absolute bottom-4 left-4 bg-[#0d1322]/95 border border-[#1e293b] rounded p-3 z-20 space-y-1.5 text-[10px] font-mono backdrop-blur shadow-2xl">
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-red-500"></span>
-          <span className="text-slate-300">Repeat Suspect</span>
+          <span className="w-2.5 h-2.5 rounded-full bg-red-500 border border-red-300"></span>
+          <span className="text-slate-200 font-bold">Repeat Suspect (Multi-FIR)</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-          <span className="text-slate-300">Accused Suspect</span>
+          <span className="w-2.5 h-2.5 rounded-full bg-blue-500 border border-blue-300"></span>
+          <span className="text-slate-300">Accused Co-Suspect</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 bg-amber-500 transform rotate-45" style={{ width: 8, height: 8 }}></span>
-          <span className="text-slate-300 pl-0.5">Gang Syndicate</span>
+          <span className="w-2.5 h-2.5 bg-amber-500 transform rotate-45 border border-amber-300" style={{ width: 8, height: 8 }}></span>
+          <span className="text-slate-300 pl-0.5">Gang Syndicate Ring</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-          <span className="text-slate-300">Witness Profile</span>
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-emerald-300"></span>
+          <span className="text-slate-300">Witness Statement</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 bg-purple-500" style={{ width: 9, height: 9 }}></span>
-          <span className="text-slate-300">Physical Evidence</span>
+          <span className="w-2.5 h-2.5 bg-purple-500 border border-purple-300" style={{ width: 9, height: 9 }}></span>
+          <span className="text-slate-300">Physical Evidence Item</span>
         </div>
       </div>
 
