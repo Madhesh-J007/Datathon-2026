@@ -11,6 +11,7 @@ from app.crud import case_crud
 from app.services import case_service, witness_service, annotation_service, assignment_service
 from app.utils.pagination import paginate
 
+
 # Pydantic Schemas
 from app.schemas.case_master import CaseMaster, CaseMasterCreate, PaginatedCaseResponse
 from app.schemas.witness import Witness, WitnessCreate
@@ -22,8 +23,9 @@ router = APIRouter()
 @router.get("", response_model=PaginatedCaseResponse, summary="List Cases")
 def read_cases(
     page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(50, ge=1, le=100, alias="pageSize", description="Page size"),
+    page_size: int = Query(50, ge=1, le=5000, alias="pageSize", description="Page size"),
     search: Optional[str] = Query(None, description="Fuzzy search by CaseNo or BriefFacts"),
+    district_id: Optional[int] = Query(None, alias="districtId", description="Filter by District ID"),
     station_id: Optional[int] = Query(None, alias="stationId", description="Filter by Police Station ID"),
     status_id: Optional[int] = Query(None, alias="statusId", description="Filter by Case Status ID"),
     sort_by: Optional[str] = Query(None, alias="sortBy", description="Sorting criterion (date_desc, date_asc, priority_desc, risk_desc)"),
@@ -41,6 +43,7 @@ def read_cases(
         skip=skip,
         limit=page_size,
         search=search,
+        district_id=district_id,
         station_id=station_id,
         status_id=status_id,
         sort_by=sort_by
@@ -48,7 +51,7 @@ def read_cases(
     
     # Extract roles to display dynamic scopes (Statewide vs station-bounded)
     applied_scope = "Statewide"
-    if current_user.role and current_user.role.RoleName not in ["Admin", "SCRB_Officer"]:
+    if current_user.role and current_user.role.RoleName not in ["Admin", "SCRB_Officer", "SHO", "Constable"]:
         applied_scope = "Jurisdiction Bounded"
 
     return paginate(db_cases, total_count, page, page_size, applied_scope)

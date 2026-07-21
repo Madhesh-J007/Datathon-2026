@@ -8,8 +8,11 @@
 import { apiClient } from "./apiClient";
 
 export const hotspotService = {
-  async getHotspots(stationId?: number) {
-    const params = stationId !== undefined ? { stationId } : {};
+  async getHotspots(districtId?: number, crimeType?: string, stationId?: number) {
+    const params: any = {};
+    if (districtId) params.districtId = districtId;
+    if (crimeType) params.crimeType = crimeType;
+    if (stationId !== undefined) params.stationId = stationId;
     const response = await apiClient.get("/hotspot", { params });
     return response.data;
   },

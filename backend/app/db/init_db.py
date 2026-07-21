@@ -164,7 +164,9 @@ def map_case_master(row):
         InfoReceivedPSDate=parse_dt(row['InfoReceivedPSDate']),
         latitude=parse_float(row['latitude']),
         longitude=parse_float(row['longitude']),
-        BriefFacts=row['BriefFacts']
+        BriefFacts=row['BriefFacts'],
+        InvestigationPriority="High" if row.get('RiskLabel') == "High" else ("Low" if row.get('RiskLabel') == "Low" else "Medium"),
+        AIRiskScore=0.85 if row.get('RiskLabel') == "High" else (0.25 if row.get('RiskLabel') == "Low" else 0.55)
     )
 
 def map_accused(row):

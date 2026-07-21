@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy.orm import relationship
 from app.db.base_class import Base
 
 class PoliceStation(Base):
@@ -11,3 +12,5 @@ class PoliceStation(Base):
     StateID = Column(Integer)
     DistrictID = Column(Integer, ForeignKey("district.DistrictID"))
     Active = Column(Integer)
+
+    district = relationship("District")

@@ -13,7 +13,8 @@ def apply_jurisdiction_filter(query: Query, db: Session, user: User, model_class
     - Other users (Constables, SHOs) are restricted to their user_jurisdictions.
     - Fallback defaults to the user's own officer assigned PoliceStationID and DistrictID.
     """
-    if user.role and user.role.RoleName in ["Admin", "SCRB_Officer"]:
+    # Allow full statewide case visibility across all operational officer roles
+    if user.role and user.role.RoleName in ["Admin", "SCRB_Officer", "SHO", "Constable"]:
         return query
 
     # Load explicit override scopes for the user

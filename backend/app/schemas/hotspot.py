@@ -7,6 +7,13 @@ class HotspotPoint(BaseModel):
     weight: Optional[float] = 1.0
     BriefFacts: Optional[str] = None
     CaseNo: Optional[str] = None
+    CaseMasterID: Optional[int] = None
+    DistrictID: Optional[int] = None
+    PoliceStationID: Optional[int] = None
+    PoliceStationName: Optional[str] = None
+    CrimeHeadID: Optional[int] = None
+    AIRiskScore: Optional[float] = 0.0
+    IncidentFromDate: Optional[str] = None
 
 class HotspotResponse(BaseModel):
     points: List[HotspotPoint]

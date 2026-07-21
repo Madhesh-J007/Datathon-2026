@@ -1,8 +1,26 @@
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, selectinload, joinedload
 from sqlalchemy import or_, desc
 from app.models.case_master import CaseMaster
+from app.models.police_station import PoliceStation
+from app.models.district import District
 from app.models.user import User
 from app.middleware.jurisdiction_scope import apply_jurisdiction_filter
+
+def _attach_district_info(db: Session, cases: list[CaseMaster]):
+    if not cases:
+        return
+    ps_rows = db.query(PoliceStation, District.DistrictName)\
+        .outerjoin(District, District.DistrictID == PoliceStation.DistrictID).all()
+    ps_dict = {
+        ps.UnitID: (ps.DistrictID, dname or f"District #{ps.DistrictID}", ps.UnitName) 
+        for ps, dname in ps_rows
+    }
+    for c in cases:
+        if c.PoliceStationID in ps_dict:
+            did, dname, psname = ps_dict[c.PoliceStationID]
+            setattr(c, "DistrictID", did)
+            setattr(c, "DistrictName", dname)
+            setattr(c, "PoliceStationName", psname)
 
 def get_case_by_id(db: Session, case_id: int, user: User) -> CaseMaster | None:
     """
@@ -27,9 +45,11 @@ def get_case_by_id(db: Session, case_id: int, user: User) -> CaseMaster | None:
     if not res:
         # Check if the user has an active, approved collaboration request for this case
         from app.services import collaboration_service
-        if collaboration_service.check_active_collaboration(db, case_id, user.OfficerID):
+        if user.OfficerID and collaboration_service.check_active_collaboration(db, case_id, user.OfficerID):
             bypass_query = db.query(CaseMaster).filter(CaseMaster.CaseMasterID == case_id).options(*options)
-            return bypass_query.first()
+            res = bypass_query.first()
+    if res:
+        _attach_district_info(db, [res])
     return res
 
 def get_cases_paginated(
@@ -38,6 +58,7 @@ def get_cases_paginated(
     skip: int = 0,
     limit: int = 50,
     search: str = None,
+    district_id: int = None,
     station_id: int = None,
     status_id: int = None,
     sort_by: str = None
@@ -50,7 +71,10 @@ def get_cases_paginated(
     query = apply_jurisdiction_filter(query, db, user)
 
     # Filters
-    if station_id is not None:
+    if district_id is not None and isinstance(district_id, int):
+        ps_subquery = db.query(PoliceStation.UnitID).filter(PoliceStation.DistrictID == district_id).subquery()
+        query = query.filter(CaseMaster.PoliceStationID.in_(ps_subquery))
+    if station_id is not None and isinstance(station_id, int):
         query = query.filter(CaseMaster.PoliceStationID == station_id)
     if status_id is not None:
         query = query.filter(CaseMaster.CaseStatusID == status_id)
@@ -63,7 +87,7 @@ def get_cases_paginated(
         )
 
     # Count matching query before pagination offsets are applied
-    total_count = query.count()
+    total_count = query.distinct(CaseMaster.CaseMasterID).count()
 
     # Sorting
     if sort_by == "date_desc":
@@ -84,6 +108,7 @@ def get_cases_paginated(
     )
 
     cases = query.offset(skip).limit(limit).all()
+    _attach_district_info(db, cases)
     return cases, total_count
 
 def create_case(db: Session, case_data: dict) -> CaseMaster:

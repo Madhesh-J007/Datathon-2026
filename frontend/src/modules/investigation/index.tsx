@@ -30,19 +30,33 @@ export default function Investigation() {
   // Query search & filters
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [stationId, setStationId] = useState("");
+  const [districtId, setDistrictId] = useState("");
+  const [stationId, _setStationId] = useState("");
   const [statusId, setStatusId] = useState("");
+  const [riskCategory, setRiskCategory] = useState("all");
+  const [sortBy, setSortBy] = useState("date_desc");
+
+  const karnatakaDistricts: Record<number, string> = {
+    1: "Bagalkot", 2: "Ballari", 3: "Belagavi", 4: "Bengaluru Rural", 5: "Bengaluru Urban",
+    6: "Bidar", 7: "Chamarajanagar", 8: "Chikballapur", 9: "Chikkamagaluru", 10: "Chitradurga",
+    11: "Dakshina Kannada", 12: "Davanagere", 13: "Dharwad", 14: "Gadag", 15: "Hassan",
+    16: "Haveri", 17: "Kalaburagi", 18: "Kodagu", 19: "Kolar", 20: "Koppal",
+    21: "Mandya", 22: "Mysuru", 23: "Raichur", 24: "Ramanagara", 25: "Shivamogga",
+    26: "Tumakuru", 27: "Udupi", 28: "Uttara Kannada", 29: "Vijayapura", 30: "Yadgir", 31: "Vijayanagara"
+  };
 
   // Fetch Cases list
   const { data: listData, isLoading: isListLoading } = useQuery({
-    queryKey: ["casesList", page, search, stationId, statusId],
+    queryKey: ["casesList", page, search, districtId, stationId, statusId, sortBy],
     queryFn: () =>
       caseService.getCases({
         page,
-        pageSize: 15,
+        pageSize: 25,
         search: search.trim() || undefined,
+        districtId: districtId ? parseInt(districtId) : undefined,
         stationId: stationId ? parseInt(stationId) : undefined,
         statusId: statusId ? parseInt(statusId) : undefined,
+        sortBy: sortBy,
       }),
     enabled: !caseId,
   });
@@ -160,28 +174,56 @@ export default function Investigation() {
             <Search className="absolute left-3 top-2.5 text-slate-500" size={14} />
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
+            {/* District Filter */}
             <select
-              value={stationId}
-              onChange={(e) => { setStationId(e.target.value); setPage(1); }}
-              className="bg-[#1e293b] border border-[#1e293b] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none"
+              value={districtId}
+              onChange={(e) => { setDistrictId(e.target.value); setPage(1); }}
+              className="bg-[#1e293b] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none font-mono font-bold"
             >
-              <option value="">All Police Stations</option>
-              <option value="1">HQ Station</option>
-              <option value="2">Mysuru Station</option>
-              <option value="3">Belagavi Station</option>
+              <option value="">All Karnataka Districts (31)</option>
+              {Object.entries(karnatakaDistricts).map(([id, name]) => (
+                <option key={id} value={id}>{name}</option>
+              ))}
             </select>
 
+            {/* Category / Status Filter */}
             <select
-              value={statusId}
-              onChange={(e) => { setStatusId(e.target.value); setPage(1); }}
-              className="bg-[#1e293b] border border-[#1e293b] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none"
+              value={riskCategory}
+              onChange={(e) => {
+                const cat = e.target.value;
+                setRiskCategory(cat);
+                setPage(1);
+                if (cat === "risk") setSortBy("risk_desc");
+                else if (cat === "pending") setStatusId("1");
+                else if (cat === "finished") setStatusId("3");
+                else setStatusId("");
+              }}
+              className="bg-[#1e293b] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none font-mono font-bold"
             >
-              <option value="">All Statuses</option>
-              <option value="1">Active / Registered</option>
-              <option value="2">Under Investigation</option>
-              <option value="3">Chargesheet Filed</option>
-              <option value="4">Case Closed</option>
+              <option value="all">📋 All Cases</option>
+              <option value="risk">🛡️ AI High Risk Cases</option>
+              <option value="pending">⏳ Pending Cases</option>
+              <option value="finished">✅ Finished / Cleared Cases</option>
+            </select>
+
+            {/* Sorting Sub-Filter */}
+            <select
+              value={sortBy}
+              onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
+              className="bg-[#1e293b] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none font-mono font-bold"
+            >
+              {riskCategory === "risk" ? (
+                <>
+                  <option value="risk_desc">⚡ Risk: High to Low</option>
+                  <option value="risk_asc">⚡ Risk: Low to High</option>
+                </>
+              ) : (
+                <>
+                  <option value="date_desc">📅 Date: Newest to Oldest</option>
+                  <option value="date_asc">📅 Oldest to Newest</option>
+                </>
+              )}
             </select>
           </div>
         </div>
@@ -209,7 +251,25 @@ export default function Investigation() {
   }
 
   if (!caseDetails) {
-    return <div className="text-center py-12 text-red-400 font-mono">Case file not found or access denied.</div>;
+    return (
+      <div className="bg-[#111827] border border-[#1e293b] rounded p-8 text-center max-w-lg mx-auto my-12 space-y-4 shadow-2xl select-none">
+        <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
+          <Shield size={24} />
+        </div>
+        <h3 className="text-sm font-bold text-slate-200 font-mono uppercase tracking-wider">Precinct Jurisdiction Access Restricted</h3>
+        <p className="text-xs text-slate-400 leading-relaxed font-sans">
+          Case #{caseId} is registered under an external division boundary outside your active officer jurisdiction scope.
+        </p>
+        <div className="flex justify-center gap-3 pt-2">
+          <button onClick={() => navigate("/collaboration")} className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3.5 py-2 rounded font-bold font-mono transition-colors">
+            Request Cross-District Access
+          </button>
+          <button onClick={() => navigate("/cases")} className="bg-[#1e293b] hover:bg-[#334155] text-slate-300 text-xs px-3.5 py-2 rounded font-mono transition-colors">
+            Back to Registry
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const tabs = [

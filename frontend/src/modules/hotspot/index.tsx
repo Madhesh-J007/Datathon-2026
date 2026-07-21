@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { hotspotService } from "../../services/hotspotService";
-import { Filter, Layers, Compass, Play, Pause } from "lucide-react";
+import { Filter, Layers, Compass, Play, Pause, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -31,10 +31,63 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
     predicted: true,
   });
 
+  const karnatakaDistricts: Record<number, string> = {
+    1: "Bagalkot", 2: "Ballari", 3: "Belagavi", 4: "Bengaluru Rural", 5: "Bengaluru Urban",
+    6: "Bidar", 7: "Chamarajanagar", 8: "Chikballapur", 9: "Chikkamagaluru", 10: "Chitradurga",
+    11: "Dakshina Kannada", 12: "Davanagere", 13: "Dharwad", 14: "Gadag", 15: "Hassan",
+    16: "Haveri", 17: "Kalaburagi", 18: "Kodagu", 19: "Kolar", 20: "Koppal",
+    21: "Mandya", 22: "Mysuru", 23: "Raichur", 24: "Ramanagara", 25: "Shivamogga",
+    26: "Tumakuru", 27: "Udupi", 28: "Uttara Kannada", 29: "Vijayapura", 30: "Yadgir", 31: "Vijayanagara"
+  };
+
+  const districtCenterCoords: Record<number, [number, number]> = {
+    1: [16.1853, 75.6960], // Bagalkot
+    2: [15.1394, 76.9214], // Ballari
+    3: [15.8497, 74.4977], // Belagavi
+    4: [13.2257, 77.5750], // Bengaluru Rural
+    5: [12.9716, 77.5946], // Bengaluru Urban
+    6: [17.9104, 77.5199], // Bidar
+    7: [11.9261, 76.9437], // Chamarajanagar
+    8: [13.4355, 77.7275], // Chikballapur
+    9: [13.3161, 75.7720], // Chikkamagaluru
+    10: [14.2251, 76.3980], // Chitradurga
+    11: [12.9141, 74.8560], // Dakshina Kannada
+    12: [14.4644, 75.9218], // Davanagere
+    13: [15.4589, 75.0078], // Dharwad
+    14: [15.4319, 75.6355], // Gadag
+    15: [13.0033, 76.1004], // Hassan
+    16: [14.7958, 75.3992], // Haveri
+    17: [17.3297, 76.8343], // Kalaburagi
+    18: [12.4244, 75.7382], // Kodagu
+    19: [13.1367, 78.1292], // Kolar
+    20: [15.3503, 76.1554], // Koppal
+    21: [12.5218, 76.8951], // Mandya
+    22: [12.2958, 76.6394], // Mysuru
+    23: [16.2076, 77.3563], // Raichur
+    24: [12.7160, 77.2814], // Ramanagara
+    25: [13.9299, 75.5681], // Shivamogga
+    26: [13.3409, 77.1006], // Tumakuru
+    27: [13.3409, 74.7421], // Udupi
+    28: [14.8142, 74.1297], // Uttara Kannada
+    29: [16.8302, 75.7100], // Vijayapura
+    30: [16.7705, 77.1376], // Yadgir
+    31: [15.2713, 76.3869], // Vijayanagara
+  };
+
+  const crimeCategoryOptions = [
+    { value: "", label: "📋 All IPC Crime Classifications" },
+    { value: "burglary", label: "🌙 Residential / Night Burglary & House Breaking" },
+    { value: "theft", label: "🚗 Motor Vehicle & Property Theft" },
+    { value: "cyber", label: "💻 Cyber Crime & Financial Extortion" },
+    { value: "assault", label: "🚨 Armed Robbery & Violent Assault" },
+    { value: "women", label: "🛡️ Crimes Against Women & Children" },
+    { value: "narcotics", label: "📦 NDPS & Illegal Contraband" }
+  ];
+
   // Query live crime coordinates
   const { data: hotspotData } = useQuery({
-    queryKey: ["hotspotsData"],
-    queryFn: () => hotspotService.getHotspots(),
+    queryKey: ["hotspotsData", filters.district, filters.crimeType],
+    queryFn: () => hotspotService.getHotspots(filters.district ? Number(filters.district) : undefined, filters.crimeType || undefined),
   });
 
   // Query predicted AI hotspots
@@ -45,6 +98,15 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
 
   const points = hotspotData?.points || [];
   const predictedHotspots = predictedData?.hotspots || [];
+
+  // Auto-center map when a district is selected from the dropdown
+  useEffect(() => {
+    if (!leafletMap.current) return;
+    if (filters.district && districtCenterCoords[Number(filters.district)]) {
+      const coords = districtCenterCoords[Number(filters.district)];
+      leafletMap.current.setView(coords, 12, { animate: true });
+    }
+  }, [filters.district]);
 
   // Play/pause simulation timer
   useEffect(() => {
@@ -59,17 +121,29 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
     };
   }, [isPlaying]);
 
-  // Initialize Map
+  // Initialize Map with Canvas Renderer & Bright Voyager Tiles bounded to Karnataka
   useEffect(() => {
     if (!mapRef.current || leafletMap.current) return;
 
+    const karnatakaBounds: L.LatLngBoundsExpression = [
+      [11.2, 73.8], // Southwest corner
+      [18.9, 78.8]  // Northeast corner
+    ];
+
     const map = L.map(mapRef.current, {
+      preferCanvas: true,
       zoomControl: false,
       attributionControl: false,
-    }).setView([12.9716, 77.5946], 10);
+      minZoom: 7,
+      maxZoom: 18,
+      maxBounds: karnatakaBounds,
+      maxBoundsViscosity: 0.8,
+    }).setView([14.5204, 75.7224], 8); // Centered over Karnataka
 
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-      maxZoom: 20,
+    // Bright, crisp CartoDB Voyager tiles with clear area names & street landmarks
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+      maxZoom: 19,
+      subdomains: "abcd",
     }).addTo(map);
 
     L.control.zoom({ position: "bottomright" }).addTo(map);
@@ -117,7 +191,20 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
 
     if (layers.incidents && filteredPoints.length > 0) {
       filteredPoints.forEach((pt: any) => {
-        if (filters.crimeType && pt.BriefFacts && !pt.BriefFacts.toLowerCase().includes(filters.crimeType.toLowerCase())) return;
+        // District filter
+        if (filters.district && pt.DistrictID && pt.DistrictID !== Number(filters.district)) return;
+
+        // Crime Type / Category filter
+        if (filters.crimeType) {
+          const typeKey = filters.crimeType.toLowerCase();
+          const facts = (pt.BriefFacts || "").toLowerCase();
+          if (typeKey === "burglary" && !facts.includes("burgla") && !facts.includes("house") && !facts.includes("lurking") && !facts.includes("theft") && pt.CrimeHeadID !== 2) return;
+          if (typeKey === "theft" && !facts.includes("theft") && !facts.includes("stolen") && !facts.includes("vehicle") && pt.CrimeHeadID !== 2) return;
+          if (typeKey === "cyber" && !facts.includes("cyber") && !facts.includes("bank") && !facts.includes("fraud") && !facts.includes("online") && pt.CrimeHeadID !== 7) return;
+          if (typeKey === "assault" && !facts.includes("assault") && !facts.includes("robbery") && !facts.includes("stab") && !facts.includes("murder") && pt.CrimeHeadID !== 1) return;
+          if (typeKey === "women" && !facts.includes("dowry") && !facts.includes("molest") && !facts.includes("rape") && !facts.includes("assault") && pt.CrimeHeadID !== 3) return;
+          if (typeKey === "narcotics" && !facts.includes("ganja") && !facts.includes("drug") && !facts.includes("ndps") && pt.CrimeHeadID !== 8) return;
+        }
 
         let ptHour = 12;
         if (pt.IncidentFromDate) {
@@ -126,26 +213,28 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
           ptHour = (pt.CaseMasterID * 3) % 24;
         }
 
-        const customIcon = L.divIcon({
-          className: "custom-div-icon",
-          html: `<div class="flex items-center justify-center">
-            <span class="absolute inline-flex h-3.5 w-3.5 rounded-full bg-blue-500 opacity-60 animate-ping"></span>
-            <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-600 border border-white"></span>
-          </div>`,
-          iconSize: [12, 12],
-          iconAnchor: [6, 6]
-        });
+        const isNightBurglary = filters.crimeType === "burglary";
+        const fillColor = isNightBurglary ? "#ef4444" : (pt.AIRiskScore > 0.7 ? "#f97316" : "#3b82f6");
+        const radius = isNightBurglary ? 7 : 5;
 
         const timeStr = `${String(ptHour).padStart(2, '0')}:00 hrs`;
-        const marker = L.marker([pt.latitude, pt.longitude], { icon: customIcon })
-          .bindPopup(`
-            <div class="text-slate-900 text-xs font-sans p-1.5">
-              <strong class="text-blue-600 block mb-1">Case #${pt.CaseNo || pt.CaseMasterID || 'Incident'}</strong>
-              <p class="leading-relaxed font-semibold mb-1">${pt.BriefFacts || "Crime log incident."}</p>
-              <span class="text-[10px] text-slate-600 font-mono block">Incident Time: ${timeStr}</span>
-              <span class="text-[10px] text-slate-500 font-mono block">Station: ${pt.PoliceStationName || "KSP Precinct"}</span>
-            </div>
-          `);
+        const marker = L.circleMarker([pt.latitude, pt.longitude], {
+          renderer: L.canvas(),
+          radius: radius,
+          fillColor: fillColor,
+          color: "#ffffff",
+          weight: 1,
+          opacity: 0.9,
+          fillOpacity: 0.75,
+        }).bindPopup(`
+          <div class="text-slate-900 text-xs font-sans p-1.5">
+            <strong class="text-blue-600 block mb-1">Case #${pt.CaseNo || pt.CaseMasterID || 'Incident'}</strong>
+            <p class="leading-relaxed font-semibold mb-1">${pt.BriefFacts || "Crime log incident."}</p>
+            <span class="text-[10px] text-slate-600 font-mono block">Incident Time: ${timeStr}</span>
+            <span class="text-[10px] text-slate-500 font-mono block">Station: ${pt.PoliceStationName || "KSP Precinct"}</span>
+            ${pt.AIRiskScore ? `<span class="text-[10px] text-red-600 font-bold block mt-1">AI Risk Score: ${pt.AIRiskScore.toFixed(2)}</span>` : ''}
+          </div>
+        `);
         markerGroup.addLayer(marker);
       });
     }
@@ -249,24 +338,26 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
                 <select
                   value={filters.district}
                   onChange={(e) => setFilters({ ...filters, district: e.target.value })}
-                  className="w-full bg-[#1e293b] border border-[#1e293b] text-slate-200 text-xs rounded px-2.5 py-1.5 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-[#1e293b] border border-[#334155] text-slate-200 text-xs rounded px-2.5 py-1.5 focus:outline-none focus:border-blue-500 font-mono font-bold"
                 >
-                  <option value="">All Districts</option>
-                  <option value="bengaluru">Bengaluru Division</option>
-                  <option value="mysuru">Mysuru Division</option>
-                  <option value="belagavi">Belagavi Division</option>
+                  <option value="">All Karnataka Districts (31)</option>
+                  {Object.entries(karnatakaDistricts).map(([id, name]) => (
+                    <option key={id} value={id}>{name}</option>
+                  ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Incident Keywords</label>
-                <input
-                  type="text"
-                  placeholder="e.g. theft, assault..."
+                <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">IPC Crime Category</label>
+                <select
                   value={filters.crimeType}
                   onChange={(e) => setFilters({ ...filters, crimeType: e.target.value })}
-                  className="w-full bg-[#1e293b] border border-[#1e293b] text-slate-200 text-xs rounded px-2.5 py-1.5 focus:outline-none focus:border-blue-500"
-                />
+                  className="w-full bg-[#1e293b] border border-[#334155] text-slate-200 text-xs rounded px-2.5 py-1.5 focus:outline-none focus:border-blue-500 font-mono font-bold"
+                >
+                  {crimeCategoryOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -377,8 +468,70 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
 
       {/* Main Map with bottom time slider */}
       <div className="flex-1 bg-[#111827] border border-[#1e293b] rounded overflow-hidden relative flex flex-col">
-        <div className="flex-1 w-full z-10">
+        <div className="flex-1 w-full z-10 relative">
           <div ref={mapRef} className="h-full w-full" />
+
+          {/* Directional Pan Navigation Controls Overlay */}
+          <div className="absolute top-4 right-4 z-20 flex flex-col items-center gap-1.5 bg-[#0d1322]/90 border border-[#1e293b] p-2.5 rounded shadow-2xl backdrop-blur select-none">
+            <span className="text-[9px] font-mono font-bold text-blue-400 uppercase tracking-widest mb-0.5">
+              GIS Navigation Pad
+            </span>
+            <div className="grid grid-cols-3 gap-1 w-28">
+              <div></div>
+              <button
+                onClick={() => leafletMap.current?.panBy([0, -150])}
+                title="Pan North (Up)"
+                className="bg-[#1e293b] hover:bg-blue-600 text-slate-200 hover:text-white p-2 rounded flex items-center justify-center transition-colors border border-[#334155]"
+              >
+                <ChevronUp size={16} />
+              </button>
+              <div></div>
+              <button
+                onClick={() => leafletMap.current?.panBy([-150, 0])}
+                title="Pan West (Left)"
+                className="bg-[#1e293b] hover:bg-blue-600 text-slate-200 hover:text-white p-2 rounded flex items-center justify-center transition-colors border border-[#334155]"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button
+                onClick={() => leafletMap.current?.setView([14.5204, 75.7224], 8)}
+                title="Reset Karnataka View"
+                className="bg-[#1e293b] hover:bg-blue-600 text-slate-200 hover:text-white p-2 rounded flex items-center justify-center transition-colors border border-[#334155]"
+              >
+                <Compass size={16} />
+              </button>
+              <button
+                onClick={() => leafletMap.current?.panBy([150, 0])}
+                title="Pan East (Right)"
+                className="bg-[#1e293b] hover:bg-blue-600 text-slate-200 hover:text-white p-2 rounded flex items-center justify-center transition-colors border border-[#334155]"
+              >
+                <ChevronRight size={16} />
+              </button>
+              <div></div>
+              <button
+                onClick={() => leafletMap.current?.panBy([0, 150])}
+                title="Pan South (Down)"
+                className="bg-[#1e293b] hover:bg-blue-600 text-slate-200 hover:text-white p-2 rounded flex items-center justify-center transition-colors border border-[#334155]"
+              >
+                <ChevronDown size={16} />
+              </button>
+              <div></div>
+            </div>
+            <div className="flex gap-1.5 w-full mt-1">
+              <button
+                onClick={() => leafletMap.current?.zoomIn()}
+                className="flex-1 bg-[#1e293b] hover:bg-blue-600 text-slate-200 hover:text-white py-1.5 rounded text-[11px] font-mono font-bold flex items-center justify-center gap-1 border border-[#334155]"
+              >
+                <ZoomIn size={13} /> +
+              </button>
+              <button
+                onClick={() => leafletMap.current?.zoomOut()}
+                className="flex-1 bg-[#1e293b] hover:bg-blue-600 text-slate-200 hover:text-white py-1.5 rounded text-[11px] font-mono font-bold flex items-center justify-center gap-1 border border-[#334155]"
+              >
+                <ZoomOut size={13} /> -
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Bottom sliding intelligence drawer */}

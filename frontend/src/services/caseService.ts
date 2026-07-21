@@ -5,6 +5,7 @@ export const caseService = {
     page?: number;
     pageSize?: number;
     search?: string;
+    districtId?: number;
     stationId?: number;
     statusId?: number;
     sortBy?: string;
