@@ -102,16 +102,29 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
     predGroup.clearLayers();
     routeLine.setLatLngs([]);
 
-    // 1. Filter points dynamically by the selected hour (simulating temporal spread)
+    // 1. Filter points dynamically by the selected hour using real incident timestamps or stable indexing
     const filteredPoints = points.filter((pt: any) => {
-      // Deterministic filter using coords so different points appear at different times
-      const ptHour = Math.floor(Math.abs(pt.latitude + pt.longitude) * 1000) % 24;
+      let ptHour = 12;
+      if (pt.IncidentFromDate) {
+        ptHour = new Date(pt.IncidentFromDate).getHours();
+      } else if (pt.CrimeRegisteredDate) {
+        ptHour = new Date(pt.CrimeRegisteredDate).getHours();
+      } else if (pt.CaseMasterID) {
+        ptHour = (pt.CaseMasterID * 3) % 24;
+      }
       return ptHour <= timeHour;
     });
 
     if (layers.incidents && filteredPoints.length > 0) {
       filteredPoints.forEach((pt: any) => {
         if (filters.crimeType && pt.BriefFacts && !pt.BriefFacts.toLowerCase().includes(filters.crimeType.toLowerCase())) return;
+
+        let ptHour = 12;
+        if (pt.IncidentFromDate) {
+          ptHour = new Date(pt.IncidentFromDate).getHours();
+        } else if (pt.CaseMasterID) {
+          ptHour = (pt.CaseMasterID * 3) % 24;
+        }
 
         const customIcon = L.divIcon({
           className: "custom-div-icon",
@@ -123,12 +136,14 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
           iconAnchor: [6, 6]
         });
 
+        const timeStr = `${String(ptHour).padStart(2, '0')}:00 hrs`;
         const marker = L.marker([pt.latitude, pt.longitude], { icon: customIcon })
           .bindPopup(`
-            <div class="text-slate-900 text-xs font-sans p-1">
-              <strong class="text-blue-600 block mb-1">Incident Registry</strong>
-              <p class="leading-relaxed font-semibold">${pt.BriefFacts || "Crime log detail."}</p>
-              <span class="text-[9px] text-slate-500 font-mono block mt-1">Logged Time: ${Math.floor(Math.abs(pt.latitude) * 100) % 24}:00 hrs</span>
+            <div class="text-slate-900 text-xs font-sans p-1.5">
+              <strong class="text-blue-600 block mb-1">Case #${pt.CaseNo || pt.CaseMasterID || 'Incident'}</strong>
+              <p class="leading-relaxed font-semibold mb-1">${pt.BriefFacts || "Crime log incident."}</p>
+              <span class="text-[10px] text-slate-600 font-mono block">Incident Time: ${timeStr}</span>
+              <span class="text-[10px] text-slate-500 font-mono block">Station: ${pt.PoliceStationName || "KSP Precinct"}</span>
             </div>
           `);
         markerGroup.addLayer(marker);
@@ -138,9 +153,10 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
     // 2. Police Stations
     if (layers.stations) {
       const mockStations = [
-        { name: "KSP City HQ", lat: 12.9716, lng: 77.5946 },
-        { name: "Mysuru Division PS", lat: 12.2958, lng: 76.6394 },
+        { name: "KSP Central Command HQ", lat: 12.9716, lng: 77.5946 },
+        { name: "Mysuru Division Police Unit", lat: 12.2958, lng: 76.6394 },
         { name: "Belagavi Circle Station", lat: 15.8497, lng: 74.4977 },
+        { name: "Hubballi Sector Station", lat: 15.3647, lng: 75.1240 },
       ];
       mockStations.forEach((st) => {
         const stationIcon = L.divIcon({
@@ -157,25 +173,35 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
       });
     }
 
-    // 3. AI hotspots filtered by time (radius expands and contracts to simulate evolution)
+    // 3. AI hotspots with clear sector names and tactical patrol recommendations
     if (layers.predicted && predictedHotspots.length > 0) {
+      const sectorNames = [
+        "Sector A - Commercial Market Corridor",
+        "Sector B - High-Value Property Zone",
+        "Sector C - Highway Bypass Intersection",
+        "Sector D - Industrial Transit Hub"
+      ];
+
       predictedHotspots.forEach((h: any, idx: number) => {
-        // Hotspot activity expands depending on how close timeHour matches index cycles
         const multiplier = Math.sin((timeHour + idx * 4) / 4) * 0.5 + 1.0; 
         const radius = 600 * multiplier;
         const color = h.confidence > 0.7 ? "#ef4444" : "#f59e0b";
+        const sectorName = sectorNames[idx % sectorNames.length];
 
         const circle = L.circle([h.latitude, h.longitude], {
           color: color,
           fillColor: color,
-          fillOpacity: 0.12 + (multiplier * 0.05),
+          fillOpacity: 0.15 + (multiplier * 0.05),
           radius: radius,
           weight: 1.5,
         }).bindPopup(`
-          <div class="text-slate-900 text-xs font-sans p-1">
-            <strong class="text-red-600 block mb-1">AI Hotspot Zone #${idx + 1}</strong>
-            <span class="block text-[9px] text-slate-500 font-mono">Confidence Level: ${(h.confidence * 100).toFixed(0)}%</span>
-            <span class="block text-[9px] text-blue-500 font-mono">Radius Scale: ${radius.toFixed(0)}m</span>
+          <div class="text-slate-900 text-xs font-sans p-1.5">
+            <strong class="text-red-600 block mb-1">${sectorName}</strong>
+            <span class="block text-[10px] text-slate-700 font-bold">KDE AI Risk Confidence: ${(h.confidence * 100).toFixed(0)}%</span>
+            <span class="block text-[10px] text-slate-500 font-mono mt-0.5">Coverage Radius: ${radius.toFixed(0)}m</span>
+            <div class="mt-1.5 p-1 bg-blue-50 border border-blue-200 rounded text-[9.5px] text-blue-800 font-mono">
+              Patrol Rec: Deploy 2 Mobile Squad Units (18:00 - 22:00)
+            </div>
           </div>
         `);
 

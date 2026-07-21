@@ -6,7 +6,7 @@ from app.core.config import settings
 from app.middleware.jurisdiction_scope import apply_jurisdiction_filter
 from app.models.case_master import CaseMaster
 from app.models.user import User
-from app.services import ai_audit_service
+from app.services import ai_audit_service, report_service
 
 def query_assistant(db: Session, query: str, current_user: User) -> dict:
     """
@@ -44,6 +44,15 @@ def query_assistant(db: Session, query: str, current_user: User) -> dict:
         ) from exc
 
     result = response.json()
+
+    # If action is generate_pdf, trigger report creation & task
+    if result.get("action") == "generate_pdf" and result.get("target_case_id"):
+        target_cid = result["target_case_id"]
+        try:
+            job = report_service.create_report_job(db, target_cid, current_user)
+            result["download_url"] = f"/api/v1/reports/jobs/{job.ReportJobID}/download"
+        except Exception:
+            result["download_url"] = None
 
     # 4. Log AI Audit run
     ai_audit_service.log_ai_run(

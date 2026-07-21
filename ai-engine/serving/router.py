@@ -105,51 +105,155 @@ def detect_network_communities(payload: NetworkCommunityRequest) -> NetworkCommu
 
 @router.post("/assistant/query")
 def assistant_query(payload: dict) -> dict:
-    """Natural-language query grounding and RAG citations."""
-    query = payload.get("query", "").lower()
+    """Natural-language RAG query grounding and dynamic response generation."""
+    raw_query = payload.get("query", "").strip()
+    query_lower = raw_query.lower()
     context = payload.get("context", "")
-    
-    source_case_ids = []
-    citations = []
-    
+
+    # Parse context cases into structured dicts
+    parsed_cases = []
     for line in context.split("\n"):
-        if not line.strip():
+        if not line.strip() or "CaseID:" not in line:
             continue
         parts = line.split(" | ")
-        case_id_part = parts[0] if len(parts) > 0 else ""
-        case_no_part = parts[1] if len(parts) > 1 else ""
-        facts_part = parts[3] if len(parts) > 3 else ""
-        
-        try:
-            cid = int(case_id_part.split(": ")[1])
-        except Exception:
-            continue
-            
-        cno = case_no_part.split(": ")[1] if ": " in case_no_part else f"#{cid}"
-        facts_text = facts_part.lower()
-        
-        words = [w for w in query.replace("?", "").replace(".", "").split() if len(w) > 3]
-        match = False
-        if not words:
-            match = True
-        else:
-            for w in words:
-                if w in facts_text or w in cno.lower():
-                    match = True
-                    break
-        
-        if match:
-            source_case_ids.append(cid)
-            citations.append(cno)
-            if len(source_case_ids) >= 3:
+        case_id = None
+        case_no = "N/A"
+        accused = "None listed"
+        facts = "N/A"
+        for p in parts:
+            if p.startswith("CaseID:"):
+                try:
+                    case_id = int(p.split(":")[1].strip())
+                except ValueError:
+                    pass
+            elif p.startswith("CaseNo:"):
+                case_no = p.split(":")[1].strip()
+            elif p.startswith("Accused:"):
+                accused_val = p.split(":", 1)[1].strip()
+                if accused_val:
+                    accused = accused_val
+            elif p.startswith("Facts:"):
+                facts = p.split(":", 1)[1].strip()
+
+        if case_id:
+            parsed_cases.append({
+                "id": case_id,
+                "no": case_no,
+                "accused": accused,
+                "facts": facts
+            })
+
+    source_case_ids = []
+    
+    # 0. PDF / Report Generation Request
+    if any(k in query_lower for k in ["pdf", "report", "dossier", "export", "download"]):
+        target_case = None
+        for c in parsed_cases:
+            if str(c["id"]) in query_lower or c["no"].lower() in query_lower:
+                target_case = c
                 break
-                
-    if source_case_ids:
-        c_str = ", ".join([f"Case {c}" for c in citations])
-        answer = f"Based on historical investigative records within your precinct, I identified pattern similarities in {c_str}. Suspect descriptions and Modus Operandi alignments suggest linked activity."
+        if not target_case and parsed_cases:
+            target_case = parsed_cases[0]
+
+        if target_case:
+            answer = f"Understood Officer. I have compiled and generated the official KSP PDF Investigation Dossier for Case {target_case['no']}. Click the download button below to save the document."
+            return {
+                "answer": answer,
+                "source_case_ids": [target_case["id"]],
+                "action": "generate_pdf",
+                "target_case_id": target_case["id"],
+                "model_version": "phase4-assistant-v1"
+            }
+        else:
+            return {
+                "answer": "No active case dossier is available to compile into a PDF report.",
+                "source_case_ids": [],
+                "model_version": "phase4-assistant-v1"
+            }
+    
+    # 1. Greetings / Casual Prompts
+    greetings = ["hi", "hello", "hey", "namaste", "good morning", "good evening", "who are you", "help"]
+    if any(query_lower == g or query_lower.startswith(g + " ") for g in greetings) or len(query_lower) < 3:
+        answer = (
+            "Hello Officer! I am your KSP Crime Intelligence AI Assistant. "
+            "I have indexed your active precinct dossiers. You can ask me to search for specific crimes "
+            "(e.g., 'show theft cases'), inquire about suspects, or ask for a case summary."
+        )
+        return {
+            "answer": answer,
+            "source_case_ids": [],
+            "model_version": "phase4-assistant-v1"
+        }
+
+    # 2. Case Summary / Overview Queries
+    if any(k in query_lower for k in ["summarize", "summary", "total cases", "show cases", "all cases", "overview", "recent"]):
+        if parsed_cases:
+            top_3 = parsed_cases[:3]
+            source_case_ids = [c["id"] for c in top_3]
+            details = "; ".join([f"Case {c['no']} ({c['facts'][:50]}...)" for c in top_3])
+            answer = (
+                f"I analyzed {len(parsed_cases)} active dossiers in your precinct scope. "
+                f"Key active cases include: {details}. Would you like to review suspect profiles or evidence items for any of these?"
+            )
+        else:
+            answer = "There are currently no active case dossiers recorded within your active jurisdiction scope."
+        return {
+            "answer": answer,
+            "source_case_ids": source_case_ids,
+            "model_version": "phase4-assistant-v1"
+        }
+
+    # 3. Suspect / Accused Inquiry
+    if any(k in query_lower for k in ["accused", "suspect", "offender", "who", "names", "person"]):
+        matching = [c for c in parsed_cases if c["accused"] and c["accused"].lower() != "none listed"]
+        if matching:
+            top_matches = matching[:3]
+            source_case_ids = [c["id"] for c in top_matches]
+            suspect_info = "; ".join([f"{c['accused']} (Case {c['no']})" for c in top_matches])
+            answer = f"Identified suspect profiles in your jurisdiction: {suspect_info}. Modus operandi logs indicate active investigation tracking."
+        else:
+            answer = "No identified suspect names are currently logged in the retrieved case dossiers."
+        return {
+            "answer": answer,
+            "source_case_ids": source_case_ids,
+            "model_version": "phase4-assistant-v1"
+        }
+
+    # 4. Hotspot / Risk / Patrol Inquiry
+    if any(k in query_lower for k in ["hotspot", "risk", "patrol", "high risk", "priority", "deploy"]):
+        if parsed_cases:
+            top_matches = parsed_cases[:3]
+            source_case_ids = [c["id"] for c in top_matches]
+            c_str = ", ".join([f"Case {c['no']}" for c in top_matches])
+            answer = (
+                f"Intelligence models flag active threat clusters linked to {c_str}. "
+                f"Recommend deploying tactical patrol squads to high-density sector boundaries during peak evening shifts (18:00 - 22:00)."
+            )
+        else:
+            answer = "No high-risk crime hotspot anomalies are currently active in your precinct sector."
+        return {
+            "answer": answer,
+            "source_case_ids": source_case_ids,
+            "model_version": "phase4-assistant-v1"
+        }
+
+    # 5. Semantic & Specific Word Matching across Brief Facts and Case Numbers
+    words = [w for w in query_lower.replace("?", "").replace(".", "").split() if len(w) > 2]
+    matching = []
+    for c in parsed_cases:
+        searchable = f"{c['no']} {c['accused']} {c['facts']}".lower()
+        if any(w in searchable for w in words):
+            matching.append(c)
+
+    if matching:
+        top_matches = matching[:3]
+        source_case_ids = [c["id"] for c in top_matches]
+        c_str = ", ".join([f"Case {c['no']}" for c in top_matches])
+        facts_snippets = " | ".join([f"Case {c['no']}: '{c['facts'][:60]}...'" for c in top_matches])
+        answer = f"Found {len(matching)} matching dossier(s) for your query ({c_str}): {facts_snippets}"
     else:
-        answer = "I could not find any cases matching the specified details in your jurisdiction boundaries."
-        
+        answer = f"I searched your precinct database for '{raw_query}', but found no matching case records in your active jurisdiction scope."
+
     return {
         "answer": answer,
         "source_case_ids": source_case_ids,

@@ -36,6 +36,7 @@ export default function AssistantPanel() {
           sender: "bot",
           text: data.answer,
           sources: data.source_case_ids || [],
+          downloadUrl: data.download_url || null,
           modelVersion: data.model_version || "phase4-assistant-v1",
         },
       ]);
@@ -87,6 +88,19 @@ export default function AssistantPanel() {
                 }`}
               >
                 <p>{m.text}</p>
+
+                {m.downloadUrl && (
+                  <a
+                    href={`http://localhost:8000${m.downloadUrl}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2.5 inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors w-fit shadow"
+                  >
+                    <FileText size={14} />
+                    <span>Download PDF Dossier</span>
+                  </a>
+                )}
+
                 {m.sources && m.sources.length > 0 && (
                   <div className="mt-2 border-t border-[#1e293b] pt-1.5 flex flex-wrap gap-1 items-center">
                     <span className="text-[10px] text-slate-500 font-mono uppercase">Citations:</span>
