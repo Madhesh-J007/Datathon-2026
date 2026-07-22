@@ -30,7 +30,7 @@ def list_notifications(db: Session, current_user: User) -> list[Notification]:
     if user_notifs:
         return user_notifs
 
-    # Fallback/Seed recent FIR incidents directly from CaseMaster
+    # Seed recent FIR incidents cleanly from CaseMaster
     recent_cases = db.query(CaseMaster).filter(CaseMaster.CrimeRegisteredDate.isnot(None)).order_by(CaseMaster.CrimeRegisteredDate.desc()).limit(6).all()
     
     ps_ids = {c.PoliceStationID for c in recent_cases if c.PoliceStationID}
@@ -43,7 +43,7 @@ def list_notifications(db: Session, current_user: User) -> list[Notification]:
         
         n = Notification(
             UserID=current_user.UserID,
-            Title=f"🚨 Recent FIR Alert #{c.CaseNo or c.CaseMasterID}",
+            Title=f"Incident Logged: FIR #{c.CaseNo or c.CaseMasterID}",
             Message=f"{c.BriefFacts[:85]}... (Precinct: {st_name}, Date: {reg_date_str})",
             CreatedAt=c.CrimeRegisteredDate or datetime.now(),
             IsRead=False
@@ -58,3 +58,36 @@ def list_notifications(db: Session, current_user: User) -> list[Notification]:
         db.rollback()
 
     return db.query(Notification).filter(Notification.UserID == current_user.UserID).order_by(Notification.CreatedAt.desc()).all()
+
+
+def mark_as_read(db: Session, notification_id: int, current_user: User) -> bool:
+    """
+    Marks a single notification as read in PostgreSQL.
+    """
+    n = db.query(Notification).filter(Notification.NotificationID == notification_id, Notification.UserID == current_user.UserID).first()
+    if not n:
+        return False
+    n.IsRead = True
+    db.commit()
+    return True
+
+
+def delete_notification(db: Session, notification_id: int, current_user: User) -> bool:
+    """
+    Deletes a single notification from PostgreSQL.
+    """
+    n = db.query(Notification).filter(Notification.NotificationID == notification_id, Notification.UserID == current_user.UserID).first()
+    if not n:
+        return False
+    db.delete(n)
+    db.commit()
+    return True
+
+
+def clear_all_notifications(db: Session, current_user: User) -> bool:
+    """
+    Deletes or marks all notifications as read for the current user.
+    """
+    db.query(Notification).filter(Notification.UserID == current_user.UserID).delete()
+    db.commit()
+    return True

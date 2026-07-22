@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../app/providers/AuthProvider";
 import { notificationService } from "../../services/notificationService";
 import { searchService } from "../../services/searchService";
-import { Bell, Search, ShieldAlert, CheckCircle, Clock } from "lucide-react";
+import { Bell, Search, CheckCircle, Clock } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 export default function TopBar() {
@@ -75,6 +75,36 @@ export default function TopBar() {
 
     return () => clearTimeout(delayDebounce);
   }, [searchQuery]);
+
+  const handleMarkAsRead = async (id: number) => {
+    try {
+      await notificationService.markAsRead(id);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
+      );
+    } catch (err) {
+      console.error("Failed to mark notification as read", err);
+    }
+  };
+
+  const handleDeleteNotification = async (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await notificationService.deleteNotification(id);
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+    } catch (err) {
+      console.error("Failed to delete notification", err);
+    }
+  };
+
+  const handleClearAllNotifications = async () => {
+    try {
+      await notificationService.clearAll();
+      setNotifications([]);
+    } catch (err) {
+      console.error("Failed to clear notifications", err);
+    }
+  };
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
@@ -193,18 +223,31 @@ export default function TopBar() {
           >
             <Bell size={18} />
             {unreadCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white leading-none">
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center text-[10px] font-bold text-white leading-none shadow font-mono">
                 {unreadCount}
               </span>
             )}
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 top-8 w-80 bg-[#0d1322] border border-[#1e293b] rounded shadow-2xl max-h-[360px] overflow-y-auto z-50">
+            <div className="absolute right-0 top-8 w-80 bg-[#0d1322] border border-[#1e293b] rounded shadow-2xl max-h-[380px] overflow-y-auto z-50">
               <div className="p-3 border-b border-[#1e293b] flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-200 font-mono">Alert Center</span>
-                <span className="text-[10px] text-slate-500 font-mono">{notifications.length} alerts</span>
+                <span className="text-xs font-bold text-slate-200 font-mono">Notifications</span>
+                <div className="flex items-center gap-2 font-mono">
+                  {notifications.length > 0 && (
+                    <button
+                      onClick={handleClearAllNotifications}
+                      className="text-[10px] text-slate-400 hover:text-red-400 underline transition-colors"
+                    >
+                      Clear All
+                    </button>
+                  )}
+                  <span className="text-[10px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded border border-blue-500/20 font-bold">
+                    {unreadCount} unread
+                  </span>
+                </div>
               </div>
+
               <div className="divide-y divide-[#1e293b]">
                 {isLoadingNotifications ? (
                   <div className="p-3 space-y-3">
@@ -215,36 +258,45 @@ export default function TopBar() {
                         <div className="h-2 bg-slate-800 rounded w-5/6"></div>
                       </div>
                     </div>
-                    <div className="flex gap-2.5 animate-pulse">
-                      <div className="w-4 h-4 rounded-full bg-slate-800"></div>
-                      <div className="flex-1 space-y-2">
-                        <div className="h-3 bg-slate-800 rounded w-1/4"></div>
-                        <div className="h-2 bg-slate-800 rounded w-2/3"></div>
-                      </div>
-                    </div>
                   </div>
                 ) : notifications.length === 0 ? (
-                  <div className="text-center py-6 text-xs text-slate-500 font-mono italic">
-                    No notifications or alert events logged.
+                  <div className="text-center py-8 text-xs text-slate-500 font-mono italic">
+                    No active notifications.
                   </div>
                 ) : (
                   notifications.map((n) => (
-                    <div key={n.id} className={`p-3 hover:bg-[#151c2e] transition-colors ${!n.is_read ? "bg-[#0f172a]" : ""}`}>
-                      <div className="flex items-start gap-2.5">
+                    <div
+                      key={n.id}
+                      onClick={() => handleMarkAsRead(n.id)}
+                      className={`p-3 hover:bg-[#151c2e] transition-colors cursor-pointer group flex items-start justify-between gap-2 ${
+                        !n.is_read ? "bg-[#0f172a]" : ""
+                      }`}
+                    >
+                      <div className="flex items-start gap-2.5 flex-1 min-w-0">
                         {!n.is_read ? (
-                          <ShieldAlert className="text-red-400 flex-shrink-0 mt-0.5" size={14} />
+                          <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 flex-shrink-0 animate-pulse" />
                         ) : (
-                          <CheckCircle className="text-slate-500 flex-shrink-0 mt-0.5" size={14} />
+                          <CheckCircle className="text-slate-600 flex-shrink-0 mt-0.5" size={14} />
                         )}
-                        <div>
-                          <h4 className="text-xs font-semibold text-slate-200">{n.title}</h4>
-                          <p className="text-[10px] text-slate-400 leading-normal mt-0.5">{n.message}</p>
+                        <div className="flex-1 min-w-0">
+                          <h4 className={`text-xs font-semibold ${!n.is_read ? "text-slate-100 font-bold" : "text-slate-400"}`}>
+                            {n.title}
+                          </h4>
+                          <p className="text-[10px] text-slate-400 leading-normal mt-0.5 truncate">{n.message}</p>
                           <div className="flex items-center gap-1 text-[10px] text-[#38bdf8] font-mono mt-1 font-bold">
                             <Clock size={10} />
                             <span>{new Date(n.created_at).toLocaleDateString()}</span>
                           </div>
                         </div>
                       </div>
+
+                      <button
+                        onClick={(e) => handleDeleteNotification(n.id, e)}
+                        className="text-slate-600 hover:text-red-400 p-1 rounded opacity-60 hover:opacity-100 transition-all font-bold text-xs"
+                        title="Dismiss notification"
+                      >
+                        ✕
+                      </button>
                     </div>
                   ))
                 )}
