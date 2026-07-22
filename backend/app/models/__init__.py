@@ -30,6 +30,9 @@ from app.models.ai_model_run import AIModelRun
 from app.models.audit_log import AuditLog
 from app.models.notification import Notification
 from app.models.collaboration_request import CollaborationRequest
+from app.models.external_agency import ExternalAgency
+from app.models.external_agency_officer import ExternalAgencyOfficer
+from app.models.collaboration_access import CollaborationAccess
 
 __all__ = [
     "State", "District", "UnitType", "PoliceStation", "CrimeType", "CrimeSubType",
@@ -37,5 +40,6 @@ __all__ = [
     "Officer", "Role", "Permission", "RolePermission", "User", "UserJurisdiction",
     "CaseMaster", "Accused", "Victim", "Witness", "Evidence", "Vehicle",
     "CaseAssignment", "CaseAnnotation", "CaseEmbedding", "CriminalRelationship",
-    "ReportJob", "AIModelRun", "AuditLog", "Notification", "CollaborationRequest"
+    "ReportJob", "AIModelRun", "AuditLog", "Notification", "CollaborationRequest",
+    "ExternalAgency", "ExternalAgencyOfficer", "CollaborationAccess"
 ]

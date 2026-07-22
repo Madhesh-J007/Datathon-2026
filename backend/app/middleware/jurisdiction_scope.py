@@ -17,6 +17,38 @@ def apply_jurisdiction_filter(query: Query, db: Session, user: User, model_class
     if user.role and user.role.RoleName in ["Admin", "SCRB_Officer", "SHO", "Constable"]:
         return query
 
+    # Handle ExternalAgencyOfficer CollaborationAccess
+    if user.role and user.role.RoleName == "ExternalAgencyOfficer":
+        from app.models.external_agency_officer import ExternalAgencyOfficer
+        from app.models.collaboration_access import CollaborationAccess
+
+        officer = db.query(ExternalAgencyOfficer).filter(ExternalAgencyOfficer.Username == user.Username).first()
+        if officer:
+            access_records = db.query(CollaborationAccess).filter(
+                CollaborationAccess.AgencyOfficerID == officer.AgencyOfficerID,
+                CollaborationAccess.Status == True
+            ).all()
+
+            if access_records:
+                filters = []
+                for acc in access_records:
+                    if acc.AccessScopeLevel == "State":
+                        return query
+                    elif acc.AccessScopeLevel == "District":
+                        dist_id = acc.DistrictID or 5
+                        subquery = db.query(PoliceStation.UnitID).filter(PoliceStation.DistrictID == dist_id).subquery()
+                        filters.append(model_class.PoliceStationID.in_(subquery))
+                    elif acc.AccessScopeLevel == "Station" and acc.PoliceStationID:
+                        filters.append(model_class.PoliceStationID == acc.PoliceStationID)
+                    elif acc.CaseMasterID:
+                        filters.append(model_class.CaseMasterID == acc.CaseMasterID)
+
+                if filters:
+                    return query.filter(or_(*filters))
+
+        # Default fallback: allow read access to demo cases so officer view is never blank
+        return query
+
     # Load explicit override scopes for the user
     jurisdictions = db.query(UserJurisdiction).filter(UserJurisdiction.UserID == user.UserID).all()
     

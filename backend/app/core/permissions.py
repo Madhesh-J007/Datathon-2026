@@ -17,6 +17,10 @@ def has_permission(db: Session, user: User, permission_code: str) -> bool:
     if user.role and user.role.RoleName == "Admin":
         return True
 
+    # Allow read-only permissions for ExternalAgencyOfficer role
+    if user.role and user.role.RoleName == "ExternalAgencyOfficer" and (permission_code.endswith(":read") or "read" in permission_code):
+        return True
+
     # Query if the user's role is granted the requested permission
     exists = db.query(RolePermission).join(
         Permission, RolePermission.PermissionID == Permission.PermissionID

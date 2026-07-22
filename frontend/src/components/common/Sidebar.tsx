@@ -24,14 +24,14 @@ export default function Sidebar() {
   const roleName = user?.role?.RoleName || "Guest";
 
   const menuItems = [
-    { name: "Executive Dashboard", path: "/dashboard", icon: LayoutDashboard, roles: ["Admin", "SCRB_Officer", "SHO", "Constable"] },
+    { name: "Inter-Agency Portal", path: "/collaboration", icon: FolderSync, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
+    { name: "Executive Dashboard", path: "/dashboard", icon: LayoutDashboard, roles: ["Admin", "SCRB_Officer", "SHO", "Constable", "ExternalAgencyOfficer"] },
     { name: "Officer Workspace", path: "/workspace", icon: Shield, roles: ["Admin", "SCRB_Officer", "SHO", "Constable"] },
     { name: "Cases Registry", path: "/cases", icon: FileText, roles: ["Admin", "SCRB_Officer", "SHO", "Constable"] },
-    { name: "GIS Crime Map", path: "/map", icon: Map, roles: ["Admin", "SCRB_Officer", "SHO", "Constable"] },
-    { name: "Hotspots Analysis", path: "/hotspots", icon: Flame, roles: ["Admin", "SCRB_Officer", "SHO"] },
-    { name: "Crime Network", path: "/network", icon: Network, roles: ["Admin", "SCRB_Officer", "SHO"] },
-    { name: "Predictive Intel", path: "/predictive", icon: Brain, roles: ["Admin", "SCRB_Officer", "SHO"] },
-    { name: "Collab Requests", path: "/collaboration", icon: FolderSync, roles: ["Admin", "SCRB_Officer", "SHO"] },
+    { name: "GIS Crime Map", path: "/map", icon: Map, roles: ["Admin", "SCRB_Officer", "SHO", "Constable", "ExternalAgencyOfficer"] },
+    { name: "Hotspots Analysis", path: "/hotspots", icon: Flame, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
+    { name: "Crime Network", path: "/network", icon: Network, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
+    { name: "Predictive Intel", path: "/predictive", icon: Brain, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
     { name: "Reports Center", path: "/reports", icon: FileBarChart, roles: ["Admin", "SCRB_Officer", "SHO"] },
     { name: "Admin Console", path: "/admin", icon: UserCog, roles: ["Admin"] },
   ];
