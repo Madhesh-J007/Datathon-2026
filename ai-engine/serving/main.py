@@ -30,20 +30,7 @@ async def lifespan(app: FastAPI):
         logger.critical(f"Configuration validation failed: {str(e)}")
         sys.exit(1)
 
-    # 2. Warm up sentence transformer model
-    try:
-        from models.mo_similarity.embeddings import get_embedding_model
-        logger.info("Pre-loading LaBSE sentence transformer...")
-        _ = get_embedding_model()
-        logger.info("LaBSE model successfully loaded.")
-        app.state.models_loaded = True
-        app.state.model_error = None
-    except Exception as e:
-        logger.critical(f"Critical model loading diagnostic failure: {str(e)}")
-        app.state.models_loaded = False
-        app.state.model_error = str(e)
-
-    # 3. Train or load risk prediction model
+    # 2. Train or load risk prediction model
     try:
         from models.risk_scoring.scorer import _model
         logger.info("Initializing risk engine model...")
@@ -54,8 +41,26 @@ async def lifespan(app: FastAPI):
         logger.error(f"Risk model initialization failure: {str(e)}")
         app.state.risk_model_loaded = False
 
+    # 3. Pre-load heavy LaBSE sentence transformer asynchronously so startup completes immediately
+    import asyncio
+    async def _load_labse():
+        try:
+            from models.mo_similarity.embeddings import get_embedding_model
+            logger.info("Pre-loading LaBSE sentence transformer in background...")
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(None, get_embedding_model)
+            logger.info("LaBSE model successfully loaded in background.")
+            app.state.models_loaded = True
+            app.state.model_error = None
+        except Exception as e:
+            logger.error(f"Model loading diagnostic failure: {str(e)}")
+            app.state.models_loaded = False
+            app.state.model_error = str(e)
+
+    asyncio.create_task(_load_labse())
+
     duration = time.time() - start_time
-    logger.info(f"KSP AI Engine startup sequence completed in {duration:.2f}s.")
+    logger.info(f"KSP AI Engine core startup completed in {duration:.2f}s.")
     yield
 
 

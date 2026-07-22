@@ -48,9 +48,23 @@ def generate_case_report(
     current_user: User = Depends(verify_permission("cases:read"))
 ):
     """
-    Triggers the asynchronous generation of a PDF case report dossier.
+    Triggers the asynchronous generation of a PDF case report dossier by integer Case ID.
     """
     return report_service.create_report_job(db, case_id, current_user)
+
+@router.post("/compile", response_model=ReportJobOut, summary="Trigger PDF Report Compilation by Case ID or Case No")
+def compile_case_report(
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(verify_permission("cases:read"))
+):
+    """
+    Triggers PDF dossier compilation by Case ID or Case Number string (e.g. '202600006' or '4823').
+    """
+    case_input = payload.get("case_input") or payload.get("case_id") or payload.get("case_no")
+    if not case_input:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Please provide a valid Case ID or Case Number.")
+    return report_service.create_report_job(db, case_input, current_user)
 
 @router.get("/history", response_model=ReportHistoryResponse, summary="Get Report History")
 def get_reports_history(

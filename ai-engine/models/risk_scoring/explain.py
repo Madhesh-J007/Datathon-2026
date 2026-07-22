@@ -103,6 +103,41 @@ def get_investigator_insights(features: dict) -> list[str]:
     return insights
 
 
+def _get_feature_description(name: str, score: float, features: dict) -> tuple[str, str]:
+    val = float(features.get(name, 0.0))
+    direction = "increase" if score >= 0.0 else "decrease"
+
+    if name == "GravityOffenceID":
+        if val >= 1:
+            desc = "Serious (Heinous) offence classification significantly increases operational risk."
+        else:
+            desc = "Non-heinous offence classification reduces case severity."
+    elif name == "ReportingDelayHours":
+        if val > 24.0:
+            desc = f"Delayed reporting ({round(val, 1)} hours) increases evidentiary decay risk."
+        else:
+            desc = f"Rapid incident reporting ({round(val, 1)} hours) preserves evidentiary integrity."
+    elif name == "CaseAgeDays":
+        if val > 90.0:
+            desc = f"Prolonged case age ({int(val)} days) increases risk of unresolved period."
+        else:
+            desc = f"Fresh case age ({int(val)} days) maintains active investigative momentum."
+    elif name == "NumberOfAccused":
+        if val >= 2:
+            desc = f"Multiple accused entities ({int(val)} persons) increase operational complexity."
+        else:
+            desc = f"Single/zero accused entity ({int(val)}) simplifies investigation scope."
+    elif name == "NumberOfEvidenceItems":
+        if val <= 1:
+            desc = f"Low evidence count ({int(val)} items) creates verification risk."
+        else:
+            desc = f"Substantial evidence base ({int(val)} items) supports case verification."
+    else:
+        desc = f"{name} factor value ({val}) impacts overall risk classification."
+
+    return direction, desc
+
+
 def explain_prediction_local(model, features: dict) -> dict:
     """Generate detailed local explainability details using TreeExplainer."""
     explainer = TreeExplainer(model)
@@ -112,27 +147,10 @@ def explain_prediction_local(model, features: dict) -> dict:
     if abs_sum == 0.0:
         abs_sum = 1.0
 
-    descriptions = {
-        "GravityOffenceID": "Serious offence classification significantly increased operational risk.",
-        "ReportingDelayHours": "Evidentiary decay risk due to delayed reporting.",
-        "CaseAgeDays": "Length of unresolved period increases risk class.",
-        "NumberOfAccused": "Complexity warning: multiple accused entities.",
-        "NumberOfEvidenceItems": "Lack of evidentiary artifacts creates verification risk."
-    }
-
-    descriptions_decrease = {
-        "GravityOffenceID": "Minor crime classification reduces case priority.",
-        "ReportingDelayHours": "Rapid incident reporting preserves evidentiary integrity.",
-        "CaseAgeDays": "Freshly registered case ensures active investigative momentum.",
-        "NumberOfAccused": "Single accused simplifies query complexity.",
-        "NumberOfEvidenceItems": "Substantial evidence base lowers overall operational risk."
-    }
-
     factors = []
     for name, score in shap_contribs.items():
         percentage = round((abs(score) / abs_sum) * 100.0, 2)
-        direction = "increase" if score >= 0.0 else "decrease"
-        desc = descriptions[name] if direction == "increase" else descriptions_decrease[name]
+        direction, desc = _get_feature_description(name, score, features)
 
         factors.append({
             "feature": name,

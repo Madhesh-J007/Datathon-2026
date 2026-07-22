@@ -41,6 +41,9 @@ from app.models.ai_model_run import AIModelRun
 from app.models.report_job import ReportJob
 from app.models.notification import Notification
 from app.models.collaboration_request import CollaborationRequest
+from app.models.external_agency import ExternalAgency
+from app.models.external_agency_officer import ExternalAgencyOfficer
+from app.models.collaboration_access import CollaborationAccess
 
 # Export all models for Alembic and Base metadata detection
 __all__ = [
@@ -76,5 +79,8 @@ __all__ = [
     "AIModelRun",
     "ReportJob",
     "Notification",
-    "CollaborationRequest"
+    "CollaborationRequest",
+    "ExternalAgency",
+    "ExternalAgencyOfficer",
+    "CollaborationAccess"
 ]

@@ -40,9 +40,13 @@ def _embed_texts(texts: list[str]) -> list[list[float]]:
 
 def predict_case_risk(db: Session, case: CaseMaster, current_user: User) -> dict:
     """Build safe case features and obtain a model-backed, explainable risk score."""
-    incident_date = case.IncidentFromDate.date() if case.IncidentFromDate else case.CrimeRegisteredDate
+    from datetime import datetime, time
     registration_date = case.CrimeRegisteredDate or date.today()
-    reporting_delay = max(0.0, (registration_date - incident_date).total_seconds() / 3600) if incident_date else 0.0
+    reg_dt = datetime.combine(registration_date, time.min)
+    if case.IncidentFromDate:
+        reporting_delay = max(0.0, (reg_dt - case.IncidentFromDate).total_seconds() / 3600)
+    else:
+        reporting_delay = 0.0
     payload = {
         "gravity_offence_id": case.GravityOffenceID or 0,
         "reporting_delay_hours": reporting_delay,

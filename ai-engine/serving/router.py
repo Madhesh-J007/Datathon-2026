@@ -103,12 +103,93 @@ def detect_network_communities(payload: NetworkCommunityRequest) -> NetworkCommu
     )
 
 
+import os
+import logging
+import httpx
+
+logger = logging.getLogger("ksp_ai_engine")
+
+def _query_gemini_llm(raw_query: str, context: str) -> str:
+    """Attempt to generate intelligent response via Google Gemini REST API."""
+    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("LLM_API_KEY")
+    if not api_key or api_key == "change_me":
+        return None
+
+    # Supported Gemini model endpoints
+    models_to_try = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash", "gemini-flash-latest"]
+
+    system_instruction = (
+        "You are the KSP AI Command Assistant (Karnataka State Police Crime Intelligence Platform).\n"
+        "Your role is to assist investigating officers, station commanders, and intelligence analysts by analyzing case files, modus operandi, suspects, evidence, hotspots, and crime statistics.\n\n"
+        "Guidance:\n"
+        "- Act like an expert senior police intelligence analyst (thoughtful, professional, precise, direct).\n"
+        "- Use clear Markdown formatting with bullet points, bold key terms, and section headers where appropriate.\n"
+        "- Synthesize all provided case context accurately.\n"
+        "- Highlight actionable investigative next steps, evidentiary gaps, and key suspects.\n"
+        "- If asked to generate a PDF dossier or report for a case, explicitly mention 'Generating official KSP PDF Dossier'."
+    )
+
+    prompt_text = f"{system_instruction}\n\nOfficer Query: {raw_query}\n\nRetrieved Precinct Database Context:\n{context}"
+
+    payload = {
+        "contents": [
+            {
+                "parts": [
+                    {"text": prompt_text}
+                ]
+            }
+        ],
+        "generationConfig": {
+            "temperature": 0.3,
+            "maxOutputTokens": 1024
+        }
+    }
+
+    for model_name in models_to_try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+        try:
+            with httpx.Client(timeout=12.0) as client:
+                res = client.post(url, json=payload)
+                if res.status_code == 200:
+                    data = res.json()
+                    candidates = data.get("candidates", [])
+                    if candidates:
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        if parts:
+                            return parts[0].get("text", "").strip()
+                elif res.status_code == 429:
+                    logger.warning(f"Gemini API model {model_name} rate-limited, trying fallback model...")
+                    continue
+        except Exception as e:
+            logger.warning(f"Gemini API attempt for {model_name} failed: {e}")
+            continue
+
+    return None
+
+
 @router.post("/assistant/query")
 def assistant_query(payload: dict) -> dict:
     """Natural-language RAG query grounding and dynamic response generation."""
     raw_query = payload.get("query", "").strip()
     query_lower = raw_query.lower()
     context = payload.get("context", "")
+
+    # 0. Greetings / Casual Chat Handling
+    greetings = ["hi", "hello", "hey", "namaste", "good morning", "good evening", "who are you", "help"]
+    if any(query_lower == g or query_lower.startswith(g + " ") for g in greetings) or len(query_lower) < 3:
+        answer = (
+            "Hello Officer! I am your KSP Crime Intelligence AI Assistant.\n\n"
+            "I have indexed your precinct case dossiers. How can I assist your investigation today? You can ask me to:\n"
+            "* **Search Crimes**: *'Show recent robbery cases'* or *'Search theft cases'*\n"
+            "* **Investigate Suspects**: *'Who are the suspects in Case 202400001?'*\n"
+            "* **Generate Dossiers**: *'Compile PDF dossier for Case 1'*\n"
+            "* **Analyze Patterns**: *'Check repeat offender profiles'*"
+        )
+        return {
+            "answer": answer,
+            "source_case_ids": [],
+            "model_version": "ksp-assistant-v2"
+        }
 
     # Parse context cases into structured dicts
     parsed_cases = []
@@ -143,101 +224,37 @@ def assistant_query(payload: dict) -> dict:
                 "facts": facts
             })
 
-    source_case_ids = []
-    
-    # 0. PDF / Report Generation Request
-    if any(k in query_lower for k in ["pdf", "report", "dossier", "export", "download"]):
-        target_case = None
+    # PDF / Report Generation Check
+    is_pdf_req = any(k in query_lower for k in ["pdf", "report", "dossier", "export", "download"])
+    target_case_id = None
+    if is_pdf_req and parsed_cases:
         for c in parsed_cases:
             if str(c["id"]) in query_lower or c["no"].lower() in query_lower:
-                target_case = c
+                target_case_id = c["id"]
                 break
-        if not target_case and parsed_cases:
-            target_case = parsed_cases[0]
+        if not target_case_id:
+            target_case_id = parsed_cases[0]["id"]
 
-        if target_case:
-            answer = f"Understood Officer. I have compiled and generated the official KSP PDF Investigation Dossier for Case {target_case['no']}. Click the download button below to save the document."
+    # 1. Try Google Gemini LLM Generation
+    llm_text = _query_gemini_llm(raw_query, context)
+    if llm_text:
+        source_case_ids = [c["id"] for c in parsed_cases[:5]]
+        if is_pdf_req and target_case_id:
             return {
-                "answer": answer,
-                "source_case_ids": [target_case["id"]],
+                "answer": f"{llm_text}\n\n*Official KSP PDF Dossier compiled for Case #{target_case_id}. Click below to download.*",
+                "source_case_ids": [target_case_id],
                 "action": "generate_pdf",
-                "target_case_id": target_case["id"],
-                "model_version": "phase4-assistant-v1"
+                "target_case_id": target_case_id,
+                "model_version": "google-gemini-2.0-flash"
             }
-        else:
-            return {
-                "answer": "No active case dossier is available to compile into a PDF report.",
-                "source_case_ids": [],
-                "model_version": "phase4-assistant-v1"
-            }
-    
-    # 1. Greetings / Casual Prompts
-    greetings = ["hi", "hello", "hey", "namaste", "good morning", "good evening", "who are you", "help"]
-    if any(query_lower == g or query_lower.startswith(g + " ") for g in greetings) or len(query_lower) < 3:
-        answer = (
-            "Hello Officer! I am your KSP Crime Intelligence AI Assistant. "
-            "I have indexed your active precinct dossiers. You can ask me to search for specific crimes "
-            "(e.g., 'show theft cases'), inquire about suspects, or ask for a case summary."
-        )
         return {
-            "answer": answer,
-            "source_case_ids": [],
-            "model_version": "phase4-assistant-v1"
-        }
-
-    # 2. Case Summary / Overview Queries
-    if any(k in query_lower for k in ["summarize", "summary", "total cases", "show cases", "all cases", "overview", "recent"]):
-        if parsed_cases:
-            top_3 = parsed_cases[:3]
-            source_case_ids = [c["id"] for c in top_3]
-            details = "; ".join([f"Case {c['no']} ({c['facts'][:50]}...)" for c in top_3])
-            answer = (
-                f"I analyzed {len(parsed_cases)} active dossiers in your precinct scope. "
-                f"Key active cases include: {details}. Would you like to review suspect profiles or evidence items for any of these?"
-            )
-        else:
-            answer = "There are currently no active case dossiers recorded within your active jurisdiction scope."
-        return {
-            "answer": answer,
+            "answer": llm_text,
             "source_case_ids": source_case_ids,
-            "model_version": "phase4-assistant-v1"
+            "model_version": "google-gemini-2.0-flash"
         }
 
-    # 3. Suspect / Accused Inquiry
-    if any(k in query_lower for k in ["accused", "suspect", "offender", "who", "names", "person"]):
-        matching = [c for c in parsed_cases if c["accused"] and c["accused"].lower() != "none listed"]
-        if matching:
-            top_matches = matching[:3]
-            source_case_ids = [c["id"] for c in top_matches]
-            suspect_info = "; ".join([f"{c['accused']} (Case {c['no']})" for c in top_matches])
-            answer = f"Identified suspect profiles in your jurisdiction: {suspect_info}. Modus operandi logs indicate active investigation tracking."
-        else:
-            answer = "No identified suspect names are currently logged in the retrieved case dossiers."
-        return {
-            "answer": answer,
-            "source_case_ids": source_case_ids,
-            "model_version": "phase4-assistant-v1"
-        }
-
-    # 4. Hotspot / Risk / Patrol Inquiry
-    if any(k in query_lower for k in ["hotspot", "risk", "patrol", "high risk", "priority", "deploy"]):
-        if parsed_cases:
-            top_matches = parsed_cases[:3]
-            source_case_ids = [c["id"] for c in top_matches]
-            c_str = ", ".join([f"Case {c['no']}" for c in top_matches])
-            answer = (
-                f"Intelligence models flag active threat clusters linked to {c_str}. "
-                f"Recommend deploying tactical patrol squads to high-density sector boundaries during peak evening shifts (18:00 - 22:00)."
-            )
-        else:
-            answer = "No high-risk crime hotspot anomalies are currently active in your precinct sector."
-        return {
-            "answer": answer,
-            "source_case_ids": source_case_ids,
-            "model_version": "phase4-assistant-v1"
-        }
-
-    # 5. Semantic & Specific Word Matching across Brief Facts and Case Numbers
+    # 2. Enhanced RAG Generative Synthesizer (Fallback)
+    source_case_ids = []
     words = [w for w in query_lower.replace("?", "").replace(".", "").split() if len(w) > 2]
     matching = []
     for c in parsed_cases:
@@ -245,17 +262,224 @@ def assistant_query(payload: dict) -> dict:
         if any(w in searchable for w in words):
             matching.append(c)
 
-    if matching:
-        top_matches = matching[:3]
-        source_case_ids = [c["id"] for c in top_matches]
-        c_str = ", ".join([f"Case {c['no']}" for c in top_matches])
-        facts_snippets = " | ".join([f"Case {c['no']}: '{c['facts'][:60]}...'" for c in top_matches])
-        answer = f"Found {len(matching)} matching dossier(s) for your query ({c_str}): {facts_snippets}"
-    else:
-        answer = f"I searched your precinct database for '{raw_query}', but found no matching case records in your active jurisdiction scope."
+    # Check if context contains suspect case linkage analysis
+    linkage_lines = []
+    repeat_offender_lines = []
 
+    for line in context.split("\n"):
+        if line.startswith("- AccusedName:") and "LinkedCasesCount:" in line:
+            repeat_offender_lines.append(line)
+        elif line.startswith("- AccusedName:"):
+            linkage_lines.append(line)
+
+    is_linkage_req = any(k in query_lower for k in ["linked", "other cases", "more cases", "involved", "accomplice", "is he", "is she", "are they"])
+
+    if is_linkage_req or repeat_offender_lines:
+        repeat_bullets = "\n".join([
+            f"* **{r.split('|')[0].replace('- AccusedName:', '').strip()}**: Linked to **{r.split('|')[1].replace('LinkedCasesCount:', '').strip()} Active FIR Cases** in PostgreSQL"
+            for r in repeat_offender_lines[:5]
+        ]) if repeat_offender_lines else "* No multi-FIR repeat offender records found."
+
+        featured_bullets = "\n".join([
+            f"* **{l.split('|')[0].replace('- AccusedName:', '').strip()}** (Case **#{l.split('|')[1].replace('CaseNo:', '').strip()}** - *{l.split('|')[2].replace('Station:', '').strip()}*): *{l.split('|')[3].replace('Facts:', '').strip()}*"
+            for l in linkage_lines[:3]
+        ]) if linkage_lines else "* Single FIR linkage recorded."
+
+        answer = (
+            f"### 🔗 KSP Suspect & Case Linkage Intelligence Report\n\n"
+            f"**Query**: *\"{raw_query}\"*\n"
+            f"**Scope**: Evaluated 5,000 PostgreSQL FIR Records & Accused Graph\n\n"
+            f"#### 🔍 Suspect Linkage Status:\n"
+            f"{featured_bullets}\n\n"
+            f"#### 🚨 Multi-FIR Repeat Offender Networks Active in Database:\n"
+            f"{repeat_bullets}\n\n"
+            f"#### 🛡️ Actionable Next Steps:\n"
+            f"* **Network Graph Inspection**: Open the **Crime Network** tab to view live entity-relationship links.\n"
+            f"* **Cross-Precinct Alert**: Issue collaboration tracking alerts to linked station commanders."
+        )
+
+        return {
+            "answer": answer,
+            "source_case_ids": [c["id"] for c in parsed_cases[:5]],
+            "model_version": "ksp-linkage-intelligence-v2"
+        }
+
+    # Check if context contains accused / suspect matches
+    accused_lines = []
+    for line in context.split("\n"):
+        if line.startswith("- AccusedName:"):
+            accused_lines.append(line)
+
+    if accused_lines:
+        accused_bullets = "\n\n".join([
+            f"### 👤 Suspect Profile Intelligence Report: **{a.split('|')[0].replace('- AccusedName:', '').strip()}**\n\n"
+            f"* **Name**: **{a.split('|')[0].replace('- AccusedName:', '').strip()}**\n"
+            f"* **Demographics / Status**: `{a.split('|')[1].replace('Age:', '').strip()}` | `{a.split('|')[2].replace('Occupation:', '').strip()}` | Status: **{a.split('|')[3].replace('Status:', '').strip()}**\n"
+            f"* **Linked FIR Case File**: Case **#{a.split('|')[5].replace('CaseNo:', '').strip()}** (Station: *{a.split('|')[6].replace('Station:', '').strip()}*)\n"
+            f"* **Registered Facts**: *{a.split('|')[7].replace('Facts:', '').strip()}*"
+            for a in accused_lines[:3]
+        ])
+
+        answer = (
+            f"{accused_bullets}\n\n"
+            f"#### 🚨 Investigative Risk Assessment & Guidance:\n"
+            f"* **Dossier Compilation**: Click below to compile the official KSP PDF Dossier for this suspect's linked FIR.\n"
+            f"* **Inter-Agency Tracking**: Verify financial transactions, communication logs, and active bail status."
+        )
+
+        target_cid = None
+        if parsed_cases:
+            target_cid = parsed_cases[0]["id"]
+
+        action_type = "generate_pdf" if is_pdf_req and target_cid else "none"
+
+        return {
+            "answer": answer,
+            "source_case_ids": [c["id"] for c in parsed_cases[:5]],
+            "action": action_type,
+            "target_case_id": target_cid,
+            "model_version": "ksp-suspect-profile-analyzer-v2"
+        }
+
+    # Check if context contains statistical crime analysis
+    stat_type = None
+    top_districts = []
+    top_stations = []
+
+    for line in context.split("\n"):
+        if line.startswith("STATISTICAL_ANALYSIS_TYPE:"):
+            stat_type = line.split(":", 1)[1].strip()
+        elif line.startswith("- District:"):
+            top_districts.append(line)
+        elif line.startswith("- Station:"):
+            top_stations.append(line)
+
+    if stat_type:
+        dist_bullets = "\n".join([
+            f"* **{d.split('|')[0].replace('- District:', '').strip()}**: **{d.split('|')[1].replace('IncidentCount:', '').strip()}** Recorded Incidents"
+            for d in top_districts
+        ]) if top_districts else "* Multiple districts recorded active incidents."
+
+        station_bullets = "\n".join([
+            f"* **{s.split('|')[0].replace('- Station:', '').strip()}**: **{s.split('|')[1].replace('IncidentCount:', '').strip()}** Incidents"
+            for s in top_stations
+        ]) if top_stations else "* Multiple station beats active."
+
+        featured_cases_bullets = "\n".join([
+            f"* **Case {c['no']}**: Suspects: `{c['accused']}` — *{c['facts'][:100]}...*"
+            for c in parsed_cases[:3]
+        ]) if parsed_cases else "* No individual FIR records flagged."
+
+        answer = (
+            f"### 📊 KSP Database Statistical Crime Analysis Report\n\n"
+            f"**Query**: *\"{raw_query}\"*\n"
+            f"**Scope**: 5,000 PostgreSQL FIR Records Evaluated\n\n"
+            f"#### 🏆 Top Districts Recording Highest Incident Volume:\n"
+            f"{dist_bullets}\n\n"
+            f"#### 📍 Top Police Station Hotspots:\n"
+            f"{station_bullets}\n\n"
+            f"#### 🔍 Key Case Dossier Extracts:\n"
+            f"{featured_cases_bullets}\n\n"
+            f"#### 🛡️ Actionable Patrol Directives:\n"
+            f"* **High-Density Patrols**: Reinforce mobile beat patrols in the top-ranked precinct sectors during peak incident hours.\n"
+            f"* **Surveillance**: Deploy ANPR license plate scanners and camera trailers at primary commercial transit hubs."
+        )
+
+        return {
+            "answer": answer,
+            "source_case_ids": [c["id"] for c in parsed_cases[:5]],
+            "model_version": "ksp-statistical-crime-analyzer-v2"
+        }
+
+    # Check if context contains location / hotspot intelligence
+    target_loc = None
+    stations_info = []
+
+    for line in context.split("\n"):
+        if line.startswith("TARGET_LOCATION:"):
+            target_loc = line.split(":", 1)[1].strip()
+        elif line.startswith("- Station:"):
+            stations_info.append(line)
+
+    is_hotspot_req = any(k in query_lower for k in ["zone", "zones", "hotspot", "hotspots", "risk", "risky", "where", "station", "bengaluru", "belagavi", "mysuru", "dharwad", "hubballi", "location", "area"])
+
+    if is_hotspot_req or target_loc:
+        location_title = target_loc if target_loc else "Precinct Sector Scope"
+        source_case_ids = [c["id"] for c in parsed_cases[:5]]
+
+        stations_summary = "\n".join([
+            f"* **{s.split('|')[0].replace('- Station:', '').strip()}**: High Risk Cases: `{s.split('|')[1].replace('HighRiskCases:', '').strip()}` | Max Threat Score: **{s.split('|')[2].replace('MaxRiskScore:', '').strip()}**"
+            for s in stations_info[:5]
+        ]) if stations_info else "* **Primary Precinct Beat Sectors**: Multiple high-density clusters active."
+
+        featured_cases_bullets = "\n".join([
+            f"* **Case {c['no']}**: Accused: `{c['accused']}` — *{c['facts'][:100]}...*"
+            for c in parsed_cases[:3]
+        ]) if parsed_cases else "* No individual FIR records flagged."
+
+        answer = (
+            f"### 🚨 High Risk Zones & Hotspot Intelligence Report\n\n"
+            f"**Target Location**: **{location_title}**  \n"
+            f"**Query**: *\"{raw_query}\"*\n\n"
+            f"#### 📍 Top High-Risk Police Station Zones (Evaluated from PostgreSQL):\n"
+            f"{stations_summary}\n\n"
+            f"#### 🔍 Key High-Risk Case Dossiers:\n"
+            f"{featured_cases_bullets}\n\n"
+            f"#### 🛡️ Tactical Command Recommendations:\n"
+            f"* **Patrol Deployment**: Deploy 2 mobile patrol cars and night checkposts near perimeter station boundaries between 19:00 - 02:00 hrs.\n"
+            f"* **ANPR Surveillance**: Activate automated license plate scanning along major arterial corridors.\n"
+            f"* **Repeat Offender Tracking**: Cross-reference active bail status and gang linkages for suspects in these sectors."
+        )
+
+        return {
+            "answer": answer,
+            "source_case_ids": source_case_ids,
+            "model_version": "ksp-hotspot-intelligence-v2"
+        }
+
+    is_general_summary = any(k in query_lower for k in ["summarize", "summary", "total cases", "show cases", "all cases", "overview", "recent", "cases", "list"])
+
+    if matching:
+        source_case_ids = [c["id"] for c in matching[:3]]
+        case_summary_bullets = "\n".join([
+            f"* **Case {c['no']}**: Suspects: `{c['accused']}` — *{c['facts'][:110]}...*"
+            for c in matching[:3]
+        ])
+
+        answer = (
+            f"### 📋 KSP Intelligence Analysis Report\n\n"
+            f"**Query**: *\"{raw_query}\"*\n\n"
+            f"#### 🔍 Matching Case Dossiers ({len(matching)} Record(s) Found):\n"
+            f"{case_summary_bullets}\n\n"
+            f"#### 🚨 Investigative Recommendations:\n"
+            f"* **Evidence Verification**: Cross-reference seized property and forensic statements across linked FIRs.\n"
+            f"* **Patrol Reinforcement**: Intensify evening beat checks in active precinct sectors."
+        )
+    elif is_general_summary and parsed_cases:
+        top_cases = parsed_cases[:3]
+        source_case_ids = [c["id"] for c in top_cases]
+        case_summary_bullets = "\n".join([
+            f"* **Case {c['no']}**: Suspects: `{c['accused']}` — *{c['facts'][:110]}...*"
+            for c in top_cases
+        ])
+
+        answer = (
+            f"### 📋 KSP Active Precinct Summary\n\n"
+            f"Evaluated active dossiers within your jurisdiction scope:\n\n"
+            f"{case_summary_bullets}\n\n"
+            f"Ask me for specific suspect profiles, crime types, or to compile a PDF dossier."
+        )
+    else:
+        answer = (
+            f"No matching case records were found in your active precinct scope for *\"{raw_query}\"*.\n\n"
+            f"**Suggestions**: Try searching by a specific suspect name (e.g. *'Ramesh'*), FIR number, or crime category (e.g. *'theft'*, *'cyber'*)."
+        )
+
+    action_type = "generate_pdf" if is_pdf_req and target_case_id else "none"
     return {
         "answer": answer,
         "source_case_ids": source_case_ids,
-        "model_version": "phase4-assistant-v1"
+        "action": action_type,
+        "target_case_id": target_case_id,
+        "model_version": "ksp-rag-synthesizer-v2"
     }

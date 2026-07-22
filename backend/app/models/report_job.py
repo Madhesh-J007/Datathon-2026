@@ -11,3 +11,4 @@ class ReportJob(Base):
     PDFBytes = Column(LargeBinary, nullable=True)
     CompiledAt = Column(DateTime(timezone=True), default=func.now(), nullable=False)
     PDFUrl = Column(String, nullable=True)
+    CreatedBy = Column(Integer, ForeignKey("users.UserID"), nullable=True)

@@ -73,7 +73,7 @@ def train_risk_model(data_path: str) -> RandomForestClassifier:
         "NumberOfEvidenceItems": data["NumberOfEvidenceItems"]
     })
 
-    target = data["RiskLabel"].map({"Low": 0, "Medium": 1, "High": 2}).fillna(1).astype(int)
+    target = data["RiskLabel"].map({"Low": 0, "Medium": 1, "High": 2, "Severe": 2}).fillna(1).astype(int)
 
     model = RandomForestClassifier(
         n_estimators=160,

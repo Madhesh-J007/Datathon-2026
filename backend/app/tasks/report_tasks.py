@@ -1,5 +1,11 @@
+import io
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
 from app.tasks.celery_app import celery_app
 from app.db.session import SessionLocal
 from app.models.case_master import CaseMaster
@@ -7,11 +13,209 @@ from app.models.report_job import ReportJob
 
 logger = logging.getLogger("ksp_backend")
 
+def build_pdf_bytes_for_case(case: CaseMaster) -> bytes:
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36
+    )
+
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        'DocTitle',
+        parent=styles['Heading1'],
+        fontSize=18,
+        leading=22,
+        textColor=colors.HexColor('#1e3a8a'),
+        alignment=1,
+        spaceAfter=4
+    )
+    subtitle_style = ParagraphStyle(
+        'DocSubtitle',
+        parent=styles['Normal'],
+        fontSize=9,
+        leading=12,
+        textColor=colors.HexColor('#475569'),
+        alignment=1,
+        spaceAfter=12
+    )
+    h2_style = ParagraphStyle(
+        'SectionHeader',
+        parent=styles['Heading2'],
+        fontSize=11,
+        leading=14,
+        textColor=colors.HexColor('#1e3a8a'),
+        spaceBefore=10,
+        spaceAfter=6,
+        keepWithNext=True
+    )
+    body_style = ParagraphStyle(
+        'BodyDark',
+        parent=styles['Normal'],
+        fontSize=9,
+        leading=12,
+        textColor=colors.HexColor('#0f172a')
+    )
+    facts_style = ParagraphStyle(
+        'FactsBox',
+        parent=styles['Normal'],
+        fontSize=9,
+        leading=13,
+        textColor=colors.HexColor('#1e293b'),
+        backColor=colors.HexColor('#f8fafc'),
+        borderColor=colors.HexColor('#cbd5e1'),
+        borderWidth=1,
+        borderPadding=8,
+        spaceAfter=10
+    )
+    ai_style = ParagraphStyle(
+        'AIBox',
+        parent=styles['Normal'],
+        fontSize=9,
+        leading=13,
+        textColor=colors.HexColor('#1e3a8a'),
+        backColor=colors.HexColor('#eff6ff'),
+        borderColor=colors.HexColor('#bfdbfe'),
+        borderWidth=1,
+        borderPadding=8,
+        spaceAfter=10
+    )
+
+    story = []
+
+    # Title & Subtitle
+    story.append(Paragraph("KARNATAKA STATE POLICE", title_style))
+    story.append(Paragraph("OFFICIAL EXECUTIVE CASE DOSSIER & CRIME INTELLIGENCE BRIEF", subtitle_style))
+    story.append(HRFlowable(width="100%", thickness=2, color=colors.HexColor('#1e3a8a'), spaceAfter=10))
+
+    # Meta Table
+    station_name = "N/A"
+    district_name = "N/A"
+    if hasattr(case, 'station') and case.station:
+        station_name = case.station.UnitName or "N/A"
+        if hasattr(case.station, 'district') and case.station.district:
+            district_name = case.station.district.DistrictName or "N/A"
+
+    risk_score_val = case.AIRiskScore or 0.0
+    risk_pct = f"{risk_score_val * 100:.1f}%"
+    risk_level = "Severe High Risk" if risk_score_val >= 0.8 else "High Risk" if risk_score_val >= 0.6 else "Medium Risk" if risk_score_val >= 0.3 else "Low Risk"
+
+    meta_data = [
+        [Paragraph("<b>Case Number</b>", body_style), Paragraph(f"<b>{case.CaseNo or 'N/A'}</b>", body_style), Paragraph("<b>Case Master ID</b>", body_style), Paragraph(f"#{case.CaseMasterID}", body_style)],
+        [Paragraph("<b>District</b>", body_style), Paragraph(district_name, body_style), Paragraph("<b>Police Station</b>", body_style), Paragraph(station_name, body_style)],
+        [Paragraph("<b>Registration Date</b>", body_style), Paragraph(case.CrimeRegisteredDate.strftime('%Y-%m-%d') if case.CrimeRegisteredDate else "N/A", body_style), Paragraph("<b>Priority</b>", body_style), Paragraph(f"<b>{case.InvestigationPriority or 'Medium'}</b>", body_style)],
+        [Paragraph("<b>AI Risk Score</b>", body_style), Paragraph(f"<font color='#b91c1c'><b>{risk_level} ({risk_pct})</b></font>", body_style), Paragraph("<b>Sensitivity</b>", body_style), Paragraph(case.CaseSensitivity or "Standard", body_style)]
+    ]
+    t_meta = Table(meta_data, colWidths=[110, 160, 110, 160])
+    t_meta.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#f8fafc')),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
+        ('PADDING', (0,0), (-1,-1), 5),
+    ]))
+    story.append(t_meta)
+    story.append(Spacer(1, 10))
+
+    # Incident Brief Facts
+    story.append(Paragraph("Incident Brief Facts", h2_style))
+    story.append(Paragraph(case.BriefFacts or "No facts recorded.", facts_style))
+
+    # AI Threat Analysis
+    story.append(Paragraph("AI Threat & Pattern Analytics", h2_style))
+    ai_text = (
+        f"<b>Predictive Threat Index:</b> {risk_pct} ({risk_level})<br/>"
+        f"<b>Spatio-Temporal Coordinates:</b> Lat: {case.latitude or 0.0:.4f}, Lng: {case.longitude or 0.0:.4f}<br/>"
+        f"<b>Tactical Patrol Directive:</b> Focus mobile beat patrols near sector coordinates ({case.latitude or 0.0:.3f}, {case.longitude or 0.0:.3f}) during peak crime hours (18:00 - 02:00 hrs). Cross-reference active bail status and gang linkages."
+    )
+    story.append(Paragraph(ai_text, ai_style))
+
+    # Accused Table
+    story.append(Paragraph("Accused / Suspect Profiles", h2_style))
+    acc_headers = [Paragraph("<b>Accused Name</b>", body_style), Paragraph("<b>Age</b>", body_style), Paragraph("<b>Occupation</b>", body_style), Paragraph("<b>Status</b>", body_style)]
+    acc_data = [acc_headers]
+    for a in case.accused_list:
+        rep_str = "Repeat Offender" if a.IsRepeatOffender == 1 else "First Offence"
+        acc_data.append([
+            Paragraph(a.AccusedName or "N/A", body_style),
+            Paragraph(f"{a.AgeYear or 'N/A'} yrs", body_style),
+            Paragraph(a.Occupation or "N/A", body_style),
+            Paragraph(rep_str, body_style)
+        ])
+    if len(acc_data) == 1:
+        acc_data.append([Paragraph("No accused entities listed.", body_style), Paragraph("-", body_style), Paragraph("-", body_style), Paragraph("-", body_style)])
+
+    t_acc = Table(acc_data, colWidths=[160, 80, 160, 140])
+    t_acc.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f1f5f9')),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
+        ('PADDING', (0,0), (-1,-1), 5),
+    ]))
+    story.append(t_acc)
+    story.append(Spacer(1, 10))
+
+    # Victims Table
+    story.append(Paragraph("Victim & Witness Records", h2_style))
+    v_headers = [Paragraph("<b>Victim Name</b>", body_style), Paragraph("<b>Age</b>", body_style), Paragraph("<b>Injury Severity</b>", body_style), Paragraph("<b>Relation to Accused</b>", body_style)]
+    v_data = [v_headers]
+    for v in getattr(case, 'victims', []):
+        v_data.append([
+            Paragraph(getattr(v, 'VictimName', 'N/A') or 'N/A', body_style),
+            Paragraph(f"{getattr(v, 'AgeYear', 'N/A')} yrs", body_style),
+            Paragraph(getattr(v, 'InjurySeverity', 'Standard') or 'Standard', body_style),
+            Paragraph(getattr(v, 'RelationToAccused', 'None') or 'None', body_style)
+        ])
+    if len(v_data) == 1:
+        v_data.append([Paragraph("No victim entities linked.", body_style), Paragraph("-", body_style), Paragraph("-", body_style), Paragraph("-", body_style)])
+
+    t_v = Table(v_data, colWidths=[160, 80, 160, 140])
+    t_v.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f1f5f9')),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
+        ('PADDING', (0,0), (-1,-1), 5),
+    ]))
+    story.append(t_v)
+    story.append(Spacer(1, 10))
+
+    # Evidence Table
+    story.append(Paragraph("Collected Evidence Items", h2_style))
+    ev_headers = [Paragraph("<b>Evidence Type</b>", body_style), Paragraph("<b>Description / Seizure Details</b>", body_style), Paragraph("<b>Collection Date</b>", body_style)]
+    ev_data = [ev_headers]
+    for e in case.evidence_items:
+        ev_data.append([
+            Paragraph(e.EvidenceType or "N/A", body_style),
+            Paragraph(e.Description or "N/A", body_style),
+            Paragraph(e.CollectionDate.strftime('%Y-%m-%d') if e.CollectionDate else "N/A", body_style)
+        ])
+    if len(ev_data) == 1:
+        ev_data.append([Paragraph("No evidence items registered.", body_style), Paragraph("-", body_style), Paragraph("-", body_style)])
+
+    t_ev = Table(ev_data, colWidths=[150, 250, 140])
+    t_ev.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f1f5f9')),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
+        ('PADDING', (0,0), (-1,-1), 5),
+    ]))
+    story.append(t_ev)
+    story.append(Spacer(1, 15))
+
+    footer_style = ParagraphStyle(
+        'FooterNotice',
+        parent=styles['Normal'],
+        fontSize=8,
+        textColor=colors.HexColor('#64748b'),
+        alignment=1
+    )
+    story.append(Paragraph("CONFIDENTIAL — OFFICIAL POLICE USE ONLY — Generated by KSP AI Crime Intelligence Platform", footer_style))
+
+    doc.build(story)
+    return buffer.getvalue()
+
+
 @celery_app.task(name="app.tasks.report_tasks.generate_pdf_report_task")
 def generate_pdf_report_task(report_job_id: int):
     """
-    Generates a structured analytical case report dossier using WeasyPrint,
-    saves the PDF bytes directly in the database, and marks the status as completed.
+    Generates a structured analytical case report dossier using ReportLab,
+    saves the PDF bytes directly in PostgreSQL, and marks the status as completed.
     """
     db = SessionLocal()
     try:
@@ -27,88 +231,15 @@ def generate_pdf_report_task(report_job_id: int):
             db.commit()
             return
 
-        logger.info(f"Generating PDF for Case ID: {case.CaseMasterID}...")
+        logger.info(f"Generating ReportLab PDF for Case ID: {case.CaseMasterID}...")
 
-        # Construct a clean, professional HTML dossier
-        accused_rows = "".join([
-            f"<tr><td>{a.AccusedName or 'N/A'}</td><td>{a.AgeYear or 'N/A'}</td><td>{'Male' if a.GenderID == 1 else 'Female' if a.GenderID == 2 else 'N/A'}</td><td>{'Repeat Offender' if a.IsRepeatOffender == 1 else 'First-time Offender'}</td></tr>"
-            for a in case.accused_list
-        ])
-        
-        evidence_rows = "".join([
-            f"<tr><td>{e.EvidenceType or 'N/A'}</td><td>{e.Description or 'N/A'}</td><td>{e.CollectionDate.strftime('%Y-%m-%d') if e.CollectionDate else 'N/A'}</td></tr>"
-            for e in case.evidence_items
-        ])
+        pdf_bytes = build_pdf_bytes_for_case(case)
 
-        html_content = f"""
-        <html>
-        <head>
-            <style>
-                body {{ font-family: 'Helvetica', 'Arial', sans-serif; color: #1e293b; padding: 40px; line-height: 1.6; }}
-                h1 {{ font-size: 24px; color: #1e3a8a; border-bottom: 2px solid #3b82f6; padding-bottom: 8px; margin-bottom: 20px; }}
-                h2 {{ font-size: 16px; color: #1e3a8a; margin-top: 30px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }}
-                .meta-table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; }}
-                .meta-table th, .meta-table td {{ border: 1px solid #e2e8f0; padding: 10px; text-align: left; font-size: 12px; }}
-                .meta-table th {{ background-color: #f8fafc; font-weight: bold; width: 30%; }}
-                .facts {{ background: #f8fafc; border-left: 4px solid #3b82f6; padding: 15px; font-size: 12px; margin-bottom: 25px; }}
-                .ai-box {{ background: #eff6ff; border: 1px dashed #3b82f6; border-left: 4px solid #1d4ed8; padding: 15px; font-size: 12px; margin-bottom: 25px; border-radius: 4px; }}
-                table.data-table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
-                table.data-table th, table.data-table td {{ border: 1px solid #e2e8f0; padding: 8px; text-align: left; font-size: 11px; }}
-                table.data-table th {{ background: #f1f5f9; font-weight: bold; }}
-            </style>
-        </head>
-        <body>
-            <h1>KARNATAKA STATE POLICE — CASE DOSSIER</h1>
-            <table class="meta-table">
-                <tr><th>Case Number</th><td>{case.CaseNo or "N/A"}</td></tr>
-                <tr><th>Date of Registration</th><td>{case.CrimeRegisteredDate.strftime('%Y-%m-%d') if case.CrimeRegisteredDate else "N/A"}</td></tr>
-                <tr><th>AI Risk Score</th><td>{f"{case.AIRiskScore:.2f}" if case.AIRiskScore else "N/A"}</td></tr>
-                <tr><th>Investigation Priority</th><td>{case.InvestigationPriority or "N/A"}</td></tr>
-            </table>
-
-            <h2>Incident Brief Facts</h2>
-            <div class="facts">
-                {case.BriefFacts or "No details recorded."}
-            </div>
-
-            <h2>AI Threat & Pattern Analysis</h2>
-            <div class="ai-box">
-                <p><strong>Threat Risk Score:</strong> {f"{case.AIRiskScore * 100:.1f}%" if case.AIRiskScore else "N/A"}</p>
-                <p><strong>Tactical Recommendation:</strong> Focus patrols in the vicinity of sector coordinates ({case.latitude:.4f}, {case.longitude:.4f}). Modus Operandi aligns with recurring property offence patterns flagged in surrounding circles.</p>
-            </div>
-
-            <h2>Accused Profiles</h2>
-            <table class="data-table">
-                <thead>
-                    <tr><th>Name</th><th>Age</th><th>Sex</th><th>Current Status</th></tr>
-                </thead>
-                <tbody>
-                    {accused_rows or '<tr><td colspan="4" style="text-align:center;">No accused listed.</td></tr>'}
-                </tbody>
-            </table>
-
-            <h2>Collected Evidence Logs</h2>
-            <table class="data-table">
-                <thead>
-                    <tr><th>Type</th><th>Description</th><th>Collected Date</th></tr>
-                </thead>
-                <tbody>
-                    {evidence_rows or '<tr><td colspan="3" style="text-align:center;">No evidence items registered.</td></tr>'}
-                </tbody>
-            </table>
-        </body>
-        </html>
-        """
-        
-        from weasyprint import HTML
-        pdf_bytes = HTML(string=html_content).write_pdf()
-        
         report_job.PDFBytes = pdf_bytes
         report_job.Status = "completed"
-        # Generate link path dynamically
         report_job.PDFUrl = f"/api/v1/reports/jobs/{report_job_id}/download"
         db.commit()
-        logger.info(f"Successfully generated PDF for Case ID: {case.CaseMasterID}")
+        logger.info(f"Successfully compiled ReportLab PDF for Case ID: {case.CaseMasterID}")
 
     except Exception as e:
         logger.error(f"Error in generate_pdf_report_task: {e}", exc_info=True)

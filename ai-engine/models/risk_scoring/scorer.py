@@ -29,7 +29,7 @@ def predict_risk(payload: dict) -> dict:
     model = _model()
 
     feat_dict = {
-        "GravityOffenceID": int(payload.get("gravity_offence_id", 0) == 1),
+        "GravityOffenceID": int(int(payload.get("gravity_offence_id", 0)) == 1),
         "ReportingDelayHours": max(0.0, float(payload.get("reporting_delay_hours", 0))),
         "CaseAgeDays": max(0.0, float(payload.get("case_age_days", 0))),
         "NumberOfAccused": max(0, int(payload.get("number_of_accused", 0))),
