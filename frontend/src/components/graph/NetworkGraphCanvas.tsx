@@ -433,264 +433,277 @@ export default function NetworkGraphCanvas({ graphData, isLoading }: NetworkGrap
   };
 
   return (
-    <div className="flex h-full w-full bg-[#0b0f19] select-none relative overflow-hidden">
-      {/* Top Header Control Bar */}
-      <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-[#0d1322]/95 border border-[#1e293b] p-2 rounded shadow-2xl backdrop-blur">
-        <div className="relative flex-1">
-          <input
-            type="text"
-            placeholder="Search suspect, FIR #, vehicle plate, address..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearchNode()}
-            className="w-60 bg-[#151c2e] border border-[#1e293b] text-slate-200 text-xs px-3 py-1.5 rounded pl-8 focus:outline-none focus:border-blue-500 font-mono"
-          />
-          <Search className="absolute left-2.5 top-2 text-slate-400" size={13} />
-        </div>
-        <button
-          onClick={handleSearchNode}
-          className="bg-blue-600 hover:bg-blue-500 text-white px-2.5 py-1.5 rounded text-xs font-mono font-bold transition-colors"
-        >
-          Locate Node
-        </button>
-
-        <div className="h-4 w-px bg-[#1e293b] mx-1" />
-
-        <button
-          onClick={() => setShortestPathMode(!shortestPathMode)}
-          className={`px-2.5 py-1.5 rounded text-xs font-mono font-bold border transition-colors flex items-center gap-1 ${
-            shortestPathMode
-              ? "bg-amber-500/20 text-amber-400 border-amber-500/40"
-              : "bg-[#151c2e] text-slate-300 border-[#1e293b] hover:bg-slate-800"
-          }`}
-          title="Trace shortest connection path between two nodes"
-        >
-          <Crosshair size={13} />
-          <span>{shortestPathMode ? "Path Active" : "Path Analysis"}</span>
-        </button>
-
-        <button
-          onClick={exportJSON}
-          className="p-1.5 bg-[#151c2e] hover:bg-slate-800 text-slate-300 rounded border border-[#1e293b] transition-colors"
-          title="Export Network Graph JSON"
-        >
-          <Download size={13} />
-        </button>
-        <button
-          onClick={exportPNG}
-          className="p-1.5 bg-[#151c2e] hover:bg-slate-800 text-slate-300 rounded border border-[#1e293b] transition-colors"
-          title="Export Network Canvas Image"
-        >
-          <Share2 size={13} />
-        </button>
-      </div>
-
-      {/* Floating Vertical Zoom & Dock Navigation Control Bar (Right Side) */}
-      <div className="absolute top-4 right-4 z-20 flex flex-col gap-1.5 bg-[#0d1322]/95 border border-[#1e293b] p-1.5 rounded shadow-2xl backdrop-blur">
-        <button
-          onClick={handleZoomIn}
-          className="w-8 h-8 bg-[#151c2e] hover:bg-blue-600 text-white border border-[#1e293b] rounded flex items-center justify-center font-bold text-base transition-colors"
-          title="Zoom In (+)"
-        >
-          +
-        </button>
-        <button
-          onClick={handleZoomOut}
-          className="w-8 h-8 bg-[#151c2e] hover:bg-blue-600 text-white border border-[#1e293b] rounded flex items-center justify-center font-bold text-base transition-colors"
-          title="Zoom Out (-)"
-        >
-          -
-        </button>
-        <button
-          onClick={() => cyRef.current?.fit(undefined, 40)}
-          className="w-8 h-8 bg-[#151c2e] hover:bg-slate-700 text-slate-200 border border-[#1e293b] rounded flex items-center justify-center font-bold text-xs transition-colors"
-          title="Fit Screen View"
-        >
-          🎯
-        </button>
-        <button
-          onClick={() => {
-            if (cyRef.current) {
-              cyRef.current
-                .layout({
-                  name: "cose",
-                  animate: true,
-                  animationDuration: 300,
-                  nodeRepulsion: () => 2000000,
-                  idealEdgeLength: () => 140,
-                  numIter: 50,
-                })
-                .run();
-            }
-          }}
-          className="w-8 h-8 bg-[#151c2e] hover:bg-slate-700 text-slate-200 border border-[#1e293b] rounded flex items-center justify-center font-bold text-xs transition-colors"
-          title="Auto-Spread Force Layout"
-        >
-          🕸️
-        </button>
-      </div>
-
-      {/* Main Cytoscape Canvas */}
-      <div ref={containerRef} className="flex-1 h-full w-full" />
-
-      {/* Loading Overlay */}
-      {isLoading && (
-        <div className="absolute inset-0 bg-[#0b0f19]/80 backdrop-blur-sm z-30 flex items-center justify-center flex-col gap-2 font-mono">
-          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-xs text-blue-400 font-bold">Extracting Criminal Intelligence Network Topology...</span>
-        </div>
-      )}
-
-      {/* Shortest Path Bar Notification */}
-      {shortestPathMode && (
-        <div className="absolute top-16 left-4 z-20 bg-amber-500/10 border border-amber-500/30 p-2.5 rounded text-xs font-mono text-amber-300 max-w-lg flex flex-col gap-1 shadow-2xl">
-          <div className="flex items-center justify-between">
-            <p className="font-bold">Shortest Link Traversal Analyzer</p>
-            {(sourceNodeId || targetNodeId) && (
-              <button
-                onClick={() => {
-                  setSourceNodeId(null);
-                  setTargetNodeId(null);
-                  setPathResult([]);
-                  if (cyRef.current) cyRef.current.elements().removeClass("path-highlight");
-                }}
-                className="text-[10px] bg-amber-500/20 hover:bg-amber-500/40 text-amber-200 px-2 py-0.5 rounded"
-              >
-                Reset Path
-              </button>
-            )}
+    <div className="flex flex-col h-full w-full bg-[#0b0f19] select-none overflow-hidden rounded border border-[#1e293b]">
+      {/* 1. SOLID TOP CONTROL BAR (OUTSIDE GRAPH CANVAS) */}
+      <div className="w-full bg-[#0d1322] border-b border-[#1e293b] p-2.5 flex flex-wrap items-center justify-between gap-3 flex-shrink-0 z-10">
+        {/* Left Controls: Node Search & Traversal */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search suspect, FIR #, vehicle plate, address..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearchNode()}
+              className="w-64 bg-[#151c2e] border border-[#1e293b] text-slate-200 text-xs px-3 py-1.5 rounded pl-8 focus:outline-none focus:border-blue-500 font-mono"
+            />
+            <Search className="absolute left-2.5 top-2 text-slate-400" size={13} />
           </div>
-          <p className="text-[10px] text-amber-200/70">
-            {!sourceNodeId
-              ? "Click 1st Node on Canvas (Source Entity)"
-              : !targetNodeId
-              ? "Click 2nd Node on Canvas (Target Entity)"
-              : `Path Found (${pathResult.length} hops)`}
-          </p>
-          {pathResult.length > 0 && (
-            <div className="text-[10px] text-amber-300 font-mono bg-[#0d1322] p-1.5 rounded border border-amber-500/30 overflow-x-auto whitespace-nowrap">
-              {pathResult.join(" ➔ ")}
-            </div>
-          )}
-        </div>
-      )}
 
-      {/* Side Intelligence Node Dossier */}
-      {selectedNode && (
-        <div className="w-88 bg-[#0d1322] border-l border-[#1e293b] p-5 flex flex-col gap-4 z-30 absolute right-0 top-0 h-full overflow-y-auto shadow-2xl">
-          <div className="flex items-center justify-between border-b border-[#1e293b] pb-3">
-            <div className="flex items-center gap-2">
-              {getNodeIcon(selectedNode.node_type)}
-              <h3 className="text-xs font-bold text-slate-200 font-mono uppercase tracking-wider">
-                KSP Intelligence Dossier
-              </h3>
-            </div>
+          <button
+            onClick={handleSearchNode}
+            className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded text-xs font-mono font-bold transition-colors"
+          >
+            Locate Node
+          </button>
+
+          <div className="h-4 w-px bg-[#1e293b] mx-1" />
+
+          <button
+            onClick={() => setShortestPathMode(!shortestPathMode)}
+            className={`px-3 py-1.5 rounded text-xs font-mono font-bold border transition-colors flex items-center gap-1.5 ${
+              shortestPathMode
+                ? "bg-amber-500/20 text-amber-400 border-amber-500/40"
+                : "bg-[#151c2e] text-slate-300 border-[#1e293b] hover:bg-slate-800"
+            }`}
+            title="Trace shortest connection path between two nodes"
+          >
+            <Crosshair size={13} />
+            <span>{shortestPathMode ? "Path Active" : "Path Analysis"}</span>
+          </button>
+        </div>
+
+        {/* Right Controls: Zoom Buttons & Export */}
+        <div className="flex items-center gap-2 font-mono">
+          <div className="flex items-center gap-1 bg-[#151c2e] border border-[#1e293b] p-0.5 rounded">
+            <button
+              onClick={handleZoomIn}
+              className="w-7 h-7 bg-[#1e293b] hover:bg-blue-600 text-white rounded flex items-center justify-center font-bold text-sm transition-colors"
+              title="Zoom In (+)"
+            >
+              +
+            </button>
+            <button
+              onClick={handleZoomOut}
+              className="w-7 h-7 bg-[#1e293b] hover:bg-blue-600 text-white rounded flex items-center justify-center font-bold text-sm transition-colors"
+              title="Zoom Out (-)"
+            >
+              -
+            </button>
+            <button
+              onClick={() => cyRef.current?.fit(undefined, 40)}
+              className="px-2.5 py-1 text-xs text-slate-300 hover:text-white hover:bg-slate-700 rounded transition-colors font-bold"
+              title="Fit View to Screen"
+            >
+              🎯 Fit
+            </button>
             <button
               onClick={() => {
-                setSelectedNode(null);
-                if (cyRef.current) cyRef.current.elements().removeClass("dimmed");
+                if (cyRef.current) {
+                  cyRef.current
+                    .layout({
+                      name: "cose",
+                      animate: true,
+                      animationDuration: 300,
+                      nodeRepulsion: () => 2000000,
+                      idealEdgeLength: () => 140,
+                      numIter: 50,
+                    })
+                    .run();
+                }
               }}
-              className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-2.5 py-1 rounded text-xs font-mono font-bold transition-colors flex items-center gap-1"
-              title="Close Dossier & Return to Full Graph"
+              className="px-2.5 py-1 text-xs text-slate-300 hover:text-white hover:bg-slate-700 rounded transition-colors font-bold"
+              title="Auto-Spread Force Layout"
             >
-              <span>✕</span>
-              <span>Back to Graph</span>
+              🕸️ Auto Layout
             </button>
           </div>
 
-          <div className="space-y-3.5 text-xs">
-            <div>
-              <span className="text-[10px] text-slate-500 uppercase tracking-wide font-mono block">Entity Title</span>
-              <span className="text-slate-100 font-bold block mt-0.5 text-sm font-mono">{selectedNode.label}</span>
-              <span className="text-[10px] text-blue-400 font-mono italic">{selectedNode.sub_type}</span>
+          <div className="h-4 w-px bg-[#1e293b] mx-1" />
+
+          <button
+            onClick={exportJSON}
+            className="p-1.5 bg-[#151c2e] hover:bg-slate-800 text-slate-300 rounded border border-[#1e293b] transition-colors"
+            title="Export Network Graph JSON"
+          >
+            <Download size={14} />
+          </button>
+          <button
+            onClick={exportPNG}
+            className="p-1.5 bg-[#151c2e] hover:bg-slate-800 text-slate-300 rounded border border-[#1e293b] transition-colors"
+            title="Export Network Canvas Image"
+          >
+            <Share2 size={14} />
+          </button>
+        </div>
+      </div>
+
+      {/* 2. MAIN CENTER GRAPH VIEWPORT (100% UNOBSTRUCTED) */}
+      <div className="flex-1 w-full min-h-0 relative flex bg-[#0b0f19]">
+        {/* Main Cytoscape Canvas */}
+        <div ref={containerRef} className="flex-1 h-full w-full" />
+
+        {/* Loading Overlay */}
+        {isLoading && (
+          <div className="absolute inset-0 bg-[#0b0f19]/80 backdrop-blur-sm z-30 flex items-center justify-center flex-col gap-2 font-mono">
+            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <span className="text-xs text-blue-400 font-bold">Extracting Criminal Intelligence Network Topology...</span>
+          </div>
+        )}
+
+        {/* Shortest Path Bar Notification */}
+        {shortestPathMode && (
+          <div className="absolute top-3 left-3 z-20 bg-amber-500/10 border border-amber-500/30 p-2.5 rounded text-xs font-mono text-amber-300 max-w-lg flex flex-col gap-1 shadow-2xl backdrop-blur">
+            <div className="flex items-center justify-between">
+              <p className="font-bold">Shortest Link Traversal Analyzer</p>
+              {(sourceNodeId || targetNodeId) && (
+                <button
+                  onClick={() => {
+                    setSourceNodeId(null);
+                    setTargetNodeId(null);
+                    setPathResult([]);
+                    if (cyRef.current) cyRef.current.elements().removeClass("path-highlight");
+                  }}
+                  className="text-[10px] bg-amber-500/20 hover:bg-amber-500/40 text-amber-200 px-2 py-0.5 rounded"
+                >
+                  Reset Path
+                </button>
+              )}
             </div>
-
-            <div className="grid grid-cols-2 gap-2 bg-[#151c2e] p-2.5 rounded border border-[#1e293b] font-mono text-[11px]">
-              <div>
-                <span className="text-slate-500 text-[9px] block">CENTRALITY INDEX</span>
-                <span className="text-slate-200 font-bold">{selectedNode.centrality} Degree Links</span>
-              </div>
-              <div>
-                <span className="text-slate-500 text-[9px] block">LINKED CASES</span>
-                <span className="text-emerald-400 font-bold">{selectedNode.case_count} FIR Records</span>
-              </div>
-              <div>
-                <span className="text-slate-500 text-[9px] block">AI RISK SEVERITY</span>
-                <span className="text-red-400 font-bold">{((selectedNode.risk_score || 0.5) * 100).toFixed(0)}% Score</span>
-              </div>
-              <div>
-                <span className="text-slate-500 text-[9px] block">DATA SOURCE</span>
-                <span className="text-slate-300 font-bold">KSP Database</span>
-              </div>
-            </div>
-
-            {selectedNode.ai_summary && (
-              <div className="bg-blue-500/5 border border-blue-500/20 p-3 rounded space-y-1">
-                <div className="flex items-center gap-1 text-blue-400 font-bold text-[10px] font-mono">
-                  <Sparkles size={12} />
-                  <span>AI Investigation Summary</span>
-                </div>
-                <p className="text-[11px] text-slate-300 leading-relaxed font-sans">{selectedNode.ai_summary}</p>
-              </div>
-            )}
-
-            <div>
-              <span className="text-[10px] text-slate-500 uppercase tracking-wide font-mono block mb-1">
-                Database Dossier Details
-              </span>
-              <p className="text-slate-300 leading-relaxed text-[11px] font-mono bg-[#151c2e] p-3 rounded border border-[#1e293b] whitespace-pre-wrap">
-                {selectedNode.details}
-              </p>
-            </div>
-
-            {selectedNode.sub_type === "Repeat Offender" && (
-              <div className="p-3 bg-red-500/10 border border-red-500/25 rounded flex items-start gap-2">
-                <AlertTriangle className="text-red-400 mt-0.5 flex-shrink-0" size={15} />
-                <div>
-                  <span className="font-bold text-red-300 block text-xs">High-Risk Repeat Suspect Warning</span>
-                  <p className="text-[10px] text-slate-300 mt-0.5 leading-normal">
-                    This individual appears across multiple FIR case files. High co-offending centrality score.
-                  </p>
-                </div>
+            <p className="text-[10px] text-amber-200/70">
+              {!sourceNodeId
+                ? "Click 1st Node on Canvas (Source Entity)"
+                : !targetNodeId
+                ? "Click 2nd Node on Canvas (Target Entity)"
+                : `Path Found (${pathResult.length} hops)`}
+            </p>
+            {pathResult.length > 0 && (
+              <div className="text-[10px] text-amber-300 font-mono bg-[#0d1322] p-1.5 rounded border border-amber-500/30 overflow-x-auto whitespace-nowrap">
+                {pathResult.join(" ➔ ")}
               </div>
             )}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Legend Overlays */}
-      <div className="absolute bottom-4 left-4 bg-[#0d1322]/95 border border-[#1e293b] rounded p-3 z-20 space-y-1.5 text-[10px] font-mono backdrop-blur shadow-2xl">
-        <span className="text-slate-400 text-[9px] uppercase tracking-wider font-bold block mb-1">
-          KSP Entity Key
-        </span>
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-red-500 border border-red-300"></span>
-          <span className="text-slate-200">Repeat Suspect / Leader</span>
+        {/* Side Intelligence Node Dossier */}
+        {selectedNode && (
+          <div className="w-88 bg-[#0d1322] border-l border-[#1e293b] p-5 flex flex-col gap-4 z-30 absolute right-0 top-0 h-full overflow-y-auto shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#1e293b] pb-3">
+              <div className="flex items-center gap-2">
+                {getNodeIcon(selectedNode.node_type)}
+                <h3 className="text-xs font-bold text-slate-200 font-mono uppercase tracking-wider">
+                  KSP Intelligence Dossier
+                </h3>
+              </div>
+              <button
+                onClick={() => {
+                  setSelectedNode(null);
+                  if (cyRef.current) cyRef.current.elements().removeClass("dimmed");
+                }}
+                className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-2.5 py-1 rounded text-xs font-mono font-bold transition-colors flex items-center gap-1"
+                title="Close Dossier & Return to Full Graph"
+              >
+                <span>✕</span>
+                <span>Back to Graph</span>
+              </button>
+            </div>
+
+            <div className="space-y-3.5 text-xs">
+              <div>
+                <span className="text-[10px] text-slate-500 uppercase tracking-wide font-mono block">Entity Title</span>
+                <span className="text-slate-100 font-bold block mt-0.5 text-sm font-mono">{selectedNode.label}</span>
+                <span className="text-[10px] text-blue-400 font-mono italic">{selectedNode.sub_type}</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 bg-[#151c2e] p-2.5 rounded border border-[#1e293b] font-mono text-[11px]">
+                <div>
+                  <span className="text-slate-500 text-[9px] block">CENTRALITY INDEX</span>
+                  <span className="text-slate-200 font-bold">{selectedNode.centrality} Degree Links</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 text-[9px] block">LINKED CASES</span>
+                  <span className="text-emerald-400 font-bold">{selectedNode.case_count} FIR Records</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 text-[9px] block">AI RISK SEVERITY</span>
+                  <span className="text-red-400 font-bold">{((selectedNode.risk_score || 0.5) * 100).toFixed(0)}% Score</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 text-[9px] block">DATA SOURCE</span>
+                  <span className="text-slate-300 font-bold">KSP Database</span>
+                </div>
+              </div>
+
+              {selectedNode.ai_summary && (
+                <div className="bg-blue-500/5 border border-blue-500/20 p-3 rounded space-y-1">
+                  <div className="flex items-center gap-1 text-blue-400 font-bold text-[10px] font-mono">
+                    <Sparkles size={12} />
+                    <span>AI Investigation Summary</span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 leading-relaxed font-sans">{selectedNode.ai_summary}</p>
+                </div>
+              )}
+
+              <div>
+                <span className="text-[10px] text-slate-500 uppercase tracking-wide font-mono block mb-1">
+                  Database Dossier Details
+                </span>
+                <p className="text-slate-300 leading-relaxed text-[11px] font-mono bg-[#151c2e] p-3 rounded border border-[#1e293b] whitespace-pre-wrap">
+                  {selectedNode.details}
+                </p>
+              </div>
+
+              {selectedNode.sub_type === "Repeat Offender" && (
+                <div className="p-3 bg-red-500/10 border border-red-500/25 rounded flex items-start gap-2">
+                  <AlertTriangle className="text-red-400 mt-0.5 flex-shrink-0" size={15} />
+                  <div>
+                    <span className="font-bold text-red-300 block text-xs">High-Risk Repeat Suspect Warning</span>
+                    <p className="text-[10px] text-slate-300 mt-0.5 leading-normal">
+                      This individual appears across multiple FIR case files. High co-offending centrality score.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 3. SOLID BOTTOM ENTITY KEY LEGEND BAR (OUTSIDE GRAPH CANVAS) */}
+      <div className="w-full bg-[#0d1322] border-t border-[#1e293b] p-2 flex flex-wrap items-center justify-between gap-4 text-[10px] font-mono flex-shrink-0 z-10">
+        <div className="flex items-center gap-4 flex-wrap">
+          <span className="text-slate-400 text-[9px] uppercase tracking-wider font-bold">KSP Entity Key:</span>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-red-500 border border-red-300"></span>
+            <span className="text-slate-200">Repeat Suspect</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-500 border border-blue-300"></span>
+            <span className="text-slate-300">Accused Person</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 bg-amber-500 transform rotate-45 border border-amber-300" style={{ width: 7, height: 7 }}></span>
+            <span className="text-slate-300">Syndicate Ring</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 bg-indigo-500 border border-indigo-300"></span>
+            <span className="text-slate-300">FIR Case</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 bg-cyan-500 border border-cyan-300"></span>
+            <span className="text-slate-300">Police Station</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 bg-emerald-500 border border-emerald-300"></span>
+            <span className="text-slate-300">Vehicle</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 bg-purple-500 border border-purple-300"></span>
+            <span className="text-slate-300">Evidence</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-blue-500 border border-blue-300"></span>
-          <span className="text-slate-300">Accused Person</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 bg-amber-500 transform rotate-45 border border-amber-300" style={{ width: 8, height: 8 }}></span>
-          <span className="text-slate-300 pl-0.5">Gang Syndicate Ring</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 bg-indigo-500 border border-indigo-300"></span>
-          <span className="text-slate-300">FIR Case File</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 bg-cyan-500 border border-cyan-300"></span>
-          <span className="text-slate-300">Police Station</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 bg-amber-600 border border-amber-400"></span>
-          <span className="text-slate-300">Vehicle / Getaway</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 bg-purple-500 border border-purple-300"></span>
-          <span className="text-slate-300">Evidence / Weapon</span>
-        </div>
+
+        <span className="text-slate-500 text-[9px]">Use Mouse Wheel or Zoom Buttons to Nav Graph</span>
       </div>
     </div>
   );
