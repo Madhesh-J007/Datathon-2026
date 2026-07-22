@@ -1,142 +1,98 @@
 import { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { networkService } from "../../services/networkService";
-import { caseService } from "../../services/caseService";
 import cytoscape from "cytoscape";
-import { Shield, AlertTriangle } from "lucide-react";
+import {
+  Shield,
+  AlertTriangle,
+  FileText,
+  User,
+  Car,
+  Building2,
+  Phone,
+  CreditCard,
+  Crosshair,
+  MapPin,
+  Search,
+  Download,
+  Share2,
+  Sparkles,
+  Zap,
+} from "lucide-react";
 
-export default function NetworkGraphCanvas() {
+interface NetworkGraphCanvasProps {
+  graphData: {
+    nodes: any[];
+    edges: any[];
+    total_nodes: number;
+    total_edges: number;
+    gang_count: number;
+  };
+  isLoading: boolean;
+  refetch?: () => void;
+  onRefresh?: () => void;
+}
+
+export default function NetworkGraphCanvas({ graphData, isLoading }: NetworkGraphCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<any>(null);
   const [selectedNode, setSelectedNode] = useState<any>(null);
-
-  // Fetch gang communities
-  const { data: gangData } = useQuery({
-    queryKey: ["networkGangs"],
-    queryFn: () => networkService.getGangs(),
-  });
-
-  // Fetch cases to pull accused profiles dynamically
-  const { data: casesData } = useQuery({
-    queryKey: ["networkCases"],
-    queryFn: () => caseService.getCases({ pageSize: 15 }),
-  });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [shortestPathMode, setShortestPathMode] = useState(false);
+  const [sourceNodeId, setSourceNodeId] = useState<string | null>(null);
+  const [targetNodeId, setTargetNodeId] = useState<string | null>(null);
+  const [pathResult, setPathResult] = useState<string[]>([]);
 
   useEffect(() => {
     if (!containerRef.current) return;
 
-    const cases = casesData?.data || [];
+    const rawNodes = graphData?.nodes || [];
+    const rawEdges = graphData?.edges || [];
 
-    // Synthesize nodes & edges representing Accused, Gangs, Witnesses, and Evidence
-    const nodes: any[] = [];
-    const edges: any[] = [];
-    const addedIds = new Set<string>();
+    // Map Cytoscape elements
+    const cyNodes = rawNodes.map((n: any) => {
+      // Dynamic centrality sizing calculation (28px to 64px)
+      const centrality = n.centrality || 1;
+      const size = Math.min(64, Math.max(28, 28 + (centrality - 1) * 6));
 
-    // 1. Add Gang Syndicate Nodes
-    const gangId = "gang-alpha";
-    nodes.push({
+      return {
+        data: {
+          id: n.id,
+          label: n.label,
+          node_type: n.node_type,
+          sub_type: n.sub_type || "Standard",
+          centrality: centrality,
+          case_count: n.case_count || 1,
+          risk_score: n.risk_score || 0.5,
+          details: n.details,
+          ai_summary: n.ai_summary,
+          age: n.age,
+          occupation: n.occupation,
+          address: n.address,
+          registration_no: n.registration_no,
+          nodeSize: size,
+        },
+      };
+    });
+
+    const cyEdges = rawEdges.map((e: any) => ({
       data: {
-        id: gangId,
-        label: "Gang Syndicate Alpha",
-        type: "gang",
-        details: "Active organized crime syndicate. Primary targets: commercial burglaries & vehicle thefts.",
+        id: e.id,
+        source: e.source,
+        target: e.target,
+        relationship: e.relationship,
+        confidence: e.confidence || 1.0,
+        evidence_source: e.evidence_source || "KSP Registry",
       },
-    });
-
-    const defaultAccusedNames = ["Ramesh Kumar", "Suresh V", "Venkatesh M", "Anand K", "Mohan Raj", "Prakash B", "Kiran Gowda", "Prashanth R"];
-    const defaultEvidenceTypes = ["Seized Firearm (Country Pistol)", "Fingerprint Match Log", "CCTV Surveillance Recording", "Recovered Stolen Vehicle", "SIM Card CDR Records"];
-    const defaultWitnesses = ["Compl. Vijay R", "Sec. Guard Somanna", "Witness Deepa N", "Shopkeeper Raghu"];
-
-    // 2. Add Accused, Witnesses, and Evidence nodes per case
-    cases.forEach((c: any, idx: number) => {
-      const realAccused = c.accused_list && c.accused_list.length > 0 ? c.accused_list[0].AccusedName : defaultAccusedNames[idx % defaultAccusedNames.length];
-      const accusedId = `accused-${c.CaseMasterID}`;
-      
-      // Accused Node
-      if (!addedIds.has(accusedId)) {
-        nodes.push({
-          data: {
-            id: accusedId,
-            label: `${realAccused} (Suspect)`,
-            type: c.AIRiskScore > 0.65 ? "repeat" : "accused",
-            details: `Suspect in Case No ${c.CaseNo}. Priority: ${c.InvestigationPriority || "Medium"}. Risk Score: ${(c.AIRiskScore || 0.5).toFixed(2)}. Facts: ${c.BriefFacts || "N/A"}`,
-          },
-        });
-        addedIds.add(accusedId);
-
-        // Link Accused to the Gang Syndicate
-        if (idx % 2 === 0) {
-          edges.push({
-            data: {
-              id: `edge-${accusedId}-${gangId}`,
-              source: accusedId,
-              target: gangId,
-              relationship: "Syndicate Member",
-              color: "#f59e0b",
-            },
-          });
-        }
-      }
-
-      // Add Witness Node for cases
-      const realWitness = c.witnesses && c.witnesses.length > 0 ? c.witnesses[0].WitnessName : defaultWitnesses[idx % defaultWitnesses.length];
-      const witnessId = `witness-${c.CaseMasterID}`;
-      if (idx % 2 === 0 && !addedIds.has(witnessId)) {
-        nodes.push({
-          data: {
-            id: witnessId,
-            label: `${realWitness}`,
-            type: "witness",
-            details: `Witness statement recorded under Sec 161 CrPC for Case ${c.CaseNo}. Verified identity.`,
-          },
-        });
-        addedIds.add(witnessId);
-        
-        edges.push({
-          data: {
-            id: `edge-${accusedId}-${witnessId}`,
-            source: accusedId,
-            target: witnessId,
-            relationship: "Identified in Lineup",
-            color: "#10b981",
-          },
-        });
-      }
-
-      // Add Evidence Node for cases
-      const realEvidence = c.evidence_items && c.evidence_items.length > 0 ? c.evidence_items[0].EvidenceType : defaultEvidenceTypes[idx % defaultEvidenceTypes.length];
-      const evidenceId = `evidence-${c.CaseMasterID}`;
-      if (!addedIds.has(evidenceId)) {
-        nodes.push({
-          data: {
-            id: evidenceId,
-            label: `${realEvidence}`,
-            type: "evidence",
-            details: `Physical evidence recovered for Case ${c.CaseNo}. Stored in precinct locker.`,
-          },
-        });
-        addedIds.add(evidenceId);
-
-        edges.push({
-          data: {
-            id: `edge-${accusedId}-${evidenceId}`,
-            source: accusedId,
-            target: evidenceId,
-            relationship: "Linked Evidence",
-            color: "#3b82f6",
-          },
-        });
-      }
-    });
+    }));
 
     const cy = cytoscape({
       container: containerRef.current,
-      elements: [...nodes, ...edges],
+      elements: [...cyNodes, ...cyEdges],
       style: [
+        // Base Node Style
         {
           selector: "node",
           style: {
-            "background-color": "#2563eb",
+            "background-color": "#3b82f6",
             label: "data(label)",
             color: "#f8fafc",
             "font-size": "10px",
@@ -145,65 +101,147 @@ export default function NetworkGraphCanvas() {
             "text-valign": "bottom",
             "text-halign": "center",
             "text-margin-y": 6,
-            width: "36px",
-            height: "36px",
+            width: "data(nodeSize)",
+            height: "data(nodeSize)",
             "border-width": "2px",
             "border-color": "#60a5fa",
-            "overlay-color": "#2563eb",
+            "overlay-color": "#3b82f6",
             "overlay-padding": 4,
-            "overlay-opacity": 0.2,
+            "overlay-opacity": 0.15,
           },
         },
+        // Person (Suspect / Accused)
         {
-          selector: 'node[type="repeat"]',
+          selector: 'node[node_type="Person"]',
           style: {
-            "background-color": "#ef4444", // Red
+            "background-color": "#2563eb",
+            "border-color": "#93c5fd",
+            shape: "ellipse",
+          },
+        },
+        // Repeat Offender / High Risk Suspect
+        {
+          selector: 'node[sub_type="Repeat Offender"]',
+          style: {
+            "background-color": "#ef4444",
             "border-color": "#fca5a5",
             "border-width": "3px",
-            width: "44px",
-            height: "44px",
             "overlay-color": "#ef4444",
             "overlay-padding": 6,
-            "overlay-opacity": 0.3,
+            "overlay-opacity": 0.35,
           },
         },
+        // Syndicate Leader
         {
-          selector: 'node[type="gang"]',
+          selector: 'node[sub_type="Syndicate Leader"]',
           style: {
-            "background-color": "#f59e0b", // Orange Hexagon
+            "background-color": "#dc2626",
+            "border-color": "#fef08a",
+            "border-width": "4px",
+            "overlay-color": "#dc2626",
+            "overlay-padding": 8,
+            "overlay-opacity": 0.5,
+          },
+        },
+        // Organization / Gang Syndicate Hub
+        {
+          selector: 'node[node_type="Organization"]',
+          style: {
+            "background-color": "#f59e0b",
             "border-color": "#fde047",
-            "border-width": "3px",
-            width: "56px",
-            height: "56px",
+            "border-width": "4px",
             shape: "hexagon",
             "overlay-color": "#f59e0b",
             "overlay-padding": 8,
             "overlay-opacity": 0.4,
           },
         },
+        // FIR Case Node
         {
-          selector: 'node[type="witness"]',
+          selector: 'node[node_type="FIR"]',
           style: {
-            "background-color": "#10b981", // Green
-            "border-color": "#6ee7b7",
-            width: "32px",
-            height: "32px",
+            "background-color": "#6366f1",
+            "border-color": "#a5b4fc",
+            shape: "octagon",
           },
         },
+        // Police Station Precinct Command
         {
-          selector: 'node[type="evidence"]',
+          selector: 'node[node_type="PoliceStation"]',
           style: {
-            "background-color": "#a855f7", // Purple
-            "border-color": "#d8b4fe",
-            width: "34px",
-            height: "34px",
+            "background-color": "#06b6d4",
+            "border-color": "#67e8f9",
+            shape: "barrel",
+          },
+        },
+        // Vehicle
+        {
+          selector: 'node[node_type="Vehicle"]',
+          style: {
+            "background-color": "#d97706",
+            "border-color": "#fcd34d",
+            shape: "round-tag",
+          },
+        },
+        // Weapon
+        {
+          selector: 'node[node_type="Weapon"]',
+          style: {
+            "background-color": "#991b1b",
+            "border-color": "#f87171",
+            shape: "diamond",
+          },
+        },
+        // Bank Account
+        {
+          selector: 'node[node_type="BankAccount"]',
+          style: {
+            "background-color": "#059669",
+            "border-color": "#6ee7b7",
             shape: "rectangle",
           },
         },
+        // Phone Number
+        {
+          selector: 'node[node_type="PhoneNumber"]',
+          style: {
+            "background-color": "#0d9488",
+            "border-color": "#5eead4",
+            shape: "round-rectangle",
+          },
+        },
+        // Physical Evidence
+        {
+          selector: 'node[node_type="Evidence"]',
+          style: {
+            "background-color": "#8b5cf6",
+            "border-color": "#c4b5fd",
+            shape: "rectangle",
+          },
+        },
+        // Victim Node
+        {
+          selector: 'node[node_type="Victim"]',
+          style: {
+            "background-color": "#10b981",
+            "border-color": "#a7f3d0",
+            shape: "ellipse",
+          },
+        },
+        // Address Node
+        {
+          selector: 'node[node_type="Address"]',
+          style: {
+            "background-color": "#ea580c",
+            "border-color": "#ffedd5",
+            shape: "tag",
+          },
+        },
+        // Base Edge Style
         {
           selector: "edge",
           style: {
-            width: 2,
+            width: 2.5,
             "line-color": "#475569",
             "target-arrow-color": "#38bdf8",
             "target-arrow-shape": "triangle",
@@ -218,12 +256,32 @@ export default function NetworkGraphCanvas() {
             "text-background-padding": "2px",
           },
         },
+        // Selected Node Highlight
         {
           selector: "node:selected",
           style: {
             "border-color": "#ffffff",
             "border-width": "4px",
             "overlay-color": "#ffffff",
+            "overlay-opacity": 0.4,
+          },
+        },
+        // Dimmed nodes when isolated
+        {
+          selector: ".dimmed",
+          style: {
+            opacity: 0.15,
+          },
+        },
+        // Shortest Path Highlight Style
+        {
+          selector: ".path-highlight",
+          style: {
+            "line-color": "#facc15",
+            "target-arrow-color": "#facc15",
+            width: 5,
+            "border-color": "#facc15",
+            "overlay-color": "#facc15",
             "overlay-opacity": 0.5,
           },
         },
@@ -232,24 +290,38 @@ export default function NetworkGraphCanvas() {
         name: "cose",
         animate: false,
         padding: 50,
-        nodeRepulsion: () => 4000000,
-        idealEdgeLength: () => 140,
+        nodeRepulsion: () => 5000000,
+        idealEdgeLength: () => 160,
         edgeElasticity: () => 100,
         nestingFactor: 1.2,
         gravity: 0.25,
         numIter: 1000,
-        initialTemp: 1000,
-        coolingFactor: 0.99,
-        minTemp: 1.0,
       },
     });
 
+    // Node Select Listener
     cy.on("select", "node", (evt) => {
       const node = evt.target;
-      setSelectedNode(node.data());
-      cy.elements().addClass("dimmed");
-      node.removeClass("dimmed");
-      node.neighborhood().removeClass("dimmed");
+      const data = node.data();
+      setSelectedNode(data);
+
+      if (shortestPathMode) {
+        if (!sourceNodeId) {
+          setSourceNodeId(data.id);
+        } else if (!targetNodeId && data.id !== sourceNodeId) {
+          setTargetNodeId(data.id);
+          // Calculate Shortest Path using Cytoscape Dijkstra
+          const dijkstra = cy.elements().dijkstra({ root: `#${sourceNodeId}` });
+          const path = dijkstra.pathTo(node);
+          cy.elements().removeClass("path-highlight");
+          path.addClass("path-highlight");
+          setPathResult(path.map((el: any) => el.data("label") || el.data("relationship")));
+        }
+      } else {
+        cy.elements().addClass("dimmed");
+        node.removeClass("dimmed");
+        node.neighborhood().removeClass("dimmed");
+      }
     });
 
     cy.on("unselect", "node", () => {
@@ -265,92 +337,275 @@ export default function NetworkGraphCanvas() {
         cyRef.current = null;
       }
     };
-  }, [casesData, gangData]);
+  }, [graphData]);
 
-  const getNodeIconColor = (type: string) => {
+  // Search Node and Auto-Zoom Fit
+  const handleSearchNode = () => {
+    if (!cyRef.current || !searchQuery.trim()) return;
+    const term = searchQuery.trim().toLowerCase();
+
+    const matchedNode = cyRef.current.nodes().filter((n: any) => {
+      const label = (n.data("label") || "").toLowerCase();
+      const details = (n.data("details") || "").toLowerCase();
+      const id = (n.data("id") || "").toLowerCase();
+      return label.includes(term) || details.includes(term) || id.includes(term);
+    });
+
+    if (matchedNode.length > 0) {
+      cyRef.current.elements().addClass("dimmed");
+      matchedNode.removeClass("dimmed");
+      matchedNode.neighborhood().removeClass("dimmed");
+      cyRef.current.animate({
+        center: { eles: matchedNode },
+        zoom: 1.8,
+        duration: 500,
+      });
+      setSelectedNode(matchedNode[0].data());
+    }
+  };
+
+  // Export High-Res PNG
+  const exportPNG = () => {
+    if (!cyRef.current) return;
+    const png64 = cyRef.current.png({ full: true, scale: 2 });
+    const link = document.createElement("a");
+    link.download = `KSP_Criminal_Network_${new Date().toISOString().slice(0, 10)}.png`;
+    link.href = png64;
+    link.click();
+  };
+
+  // Export JSON Topology
+  const exportJSON = () => {
+    if (!cyRef.current) return;
+    const jsonStr = JSON.stringify(cyRef.current.json(), null, 2);
+    const blob = new Blob([jsonStr], { type: "application/json" });
+    const link = document.createElement("a");
+    link.download = `KSP_Graph_Topology_${new Date().toISOString().slice(0, 10)}.json`;
+    link.href = URL.createObjectURL(blob);
+    link.click();
+  };
+
+  const getNodeIcon = (type: string) => {
     switch (type) {
-      case "gang":
-        return "text-amber-500";
-      case "witness":
-        return "text-emerald-500";
-      case "evidence":
-        return "text-purple-500";
+      case "Person":
+        return <User className="text-blue-400" size={16} />;
+      case "Organization":
+        return <UsersIcon className="text-amber-400" size={16} />;
+      case "FIR":
+        return <FileText className="text-indigo-400" size={16} />;
+      case "PoliceStation":
+        return <Building2 className="text-cyan-400" size={16} />;
+      case "Vehicle":
+        return <Car className="text-amber-500" size={16} />;
+      case "Weapon":
+        return <Crosshair className="text-red-500" size={16} />;
+      case "BankAccount":
+        return <CreditCard className="text-emerald-400" size={16} />;
+      case "PhoneNumber":
+        return <Phone className="text-teal-400" size={16} />;
+      case "Address":
+        return <MapPin className="text-orange-400" size={16} />;
       default:
-        return "text-red-500";
+        return <Shield className="text-purple-400" size={16} />;
     }
   };
 
   return (
-    <div className="flex h-full w-full bg-[#0d1220] select-none relative">
-      <div ref={containerRef} className="flex-1 h-full w-full" />
-
-      {/* Top Action Controls Overlay */}
-      <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-[#0d1322]/90 border border-[#1e293b] p-1.5 rounded shadow-2xl backdrop-blur">
+    <div className="flex h-full w-full bg-[#0b0f19] select-none relative overflow-hidden">
+      {/* Top Header Control Bar */}
+      <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-[#0d1322]/95 border border-[#1e293b] p-2 rounded shadow-2xl backdrop-blur max-w-2xl">
+        <div className="relative flex-1">
+          <input
+            type="text"
+            placeholder="Search suspect, FIR #, vehicle plate, address..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSearchNode()}
+            className="w-64 bg-[#151c2e] border border-[#1e293b] text-slate-200 text-xs px-3 py-1.5 rounded pl-8 focus:outline-none focus:border-blue-500 font-mono"
+          />
+          <Search className="absolute left-2.5 top-2 text-slate-400" size={13} />
+        </div>
         <button
-          onClick={() => {
-            if (cyRef.current) {
-              cyRef.current.layout({
-                name: "cose",
-                animate: true,
-                animationDuration: 500,
-                nodeRepulsion: () => 4000000,
-                idealEdgeLength: () => 140,
-              }).run();
-            }
-          }}
-          className="bg-[#151c2e] hover:bg-blue-600 text-slate-200 hover:text-white px-2.5 py-1 rounded text-[10px] font-mono font-bold border border-[#334155] transition-colors"
+          onClick={handleSearchNode}
+          className="bg-blue-600 hover:bg-blue-500 text-white px-2.5 py-1.5 rounded text-xs font-mono font-bold transition-colors"
         >
-          🕸️ Auto-Spread Layout
+          Locate Node
         </button>
+
+        <div className="h-4 w-px bg-[#1e293b] mx-1" />
+
         <button
           onClick={() => {
             if (cyRef.current) {
-              cyRef.current.fit(undefined, 40);
+              cyRef.current
+                .layout({
+                  name: "cose",
+                  animate: true,
+                  animationDuration: 500,
+                  nodeRepulsion: () => 5000000,
+                  idealEdgeLength: () => 160,
+                })
+                .run();
             }
           }}
-          className="bg-[#151c2e] hover:bg-blue-600 text-slate-200 hover:text-white px-2.5 py-1 rounded text-[10px] font-mono font-bold border border-[#334155] transition-colors"
+          className="bg-[#151c2e] hover:bg-slate-800 text-slate-300 px-2.5 py-1.5 rounded text-xs font-mono border border-[#1e293b] transition-colors"
+          title="Auto-Spread Force Layout"
         >
-          🎯 Fit View
+          🕸️ Auto-Layout
+        </button>
+
+        <button
+          onClick={() => {
+            if (cyRef.current) cyRef.current.fit(undefined, 40);
+          }}
+          className="bg-[#151c2e] hover:bg-slate-800 text-slate-300 px-2.5 py-1.5 rounded text-xs font-mono border border-[#1e293b] transition-colors"
+          title="Fit Graph View"
+        >
+          🎯 Fit
+        </button>
+
+        <button
+          onClick={() => setShortestPathMode(!shortestPathMode)}
+          className={`px-2.5 py-1.5 rounded text-xs font-mono font-bold border transition-colors flex items-center gap-1 ${
+            shortestPathMode
+              ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+              : "bg-[#151c2e] text-slate-300 border-[#1e293b] hover:bg-slate-800"
+          }`}
+          title="Shortest Path Link Analysis between 2 nodes"
+        >
+          <Zap size={12} />
+          {shortestPathMode ? "Path Mode ON" : "Path Analysis"}
+        </button>
+
+        <button
+          onClick={exportPNG}
+          className="bg-[#151c2e] hover:bg-emerald-600/20 hover:text-emerald-300 text-slate-300 px-2 py-1.5 rounded text-xs font-mono border border-[#1e293b] transition-colors"
+          title="Export High-Res PNG"
+        >
+          <Download size={13} />
+        </button>
+
+        <button
+          onClick={exportJSON}
+          className="bg-[#151c2e] hover:bg-purple-600/20 hover:text-purple-300 text-slate-300 px-2 py-1.5 rounded text-xs font-mono border border-[#1e293b] transition-colors"
+          title="Export Graph Topology JSON"
+        >
+          <Share2 size={13} />
         </button>
       </div>
 
-      {/* Side details explainer */}
+      {/* Main Cytoscape Canvas */}
+      <div ref={containerRef} className="flex-1 h-full w-full" />
+
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-[#0b0f19]/80 backdrop-blur-sm z-30 flex items-center justify-center flex-col gap-2 font-mono">
+          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs text-blue-400 font-bold">Extracting Criminal Intelligence Network Topology...</span>
+        </div>
+      )}
+
+      {/* Shortest Path Bar Notification */}
+      {shortestPathMode && (
+        <div className="absolute top-16 left-4 z-20 bg-amber-500/10 border border-amber-500/30 p-2.5 rounded text-xs font-mono text-amber-300 max-w-lg flex flex-col gap-1 shadow-2xl">
+          <div className="flex items-center justify-between">
+            <p className="font-bold">Shortest Link Traversal Analyzer</p>
+            {(sourceNodeId || targetNodeId) && (
+              <button
+                onClick={() => {
+                  setSourceNodeId(null);
+                  setTargetNodeId(null);
+                  setPathResult([]);
+                  if (cyRef.current) cyRef.current.elements().removeClass("path-highlight");
+                }}
+                className="text-[10px] bg-amber-500/20 hover:bg-amber-500/40 text-amber-200 px-2 py-0.5 rounded"
+              >
+                Reset Path
+              </button>
+            )}
+          </div>
+          <p className="text-[10px] text-amber-200/70">
+            {!sourceNodeId
+              ? "Click 1st Node on Canvas (Source Entity)"
+              : !targetNodeId
+              ? "Click 2nd Node on Canvas (Target Entity)"
+              : `Path Found (${pathResult.length} hops)`}
+          </p>
+          {pathResult.length > 0 && (
+            <div className="text-[10px] text-amber-300 font-mono bg-[#0d1322] p-1.5 rounded border border-amber-500/30 overflow-x-auto whitespace-nowrap">
+              {pathResult.join(" ➔ ")}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Side Intelligence Node Dossier */}
       {selectedNode && (
-        <div className="w-80 bg-[#111827] border-l border-[#1e293b] p-5 flex flex-col gap-4 z-20 absolute right-0 top-0 h-full overflow-y-auto">
-          <div className="flex items-center gap-2 border-b border-[#1e293b] pb-3">
-            <Shield className={getNodeIconColor(selectedNode.type)} size={16} />
-            <h3 className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider">
-              Network Node Dossier
-            </h3>
+        <div className="w-88 bg-[#0d1322] border-l border-[#1e293b] p-5 flex flex-col gap-4 z-20 absolute right-0 top-0 h-full overflow-y-auto shadow-2xl">
+          <div className="flex items-center justify-between border-b border-[#1e293b] pb-3">
+            <div className="flex items-center gap-2">
+              {getNodeIcon(selectedNode.node_type)}
+              <h3 className="text-xs font-bold text-slate-200 font-mono uppercase tracking-wider">
+                KSP Intelligence Dossier
+              </h3>
+            </div>
+            <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 rounded font-mono">
+              {selectedNode.node_type}
+            </span>
           </div>
 
-          <div className="space-y-4 text-xs">
+          <div className="space-y-3.5 text-xs">
             <div>
-              <span className="text-slate-500 uppercase tracking-wide font-mono block">Entity Type</span>
-              <span className="text-slate-200 font-bold block mt-1 font-mono uppercase text-[10px]">
-                {selectedNode.type}
+              <span className="text-[10px] text-slate-500 uppercase tracking-wide font-mono block">Entity Title</span>
+              <span className="text-slate-100 font-bold block mt-0.5 text-sm font-mono">{selectedNode.label}</span>
+              <span className="text-[10px] text-blue-400 font-mono italic">{selectedNode.sub_type}</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 bg-[#151c2e] p-2.5 rounded border border-[#1e293b] font-mono text-[11px]">
+              <div>
+                <span className="text-slate-500 text-[9px] block">CENTRALITY INDEX</span>
+                <span className="text-slate-200 font-bold">{selectedNode.centrality} Degree Links</span>
+              </div>
+              <div>
+                <span className="text-slate-500 text-[9px] block">LINKED CASES</span>
+                <span className="text-emerald-400 font-bold">{selectedNode.case_count} FIR Records</span>
+              </div>
+              <div>
+                <span className="text-slate-500 text-[9px] block">AI RISK SEVERITY</span>
+                <span className="text-red-400 font-bold">{((selectedNode.risk_score || 0.5) * 100).toFixed(0)}% Score</span>
+              </div>
+              <div>
+                <span className="text-slate-500 text-[9px] block">DATA SOURCE</span>
+                <span className="text-slate-300 font-bold">KSP Database</span>
+              </div>
+            </div>
+
+            {selectedNode.ai_summary && (
+              <div className="bg-blue-500/5 border border-blue-500/20 p-3 rounded space-y-1">
+                <div className="flex items-center gap-1 text-blue-400 font-bold text-[10px] font-mono">
+                  <Sparkles size={12} />
+                  <span>AI Investigation Summary</span>
+                </div>
+                <p className="text-[11px] text-slate-300 leading-relaxed font-sans">{selectedNode.ai_summary}</p>
+              </div>
+            )}
+
+            <div>
+              <span className="text-[10px] text-slate-500 uppercase tracking-wide font-mono block mb-1">
+                Database Dossier Details
               </span>
-            </div>
-
-            <div>
-              <span className="text-slate-500 uppercase tracking-wide font-mono block">Label / Name</span>
-              <span className="text-slate-100 font-extrabold block mt-1 text-sm font-mono">{selectedNode.label}</span>
-            </div>
-
-            <div>
-              <span className="text-slate-500 uppercase tracking-wide font-mono block">Dossier logs</span>
-              <p className="text-slate-300 leading-relaxed mt-1 font-sans bg-[#151c2e] p-3 rounded border border-[#1e293b]">
+              <p className="text-slate-300 leading-relaxed text-[11px] font-mono bg-[#151c2e] p-3 rounded border border-[#1e293b] whitespace-pre-wrap">
                 {selectedNode.details}
               </p>
             </div>
 
-            {selectedNode.type === "repeat" && (
-              <div className="p-3 bg-red-500/5 border border-red-500/15 rounded flex items-start gap-2">
-                <AlertTriangle className="text-red-400 mt-0.5 flex-shrink-0" size={14} />
+            {selectedNode.sub_type === "Repeat Offender" && (
+              <div className="p-3 bg-red-500/10 border border-red-500/25 rounded flex items-start gap-2">
+                <AlertTriangle className="text-red-400 mt-0.5 flex-shrink-0" size={15} />
                 <div>
-                  <span className="font-bold text-slate-300 block">AI Linkage Warning</span>
-                  <p className="text-[10px] text-slate-400 mt-0.5 leading-normal">
-                    This suspect has multiple overlapping modus operandi vectors. Louvain clustering index: high connectivity.
+                  <span className="font-bold text-red-300 block text-xs">High-Risk Repeat Suspect Warning</span>
+                  <p className="text-[10px] text-slate-300 mt-0.5 leading-normal">
+                    This individual appears across multiple FIR case files. High co-offending centrality score.
                   </p>
                 </div>
               </div>
@@ -359,35 +614,48 @@ export default function NetworkGraphCanvas() {
         </div>
       )}
 
-      {/* Legend overlays */}
+      {/* Legend Overlays */}
       <div className="absolute bottom-4 left-4 bg-[#0d1322]/95 border border-[#1e293b] rounded p-3 z-20 space-y-1.5 text-[10px] font-mono backdrop-blur shadow-2xl">
+        <span className="text-slate-400 text-[9px] uppercase tracking-wider font-bold block mb-1">
+          KSP Entity Key
+        </span>
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-red-500 border border-red-300"></span>
-          <span className="text-slate-200 font-bold">Repeat Suspect (Multi-FIR)</span>
+          <span className="text-slate-200">Repeat Suspect / Leader</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-blue-500 border border-blue-300"></span>
-          <span className="text-slate-300">Accused Co-Suspect</span>
+          <span className="text-slate-300">Accused Person</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 bg-amber-500 transform rotate-45 border border-amber-300" style={{ width: 8, height: 8 }}></span>
           <span className="text-slate-300 pl-0.5">Gang Syndicate Ring</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-emerald-300"></span>
-          <span className="text-slate-300">Witness Statement</span>
+          <span className="w-2.5 h-2.5 bg-indigo-500 border border-indigo-300"></span>
+          <span className="text-slate-300">FIR Case File</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 bg-purple-500 border border-purple-300" style={{ width: 9, height: 9 }}></span>
-          <span className="text-slate-300">Physical Evidence Item</span>
+          <span className="w-2.5 h-2.5 bg-cyan-500 border border-cyan-300"></span>
+          <span className="text-slate-300">Police Station</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 bg-amber-600 border border-amber-400"></span>
+          <span className="text-slate-300">Vehicle / Getaway</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 bg-purple-500 border border-purple-300"></span>
+          <span className="text-slate-300">Evidence / Weapon</span>
         </div>
       </div>
-
-      <style>{`
-        .dimmed {
-          opacity: 0.15;
-        }
-      `}</style>
     </div>
+  );
+}
+
+function UsersIcon(props: any) {
+  return (
+    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+    </svg>
   );
 }

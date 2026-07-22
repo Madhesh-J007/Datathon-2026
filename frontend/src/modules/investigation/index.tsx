@@ -552,7 +552,7 @@ export default function Investigation() {
         {/* NETWORK PANEL */}
         {activeSubTab === "network" && (
           <div className="h-[400px] border border-[#1e293b] rounded overflow-hidden relative">
-            <NetworkGraphCanvas />
+            <NetworkGraphCanvas graphData={{ nodes: [], edges: [], total_nodes: 0, total_edges: 0, gang_count: 0 }} isLoading={false} />
           </div>
         )}
 

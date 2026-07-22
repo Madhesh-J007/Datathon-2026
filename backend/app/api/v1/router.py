@@ -2,7 +2,8 @@ from fastapi import APIRouter
 from app.api.v1.endpoints import (
     cases, auth, network, admin, officers,
     audit, search, hotspot, intelligence,
-    assistant, collaboration, notifications, reports
+    assistant, collaboration, notifications, reports,
+    predictive
 )
 
 api_router = APIRouter()
@@ -21,3 +22,4 @@ api_router.include_router(assistant.router, prefix="/assistant", tags=["assistan
 api_router.include_router(collaboration.router, prefix="/collaboration", tags=["collaboration"])
 api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
 api_router.include_router(reports.router, prefix="/reports", tags=["reports"])
+api_router.include_router(predictive.router, prefix="/predictive", tags=["predictive"])

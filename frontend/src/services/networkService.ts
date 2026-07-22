@@ -1,6 +1,22 @@
 import { apiClient } from "./apiClient";
 
 export const networkService = {
+  async getGraph(params?: {
+    districtId?: number;
+    stationId?: number;
+    crimeCategory?: string;
+    startDate?: string;
+    endDate?: string;
+    nodeTypes?: string;
+    relationshipTypes?: string;
+    minConfidence?: number;
+    searchQuery?: string;
+    limit?: number;
+  }) {
+    const response = await apiClient.get("/network/graph", { params });
+    return response.data;
+  },
+
   async getGangs() {
     const response = await apiClient.get("/network/gangs");
     return response.data;

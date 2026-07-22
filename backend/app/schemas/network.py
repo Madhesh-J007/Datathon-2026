@@ -39,3 +39,37 @@ class GangCommunity(BaseModel):
 class GangCommunityResponse(BaseModel):
     ModelVersion: str
     Communities: List[GangCommunity]
+
+
+class GraphNodeData(BaseModel):
+    id: str
+    label: str
+    node_type: str  # Person, Victim, Witness, FIR, PoliceStation, Vehicle, Weapon, Evidence, Address, PhoneNumber, BankAccount, Organization
+    sub_type: Optional[str] = "Standard"
+    centrality: int = 1
+    case_count: int = 1
+    risk_score: float = 0.5
+    details: str
+    ai_summary: Optional[str] = None
+    age: Optional[int] = None
+    occupation: Optional[str] = None
+    address: Optional[str] = None
+    registration_no: Optional[str] = None
+
+
+class GraphEdgeData(BaseModel):
+    id: str
+    source: str
+    target: str
+    relationship: str
+    confidence: float = 1.0
+    evidence_source: Optional[str] = None
+
+
+class NetworkGraphResponse(BaseModel):
+    nodes: List[GraphNodeData]
+    edges: List[GraphEdgeData]
+    total_nodes: int
+    total_edges: int
+    gang_count: int = 0
+    model_version: str = "ksp-graph-intelligence-v2"

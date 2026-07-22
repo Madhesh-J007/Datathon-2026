@@ -8,7 +8,48 @@ from app.models.user import User
 from app.services import relationship_service, network_service
 from app.schemas.network import CriminalRelationship, GangCommunityResponse, RelationshipCreate, RelationshipVerify
 
+from typing import Optional
+from fastapi import Query
+from app.schemas.network import CriminalRelationship, GangCommunityResponse, RelationshipCreate, RelationshipVerify, NetworkGraphResponse
+
 router = APIRouter()
+
+
+@router.get("/graph", response_model=NetworkGraphResponse, summary="Get Enterprise Criminal Intelligence Graph")
+def get_graph(
+    district_id: Optional[int] = Query(None, alias="districtId"),
+    station_id: Optional[int] = Query(None, alias="stationId"),
+    crime_category: Optional[str] = Query(None, alias="crimeCategory"),
+    start_date: Optional[str] = Query(None, alias="startDate"),
+    end_date: Optional[str] = Query(None, alias="endDate"),
+    node_types: Optional[str] = Query(None, alias="nodeTypes"),
+    relationship_types: Optional[str] = Query(None, alias="relationshipTypes"),
+    min_confidence: float = Query(0.0, alias="minConfidence"),
+    search_query: Optional[str] = Query(None, alias="searchQuery"),
+    limit: int = Query(150, alias="limit"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(verify_permission("cases:read")),
+):
+    """
+    Returns enterprise-grade dynamic criminal intelligence graph nodes and edges generated strictly from PostgreSQL.
+    Guarded with jurisdiction access filters and multi-entity relationship scoring.
+    """
+    d_id = district_id if isinstance(district_id, int) else None
+    s_id = station_id if isinstance(station_id, int) else None
+    return network_service.get_dynamic_network_graph(
+        db=db,
+        current_user=current_user,
+        district_id=d_id,
+        station_id=s_id,
+        crime_category=crime_category,
+        start_date=start_date,
+        end_date=end_date,
+        node_types=node_types,
+        relationship_types=relationship_types,
+        min_confidence=min_confidence,
+        search_query=search_query,
+        limit=limit,
+    )
 
 
 @router.get("/gangs", response_model=GangCommunityResponse, summary="Detect Criminal Communities")
