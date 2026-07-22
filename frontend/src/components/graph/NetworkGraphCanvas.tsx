@@ -15,7 +15,6 @@ import {
   Download,
   Share2,
   Sparkles,
-  Zap,
 } from "lucide-react";
 
 interface NetworkGraphCanvasProps {
@@ -436,7 +435,7 @@ export default function NetworkGraphCanvas({ graphData, isLoading }: NetworkGrap
   return (
     <div className="flex h-full w-full bg-[#0b0f19] select-none relative overflow-hidden">
       {/* Top Header Control Bar */}
-      <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-[#0d1322]/95 border border-[#1e293b] p-2 rounded shadow-2xl backdrop-blur max-w-3xl">
+      <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-[#0d1322]/95 border border-[#1e293b] p-2 rounded shadow-2xl backdrop-blur">
         <div className="relative flex-1">
           <input
             type="text"
@@ -444,7 +443,7 @@ export default function NetworkGraphCanvas({ graphData, isLoading }: NetworkGrap
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearchNode()}
-            className="w-64 bg-[#151c2e] border border-[#1e293b] text-slate-200 text-xs px-3 py-1.5 rounded pl-8 focus:outline-none focus:border-blue-500 font-mono"
+            className="w-60 bg-[#151c2e] border border-[#1e293b] text-slate-200 text-xs px-3 py-1.5 rounded pl-8 focus:outline-none focus:border-blue-500 font-mono"
           />
           <Search className="absolute left-2.5 top-2 text-slate-400" size={13} />
         </div>
@@ -457,33 +456,58 @@ export default function NetworkGraphCanvas({ graphData, isLoading }: NetworkGrap
 
         <div className="h-4 w-px bg-[#1e293b] mx-1" />
 
-        {/* Zoom In & Zoom Out Action Controls */}
-        <div className="flex items-center gap-1 font-mono">
-          <button
-            onClick={handleZoomIn}
-            className="bg-[#151c2e] hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 w-7 h-7 rounded flex items-center justify-center font-bold text-sm transition-colors"
-            title="Zoom In"
-          >
-            +
-          </button>
-          <button
-            onClick={handleZoomOut}
-            className="bg-[#151c2e] hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 w-7 h-7 rounded flex items-center justify-center font-bold text-sm transition-colors"
-            title="Zoom Out"
-          >
-            -
-          </button>
-          <button
-            onClick={() => cyRef.current?.fit()}
-            className="bg-[#151c2e] hover:bg-slate-800 text-slate-300 px-2 py-1.5 rounded text-xs font-mono border border-[#1e293b] transition-colors"
-            title="Fit Graph to Window"
-          >
-            🎯 Fit View
-          </button>
-        </div>
+        <button
+          onClick={() => setShortestPathMode(!shortestPathMode)}
+          className={`px-2.5 py-1.5 rounded text-xs font-mono font-bold border transition-colors flex items-center gap-1 ${
+            shortestPathMode
+              ? "bg-amber-500/20 text-amber-400 border-amber-500/40"
+              : "bg-[#151c2e] text-slate-300 border-[#1e293b] hover:bg-slate-800"
+          }`}
+          title="Trace shortest connection path between two nodes"
+        >
+          <Crosshair size={13} />
+          <span>{shortestPathMode ? "Path Active" : "Path Analysis"}</span>
+        </button>
 
-        <div className="h-4 w-px bg-[#1e293b] mx-1" />
+        <button
+          onClick={exportJSON}
+          className="p-1.5 bg-[#151c2e] hover:bg-slate-800 text-slate-300 rounded border border-[#1e293b] transition-colors"
+          title="Export Network Graph JSON"
+        >
+          <Download size={13} />
+        </button>
+        <button
+          onClick={exportPNG}
+          className="p-1.5 bg-[#151c2e] hover:bg-slate-800 text-slate-300 rounded border border-[#1e293b] transition-colors"
+          title="Export Network Canvas Image"
+        >
+          <Share2 size={13} />
+        </button>
+      </div>
 
+      {/* Floating Vertical Zoom & Dock Navigation Control Bar (Right Side) */}
+      <div className="absolute top-4 right-4 z-20 flex flex-col gap-1.5 bg-[#0d1322]/95 border border-[#1e293b] p-1.5 rounded shadow-2xl backdrop-blur">
+        <button
+          onClick={handleZoomIn}
+          className="w-8 h-8 bg-[#151c2e] hover:bg-blue-600 text-white border border-[#1e293b] rounded flex items-center justify-center font-bold text-base transition-colors"
+          title="Zoom In (+)"
+        >
+          +
+        </button>
+        <button
+          onClick={handleZoomOut}
+          className="w-8 h-8 bg-[#151c2e] hover:bg-blue-600 text-white border border-[#1e293b] rounded flex items-center justify-center font-bold text-base transition-colors"
+          title="Zoom Out (-)"
+        >
+          -
+        </button>
+        <button
+          onClick={() => cyRef.current?.fit(undefined, 40)}
+          className="w-8 h-8 bg-[#151c2e] hover:bg-slate-700 text-slate-200 border border-[#1e293b] rounded flex items-center justify-center font-bold text-xs transition-colors"
+          title="Fit Screen View"
+        >
+          🎯
+        </button>
         <button
           onClick={() => {
             if (cyRef.current) {
@@ -499,49 +523,10 @@ export default function NetworkGraphCanvas({ graphData, isLoading }: NetworkGrap
                 .run();
             }
           }}
-          className="bg-[#151c2e] hover:bg-slate-800 text-slate-300 px-2.5 py-1.5 rounded text-xs font-mono border border-[#1e293b] transition-colors"
+          className="w-8 h-8 bg-[#151c2e] hover:bg-slate-700 text-slate-200 border border-[#1e293b] rounded flex items-center justify-center font-bold text-xs transition-colors"
           title="Auto-Spread Force Layout"
         >
-          🕸️ Auto-Layout
-        </button>
-
-        <button
-          onClick={() => {
-            if (cyRef.current) cyRef.current.fit(undefined, 40);
-          }}
-          className="bg-[#151c2e] hover:bg-slate-800 text-slate-300 px-2.5 py-1.5 rounded text-xs font-mono border border-[#1e293b] transition-colors"
-          title="Fit Graph View"
-        >
-          🎯 Fit
-        </button>
-
-        <button
-          onClick={() => setShortestPathMode(!shortestPathMode)}
-          className={`px-2.5 py-1.5 rounded text-xs font-mono font-bold border transition-colors flex items-center gap-1 ${
-            shortestPathMode
-              ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
-              : "bg-[#151c2e] text-slate-300 border-[#1e293b] hover:bg-slate-800"
-          }`}
-          title="Shortest Path Link Analysis between 2 nodes"
-        >
-          <Zap size={12} />
-          {shortestPathMode ? "Path Mode ON" : "Path Analysis"}
-        </button>
-
-        <button
-          onClick={exportPNG}
-          className="bg-[#151c2e] hover:bg-emerald-600/20 hover:text-emerald-300 text-slate-300 px-2 py-1.5 rounded text-xs font-mono border border-[#1e293b] transition-colors"
-          title="Export High-Res PNG"
-        >
-          <Download size={13} />
-        </button>
-
-        <button
-          onClick={exportJSON}
-          className="bg-[#151c2e] hover:bg-purple-600/20 hover:text-purple-300 text-slate-300 px-2 py-1.5 rounded text-xs font-mono border border-[#1e293b] transition-colors"
-          title="Export Graph Topology JSON"
-        >
-          <Share2 size={13} />
+          🕸️
         </button>
       </div>
 
