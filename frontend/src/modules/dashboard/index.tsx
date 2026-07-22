@@ -752,17 +752,23 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
           <div className="bg-[#111827] border border-[#1e293b] rounded p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h3 className="text-sm font-bold text-slate-300 font-mono uppercase tracking-wider">District Division Selector</h3>
-              <p className="text-xs text-slate-400 mt-1">Isolate investigation registries and threat metrics by division</p>
+              <p className="text-xs text-slate-400 mt-1">Review district-wide FIR telemetry, active threat profiles, and police station units</p>
             </div>
-            <select
-              value={activeDistrict}
-              onChange={(e) => setSelectedDistrict(Number(e.target.value))}
-              className="bg-[#1e293b] border border-[#1e293b] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-blue-500 font-mono font-bold"
-            >
-              {districts.map((d) => (
-                <option key={d} value={d}>{karnatakaDistricts[d] || `District Division #${d}`}</option>
-              ))}
-            </select>
+            <div className="flex items-center gap-3">
+              <select
+                value={activeDistrict}
+                onChange={(e) => {
+                  const dId = Number(e.target.value);
+                  setSelectedDistrict(dId);
+                  setSelectedStation("");
+                }}
+                className="bg-[#1e293b] border border-[#1e293b] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-blue-500 font-mono font-bold"
+              >
+                {districts.map((d) => (
+                  <option key={d} value={d}>{karnatakaDistricts[d] || `District #${d}`}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* District KPIs */}
@@ -801,7 +807,7 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
           <div className="bg-[#111827] border border-[#1e293b] rounded p-5 flex flex-col h-[400px]">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 border-b border-[#1e293b] pb-3">
               <h3 className="text-sm font-bold text-slate-300 font-mono uppercase tracking-wider">
-                District Division Case Logs Registry
+                District Division Case Logs ({karnatakaDistricts[Number(activeDistrict)] || "District"})
               </h3>
               <div className="flex items-center gap-2">
                 <select
@@ -853,21 +859,51 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
 
       {subMode === "station" && (
         <div className="space-y-6">
-          {/* Station Selection Bar */}
+          {/* Dual Cascading District & Station Selection Bar */}
           <div className="bg-[#111827] border border-[#1e293b] rounded p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h3 className="text-sm font-bold text-slate-300 font-mono uppercase tracking-wider">Precinct Station Selector</h3>
-              <p className="text-xs text-slate-400 mt-1">Review localized telemetry and beat assignments for specific precinct units</p>
+              <p className="text-xs text-slate-400 mt-1">Select any District to review its localized police station units and FIR telemetry</p>
             </div>
-            <select
-              value={activeStation}
-              onChange={(e) => setSelectedStation(Number(e.target.value))}
-              className="bg-[#1e293b] border border-[#1e293b] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-blue-500 font-mono font-bold"
-            >
-              {stations.map((s) => (
-                <option key={s} value={s}>Precinct Unit #{s}</option>
-              ))}
-            </select>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Step 1: Select District */}
+              <div className="flex flex-col">
+                <span className="text-[9px] text-slate-500 font-mono uppercase mb-0.5">1. Select District:</span>
+                <select
+                  value={activeDistrict}
+                  onChange={(e) => {
+                    const dId = Number(e.target.value);
+                    setSelectedDistrict(dId);
+                    // Reset selected station to first station in new district
+                    const firstSt = cases.find((c: any) => c.DistrictID === dId)?.PoliceStationID;
+                    setSelectedStation(firstSt || "");
+                  }}
+                  className="bg-[#1e293b] border border-[#1e293b] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-blue-500 font-mono font-bold"
+                >
+                  {districts.map((d) => (
+                    <option key={d} value={d}>{karnatakaDistricts[d] || `District #${d}`}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Step 2: Select Police Station in District */}
+              <div className="flex flex-col">
+                <span className="text-[9px] text-slate-500 font-mono uppercase mb-0.5">2. Select Police Station:</span>
+                <select
+                  value={activeStation}
+                  onChange={(e) => setSelectedStation(Number(e.target.value))}
+                  className="bg-[#1e293b] border border-[#1e293b] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-blue-500 font-mono font-bold"
+                >
+                  {/* Filter police stations belonging to active district */}
+                  {Array.from(new Set(cases.filter((c: any) => c.DistrictID === activeDistrict).map((c: any) => c.PoliceStationID).filter(Boolean))).map((s: any) => (
+                    <option key={s} value={s}>
+                      {cases.find((c: any) => c.PoliceStationID === s)?.PoliceStationName || `Police Station Unit #${s}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
 
           {/* Station KPIs */}
@@ -876,7 +912,7 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
               title="Station Case Load"
               value={stationCases.length}
               icon={<FileText size={16} />}
-              badges={[{ label: `Unit #${activeStation}`, type: "neutral" }]}
+              badges={[{ label: cases.find((c: any) => c.PoliceStationID === activeStation)?.PoliceStationName || `Station #${activeStation}`, type: "neutral" }]}
               description="Active dossiers currently assigned to precinct."
             />
             <KpiCard
@@ -906,7 +942,7 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
           <div className="bg-[#111827] border border-[#1e293b] rounded p-5 flex flex-col h-[400px]">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 border-b border-[#1e293b] pb-3">
               <h3 className="text-sm font-bold text-slate-300 font-mono uppercase tracking-wider">
-                Precinct Unit Case Registry Logs
+                Precinct Unit Case Logs ({cases.find((c: any) => c.PoliceStationID === activeStation)?.PoliceStationName || `Station #${activeStation}`})
               </h3>
               <div className="flex items-center gap-2">
                 <select

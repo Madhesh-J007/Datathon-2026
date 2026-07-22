@@ -14,6 +14,11 @@ export const caseService = {
     return response.data;
   },
 
+  async getDistrictsAndStations() {
+    const response = await apiClient.get("/cases/districts-and-stations");
+    return response.data;
+  },
+
   async getCaseDetails(caseId: number) {
     const response = await apiClient.get(`/cases/${caseId}`);
     return response.data;

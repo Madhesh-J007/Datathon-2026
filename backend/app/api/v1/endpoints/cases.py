@@ -57,6 +57,38 @@ def read_cases(
     return paginate(db_cases, total_count, page, page_size, applied_scope)
 
 
+@router.get("/districts-and-stations", summary="Get Districts and Police Stations Hierarchy")
+def get_districts_and_stations(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(verify_permission("cases:read")),
+):
+    """
+    Returns all 31 Karnataka Districts and their associated Police Stations directly from PostgreSQL.
+    """
+    from app.models.district import District
+    from app.models.police_station import PoliceStation
+
+    districts = db.query(District).all()
+    stations = db.query(PoliceStation).all()
+
+    stations_by_district = {}
+    for st in stations:
+        stations_by_district.setdefault(st.DistrictID, []).append({
+            "station_id": st.UnitID,
+            "station_name": st.UnitName
+        })
+
+    result = []
+    for d in districts:
+        result.append({
+            "district_id": d.DistrictID,
+            "district_name": d.DistrictName,
+            "stations": stations_by_district.get(d.DistrictID, [])
+        })
+
+    return result
+
+
 @router.get("/station-command-center", summary="Get Station Command Center Analytics")
 def get_station_command_center(
     station_id: Optional[int] = Query(None, alias="stationId"),
