@@ -577,7 +577,7 @@ export default function NetworkGraphCanvas({ graphData, isLoading }: NetworkGrap
 
       {/* Side Intelligence Node Dossier */}
       {selectedNode && (
-        <div className="w-88 bg-[#0d1322] border-l border-[#1e293b] p-5 flex flex-col gap-4 z-20 absolute right-0 top-0 h-full overflow-y-auto shadow-2xl">
+        <div className="w-88 bg-[#0d1322] border-l border-[#1e293b] p-5 flex flex-col gap-4 z-30 absolute right-0 top-0 h-full overflow-y-auto shadow-2xl">
           <div className="flex items-center justify-between border-b border-[#1e293b] pb-3">
             <div className="flex items-center gap-2">
               {getNodeIcon(selectedNode.node_type)}
@@ -585,9 +585,17 @@ export default function NetworkGraphCanvas({ graphData, isLoading }: NetworkGrap
                 KSP Intelligence Dossier
               </h3>
             </div>
-            <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 rounded font-mono">
-              {selectedNode.node_type}
-            </span>
+            <button
+              onClick={() => {
+                setSelectedNode(null);
+                if (cyRef.current) cyRef.current.elements().removeClass("dimmed");
+              }}
+              className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-2.5 py-1 rounded text-xs font-mono font-bold transition-colors flex items-center gap-1"
+              title="Close Dossier & Return to Full Graph"
+            >
+              <span>✕</span>
+              <span>Back to Graph</span>
+            </button>
           </div>
 
           <div className="space-y-3.5 text-xs">

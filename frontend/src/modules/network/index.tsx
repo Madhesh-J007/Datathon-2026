@@ -104,51 +104,51 @@ export default function NetworkModule() {
   };
 
   return (
-    <div className="flex flex-col h-full space-y-4 select-none">
+    <div className="flex flex-col h-[calc(100vh-100px)] space-y-3 select-none overflow-hidden">
       {/* Top Title & Metric Summary Bar */}
-      <div className="flex justify-between items-center bg-[#111827] border border-[#1e293b] p-3.5 rounded shadow-lg">
+      <div className="flex justify-between items-center bg-[#111827] border border-[#1e293b] p-3 rounded shadow-lg flex-shrink-0">
         <div>
           <div className="flex items-center gap-2">
-            <Shield className="text-blue-500" size={20} />
-            <h1 className="text-lg font-bold tracking-tight text-slate-100 font-mono uppercase">
+            <Shield className="text-blue-500" size={18} />
+            <h1 className="text-base font-bold tracking-tight text-slate-100 font-mono uppercase">
               KSP Criminal Intelligence Link Analysis
             </h1>
           </div>
-          <p className="text-xs text-slate-400 mt-0.5 font-sans">
+          <p className="text-[11px] text-slate-400 mt-0.5 font-sans">
             Enterprise dynamic network traversal over PostgreSQL FIR records, co-accused syndicates, weapons, and assets.
           </p>
         </div>
 
-        <div className="flex items-center gap-4 text-xs font-mono">
-          <div className="bg-[#151c2e] border border-[#1e293b] px-3 py-1.5 rounded">
+        <div className="flex items-center gap-3 text-xs font-mono">
+          <div className="bg-[#151c2e] border border-[#1e293b] px-2.5 py-1 rounded">
             <span className="text-slate-500 block text-[9px]">TOTAL NODES</span>
-            <span className="text-blue-400 font-bold text-sm">{graphData?.total_nodes || 0}</span>
+            <span className="text-blue-400 font-bold text-xs">{graphData?.total_nodes || 0}</span>
           </div>
 
-          <div className="bg-[#151c2e] border border-[#1e293b] px-3 py-1.5 rounded">
+          <div className="bg-[#151c2e] border border-[#1e293b] px-2.5 py-1 rounded">
             <span className="text-slate-500 block text-[9px]">RELATIONAL EDGES</span>
-            <span className="text-emerald-400 font-bold text-sm">{graphData?.total_edges || 0}</span>
+            <span className="text-emerald-400 font-bold text-xs">{graphData?.total_edges || 0}</span>
           </div>
 
-          <div className="bg-[#151c2e] border border-[#1e293b] px-3 py-1.5 rounded">
+          <div className="bg-[#151c2e] border border-[#1e293b] px-2.5 py-1 rounded">
             <span className="text-slate-500 block text-[9px]">INFERRED SYNDICATES</span>
-            <span className="text-amber-400 font-bold text-sm">{graphData?.gang_count || 0} Rings</span>
+            <span className="text-amber-400 font-bold text-xs">{graphData?.gang_count || 0} Rings</span>
           </div>
 
           <button
             onClick={() => refetch()}
-            className="bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30 p-2 rounded transition-colors"
+            className="bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30 p-1.5 rounded transition-colors"
             title="Refresh Dynamic Network"
           >
-            <RefreshCw size={15} className={isGraphLoading ? "animate-spin" : ""} />
+            <RefreshCw size={14} className={isGraphLoading ? "animate-spin" : ""} />
           </button>
         </div>
       </div>
 
       {/* Main Workspace Layout */}
-      <div className="flex-1 min-h-0 flex gap-4">
-        {/* Left Filter & Gang Panel */}
-        <div className="w-80 bg-[#111827] border border-[#1e293b] rounded p-4 flex flex-col space-y-4 overflow-y-auto min-h-0">
+      <div className="flex-1 min-h-0 flex gap-3 overflow-hidden">
+        {/* Left Filter & Gang Panel (Isolated Scrollbar) */}
+        <div className="w-80 flex-shrink-0 bg-[#111827] border border-[#1e293b] rounded p-3.5 flex flex-col space-y-4 overflow-y-auto max-h-full">
           {/* Intelligence Filters Drawer */}
           <div className="space-y-3 border-b border-[#1e293b] pb-4">
             <div className="flex items-center gap-2 mb-1">
