@@ -87,6 +87,11 @@ export default function NetworkGraphCanvas({ graphData, isLoading }: NetworkGrap
     const cy = cytoscape({
       container: containerRef.current,
       elements: [...cyNodes, ...cyEdges],
+      wheelSensitivity: 0.15,
+      minZoom: 0.1,
+      maxZoom: 3.5,
+      pixelRatio: "auto",
+      hideLabelsOnViewport: true,
       style: [
         // Base Node Style
         {
@@ -290,12 +295,12 @@ export default function NetworkGraphCanvas({ graphData, isLoading }: NetworkGrap
         name: "cose",
         animate: false,
         padding: 50,
-        nodeRepulsion: () => 5000000,
-        idealEdgeLength: () => 160,
+        nodeRepulsion: () => 3000000,
+        idealEdgeLength: () => 140,
         edgeElasticity: () => 100,
         nestingFactor: 1.2,
         gravity: 0.25,
-        numIter: 1000,
+        numIter: 500,
       },
     });
 

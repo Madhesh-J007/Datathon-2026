@@ -86,8 +86,8 @@ def get_cases_paginated(
             )
         )
 
-    # Count matching query before pagination offsets are applied
-    total_count = query.distinct(CaseMaster.CaseMasterID).count()
+    # Fast Count matching query
+    total_count = query.count()
 
     # Sorting
     if sort_by == "date_desc":
@@ -100,12 +100,6 @@ def get_cases_paginated(
         query = query.order_by(desc(CaseMaster.AIRiskScore))
     else:
         query = query.order_by(desc(CaseMaster.CaseMasterID))
-
-    # Eagerly load primary list relationships
-    query = query.options(
-        selectinload(CaseMaster.accused_list),
-        selectinload(CaseMaster.victims)
-    )
 
     cases = query.offset(skip).limit(limit).all()
     _attach_district_info(db, cases)
