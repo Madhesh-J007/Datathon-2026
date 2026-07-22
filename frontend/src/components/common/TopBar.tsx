@@ -239,9 +239,9 @@ export default function TopBar() {
                         <div>
                           <h4 className="text-xs font-semibold text-slate-200">{n.title}</h4>
                           <p className="text-[10px] text-slate-400 leading-normal mt-0.5">{n.message}</p>
-                          <div className="flex items-center gap-1 text-[10px] text-slate-500 mt-1 font-mono">
-                            <Clock size={8} />
-                            <span>{new Date(n.created_at).toLocaleTimeString()}</span>
+                          <div className="flex items-center gap-1 text-[10px] text-[#38bdf8] font-mono mt-1 font-bold">
+                            <Clock size={10} />
+                            <span>{new Date(n.created_at).toLocaleDateString()}</span>
                           </div>
                         </div>
                       </div>
