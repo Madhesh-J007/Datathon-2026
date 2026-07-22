@@ -303,6 +303,11 @@ export default function NetworkGraphCanvas({ graphData, isLoading }: NetworkGrap
       },
     });
 
+    cy.ready(() => {
+      cy.fit(undefined, 60);
+      cy.center();
+    });
+
     // Node Select Listener
     cy.on("select", "node", (evt) => {
       const node = evt.target;
@@ -376,6 +381,12 @@ export default function NetworkGraphCanvas({ graphData, isLoading }: NetworkGrap
     link.download = `KSP_Criminal_Network_${new Date().toISOString().slice(0, 10)}.png`;
     link.href = png64;
     link.click();
+  };
+
+  const handlePan = (dx: number, dy: number) => {
+    if (cyRef.current) {
+      cyRef.current.panBy({ x: dx, y: dy });
+    }
   };
 
   const handleZoomIn = () => {
@@ -473,8 +484,42 @@ export default function NetworkGraphCanvas({ graphData, isLoading }: NetworkGrap
           </button>
         </div>
 
-        {/* Right Controls: Zoom Buttons & Export */}
+        {/* Right Controls: Pan, Zoom Buttons & Export */}
         <div className="flex items-center gap-2 font-mono">
+          {/* Pan Navigation Controls */}
+          <div className="flex items-center gap-1 bg-[#151c2e] border border-[#1e293b] p-0.5 rounded text-[11px]">
+            <span className="text-[9px] text-slate-500 px-1 font-bold">PAN:</span>
+            <button
+              onClick={() => handlePan(0, 150)}
+              className="w-6 h-6 bg-[#1e293b] hover:bg-blue-600 text-white rounded flex items-center justify-center font-bold"
+              title="Pan Up"
+            >
+              ▲
+            </button>
+            <button
+              onClick={() => handlePan(0, -150)}
+              className="w-6 h-6 bg-[#1e293b] hover:bg-blue-600 text-white rounded flex items-center justify-center font-bold"
+              title="Pan Down"
+            >
+              ▼
+            </button>
+            <button
+              onClick={() => handlePan(150, 0)}
+              className="w-6 h-6 bg-[#1e293b] hover:bg-blue-600 text-white rounded flex items-center justify-center font-bold"
+              title="Pan Left"
+            >
+              ◀
+            </button>
+            <button
+              onClick={() => handlePan(-150, 0)}
+              className="w-6 h-6 bg-[#1e293b] hover:bg-blue-600 text-white rounded flex items-center justify-center font-bold"
+              title="Pan Right"
+            >
+              ▶
+            </button>
+          </div>
+
+          {/* Zoom & Fit Controls */}
           <div className="flex items-center gap-1 bg-[#151c2e] border border-[#1e293b] p-0.5 rounded">
             <button
               onClick={handleZoomIn}
@@ -491,11 +536,16 @@ export default function NetworkGraphCanvas({ graphData, isLoading }: NetworkGrap
               -
             </button>
             <button
-              onClick={() => cyRef.current?.fit(undefined, 40)}
+              onClick={() => {
+                if (cyRef.current) {
+                  cyRef.current.fit(undefined, 60);
+                  cyRef.current.center();
+                }
+              }}
               className="px-2.5 py-1 text-xs text-slate-300 hover:text-white hover:bg-slate-700 rounded transition-colors font-bold"
-              title="Fit View to Screen"
+              title="Fit View & Center Graph"
             >
-              🎯 Fit
+              🎯 Center
             </button>
             <button
               onClick={() => {
