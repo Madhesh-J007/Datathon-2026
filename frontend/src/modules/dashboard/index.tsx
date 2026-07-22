@@ -909,25 +909,25 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
           {/* Station KPIs */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <KpiCard
-              title="Station Case Load"
-              value={stationCases.length}
+              title="Station Active Cases"
+              value={stationCases.filter((c: any) => c.CaseStatusID !== 3).length}
               icon={<FileText size={16} />}
               badges={[{ label: cases.find((c: any) => c.PoliceStationID === activeStation)?.PoliceStationName || `Station #${activeStation}`, type: "neutral" }]}
               description="Active dossiers currently assigned to precinct."
             />
             <KpiCard
-              title="Active Beats"
-              value={Math.max(1, Math.floor(stationCases.length / 3))}
-              icon={<Compass size={16} />}
-              badges={[{ label: "Patrol Force", type: "success" }]}
-              description="Estimated sector patrol vehicles deployed."
+              title="High Risk Cases"
+              value={stationCases.filter((c: any) => (c.AIRiskScore && c.AIRiskScore >= 0.70) || c.InvestigationPriority === "High").length}
+              icon={<ShieldAlert size={16} />}
+              badges={[{ label: "AI Score ≥ 0.70", type: "error" }]}
+              description="Cases flagged for immediate patrol & IO action."
             />
             <KpiCard
-              title="Avg Response Delay"
-              value="4.2 Days"
-              icon={<Clock size={16} />}
-              badges={[{ label: "Target: 5.0d", type: "neutral" }]}
-              description="Average investigation duration per case."
+              title="Closed / Cleared Cases"
+              value={stationCases.filter((c: any) => c.CaseStatusID === 3 || c.CaseStatusID === 4).length}
+              icon={<CheckCircle size={16} />}
+              badges={[{ label: `${((stationCases.filter((c: any) => c.CaseStatusID === 3 || c.CaseStatusID === 4).length / (stationCases.length || 1)) * 100).toFixed(0)}% Solved`, type: "success" }]}
+              description="Closed or chargesheeted investigations."
             />
             <KpiCard
               title="Precinct Risk Score"
