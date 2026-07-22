@@ -33,6 +33,7 @@ async def lifespan(app: FastAPI):
         # Enable pgvector extension before creating tables that use the Vector type
         with engine.begin() as conn:
             conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+            conn.execute(text('ALTER TABLE report_jobs ADD COLUMN IF NOT EXISTS "CreatedBy" INTEGER;'))
         # Create all tables defined in SQLAlchemy models if they do not exist
         Base.metadata.create_all(bind=engine)
         logger.info("Database schema initialized successfully.")
