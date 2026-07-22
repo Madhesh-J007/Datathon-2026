@@ -56,6 +56,28 @@ def read_cases(
 
     return paginate(db_cases, total_count, page, page_size, applied_scope)
 
+
+@router.get("/station-command-center", summary="Get Station Command Center Analytics")
+def get_station_command_center(
+    station_id: Optional[int] = Query(None, alias="stationId"),
+    district_id: Optional[int] = Query(None, alias="districtId"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(verify_permission("cases:read")),
+):
+    """
+    Returns real operational Station Command Center KPIs, timeline feeds, officer workloads,
+    AI command briefs, and patrol recommendations directly from PostgreSQL.
+    """
+    from app.services import station_command_service
+    s_id = station_id if isinstance(station_id, int) else None
+    d_id = district_id if isinstance(district_id, int) else None
+    return station_command_service.get_station_command_center(
+        db=db,
+        current_user=current_user,
+        station_id=s_id,
+        district_id=d_id,
+    )
+
 @router.get("/{case_id}", response_model=CaseMaster, summary="Get Case Details")
 def read_case(
     case_id: int,

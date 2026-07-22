@@ -421,7 +421,7 @@ export default function Investigation() {
                     <tr className="bg-[#0f1524] border-b border-[#1e293b] text-slate-400">
                       <th className="px-4 py-2.5">Name</th>
                       <th className="px-4 py-2.5">Age/Gender</th>
-                      <th className="px-4 py-2.5">Severity</th>
+                      <th className="px-4 py-2.5">Injury Severity</th>
                       <th className="px-4 py-2.5">Relation to Accused</th>
                     </tr>
                   </thead>
@@ -430,7 +430,15 @@ export default function Investigation() {
                       <tr key={idx}>
                         <td className="px-4 py-2.5 font-bold">{v.VictimName}</td>
                         <td className="px-4 py-2.5">{v.AgeYear} yrs / {v.GenderID === 1 ? "M" : "F"}</td>
-                        <td className="px-4 py-2.5">{v.InjurySeverity || "None"}</td>
+                        <td className="px-4 py-2.5 font-mono">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            v.InjurySeverity?.toLowerCase().includes("fatal") || v.InjurySeverity?.toLowerCase().includes("grievous")
+                              ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                              : "bg-slate-800 text-slate-300 border border-slate-700"
+                          }`}>
+                            {v.InjurySeverity === "Minor" ? "Minor Injury" : (v.InjurySeverity || "No Physical Injury")}
+                          </span>
+                        </td>
                         <td className="px-4 py-2.5">{v.RelationshipToAccused || "Stranger"}</td>
                       </tr>
                     ))}
