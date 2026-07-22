@@ -379,6 +379,24 @@ export default function NetworkGraphCanvas({ graphData, isLoading }: NetworkGrap
     link.click();
   };
 
+  const handleZoomIn = () => {
+    if (cyRef.current) {
+      cyRef.current.zoom({
+        level: cyRef.current.zoom() * 1.35,
+        renderedPosition: { x: cyRef.current.width() / 2, y: cyRef.current.height() / 2 },
+      });
+    }
+  };
+
+  const handleZoomOut = () => {
+    if (cyRef.current) {
+      cyRef.current.zoom({
+        level: cyRef.current.zoom() / 1.35,
+        renderedPosition: { x: cyRef.current.width() / 2, y: cyRef.current.height() / 2 },
+      });
+    }
+  };
+
   // Export JSON Topology
   const exportJSON = () => {
     if (!cyRef.current) return;
@@ -418,7 +436,7 @@ export default function NetworkGraphCanvas({ graphData, isLoading }: NetworkGrap
   return (
     <div className="flex h-full w-full bg-[#0b0f19] select-none relative overflow-hidden">
       {/* Top Header Control Bar */}
-      <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-[#0d1322]/95 border border-[#1e293b] p-2 rounded shadow-2xl backdrop-blur max-w-2xl">
+      <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-[#0d1322]/95 border border-[#1e293b] p-2 rounded shadow-2xl backdrop-blur max-w-3xl">
         <div className="relative flex-1">
           <input
             type="text"
@@ -439,6 +457,33 @@ export default function NetworkGraphCanvas({ graphData, isLoading }: NetworkGrap
 
         <div className="h-4 w-px bg-[#1e293b] mx-1" />
 
+        {/* Zoom In & Zoom Out Action Controls */}
+        <div className="flex items-center gap-1 font-mono">
+          <button
+            onClick={handleZoomIn}
+            className="bg-[#151c2e] hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 w-7 h-7 rounded flex items-center justify-center font-bold text-sm transition-colors"
+            title="Zoom In"
+          >
+            +
+          </button>
+          <button
+            onClick={handleZoomOut}
+            className="bg-[#151c2e] hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 w-7 h-7 rounded flex items-center justify-center font-bold text-sm transition-colors"
+            title="Zoom Out"
+          >
+            -
+          </button>
+          <button
+            onClick={() => cyRef.current?.fit()}
+            className="bg-[#151c2e] hover:bg-slate-800 text-slate-300 px-2 py-1.5 rounded text-xs font-mono border border-[#1e293b] transition-colors"
+            title="Fit Graph to Window"
+          >
+            🎯 Fit View
+          </button>
+        </div>
+
+        <div className="h-4 w-px bg-[#1e293b] mx-1" />
+
         <button
           onClick={() => {
             if (cyRef.current) {
@@ -446,9 +491,10 @@ export default function NetworkGraphCanvas({ graphData, isLoading }: NetworkGrap
                 .layout({
                   name: "cose",
                   animate: true,
-                  animationDuration: 500,
-                  nodeRepulsion: () => 5000000,
-                  idealEdgeLength: () => 160,
+                  animationDuration: 300,
+                  nodeRepulsion: () => 2000000,
+                  idealEdgeLength: () => 140,
+                  numIter: 50,
                 })
                 .run();
             }
