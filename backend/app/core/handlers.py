@@ -52,10 +52,13 @@ def db_integrity_error_handler(request: Request, exc: IntegrityError) -> JSONRes
         }
     )
 
+from fastapi.encoders import jsonable_encoder
+
 def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     """Handles Pydantic validation errors on incoming payloads."""
+    err_list = jsonable_encoder(exc.errors())
     logger.warning(
-        f"Request Validation Failure | Path: {request.url.path} | Errors: {exc.errors()}"
+        f"Request Validation Failure | Path: {request.url.path} | Errors: {err_list}"
     )
     return JSONResponse(
         status_code=422,
@@ -63,7 +66,7 @@ def validation_exception_handler(request: Request, exc: RequestValidationError) 
             "status": "error",
             "code": "ValidationError",
             "message": "The input data failed structural or business validation.",
-            "details": exc.errors()
+            "details": err_list
         }
     )
 

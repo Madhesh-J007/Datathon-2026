@@ -19,7 +19,10 @@ import {
   ClipboardList,
   Send,
   X,
-  Sparkles
+  Sparkles,
+  Upload,
+  Plus,
+  AlertCircle
 } from "lucide-react";
 import { taskService, TaskDelegation } from "../../services/taskService";
 
@@ -52,6 +55,42 @@ export default function Investigation() {
   const [activeSubTab, setActiveSubTab] = useState("overview");
   const [selectedCompareCase, setSelectedCompareCase] = useState<any>(null);
   const [workspaceTab, setWorkspaceTab] = useState<"workspace" | "cases">("workspace");
+
+  // Evidence Upload State & Mutation
+  const [isUploadEvidenceModalOpen, setIsUploadEvidenceModalOpen] = useState(false);
+  const [evidenceTypeInput, setEvidenceTypeInput] = useState("CCTV Footage");
+  const [evidenceDescInput, setEvidenceDescInput] = useState("");
+  const [evidenceFileInput, setEvidenceFileInput] = useState<File | null>(null);
+  const [evidenceUploadError, setEvidenceUploadError] = useState<string | null>(null);
+
+  const uploadEvidenceMutation = useMutation({
+    mutationFn: async ({ caseId, file, type, desc }: { caseId: number; file: File | null; type: string; desc: string }) => {
+      if (file) {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("evidence_type", type);
+        formData.append("description", desc);
+        return caseService.uploadEvidenceFile(caseId, formData);
+      } else {
+        return caseService.addEvidence(caseId, { EvidenceType: type, Description: desc });
+      }
+    },
+    onSuccess: () => {
+      if (caseId) {
+        queryClient.invalidateQueries({ queryKey: ["caseEvidence", caseId] });
+      }
+      setIsUploadEvidenceModalOpen(false);
+      setEvidenceTypeInput("CCTV Footage");
+      setEvidenceDescInput("");
+      setEvidenceFileInput(null);
+      setEvidenceUploadError(null);
+    },
+    onError: (err: any) => {
+      setEvidenceUploadError(
+        err.response?.data?.detail || "Failed to upload evidence. Ensure you are assigned to this case."
+      );
+    }
+  });
 
   // Assigned Tasks State
   const [selectedTaskToUpdate, setSelectedTaskToUpdate] = useState<TaskDelegation | null>(null);
@@ -623,29 +662,84 @@ export default function Investigation() {
         {activeSubTab === "evidence" && (
           <div className="space-y-6">
             <div>
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3 font-mono">
-                Physical & Digital Evidence Collections
-              </h3>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono">
+                  Physical & Digital Evidence Collections
+                </h3>
+                <button
+                  onClick={() => {
+                    setEvidenceUploadError(null);
+                    setIsUploadEvidenceModalOpen(true);
+                  }}
+                  className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold font-mono transition-all flex items-center gap-1.5 shadow-md"
+                >
+                  <Plus size={14} />
+                  <span>Upload Case Evidence (Assigned Officers Only)</span>
+                </button>
+              </div>
+
+              {evidenceUploadError && (
+                <div className="mb-3 bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded text-xs flex items-center gap-2 font-mono">
+                  <AlertCircle size={16} />
+                  <span>{evidenceUploadError}</span>
+                </div>
+              )}
+
               <div className="border border-[#1e293b] rounded bg-[#111827] overflow-hidden">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className="bg-[#0f1524] border-b border-[#1e293b] text-slate-400">
-                      <th className="px-4 py-2.5">Item type</th>
+                    <tr className="bg-[#0f1524] border-b border-[#1e293b] text-slate-400 font-mono text-[11px]">
+                      <th className="px-4 py-2.5">Item Category</th>
                       <th className="px-4 py-2.5">Description</th>
-                      <th className="px-4 py-2.5">Collection date</th>
+                      <th className="px-4 py-2.5">Attachment / File</th>
+                      <th className="px-4 py-2.5">Collection Date</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#1e293b] text-slate-300">
-                    {evidenceData?.map((e: any, idx: number) => (
-                      <tr key={idx}>
-                        <td className="px-4 py-2.5 font-bold text-slate-100">{e.EvidenceType}</td>
-                        <td className="px-4 py-2.5">{e.Description}</td>
-                        <td className="px-4 py-2.5 font-mono">{new Date(e.CollectionDate).toLocaleDateString()}</td>
-                      </tr>
-                    ))}
+                    {evidenceData?.map((e: any, idx: number) => {
+                      const isCCTV = e.EvidenceType?.toLowerCase().includes("cctv") || e.EvidenceType?.toLowerCase().includes("video");
+                      const isPicture = e.EvidenceType?.toLowerCase().includes("picture") || e.EvidenceType?.toLowerCase().includes("photo") || e.EvidenceType?.toLowerCase().includes("image");
+                      const isDoc = e.EvidenceType?.toLowerCase().includes("doc") || e.EvidenceType?.toLowerCase().includes("memo") || e.EvidenceType?.toLowerCase().includes("report");
+                      return (
+                        <tr key={idx} className="hover:bg-[#151c2e] transition-colors">
+                          <td className="px-4 py-3 font-bold text-slate-100 flex items-center gap-2">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-mono uppercase font-bold border ${
+                              isCCTV ? "bg-purple-500/10 text-purple-400 border-purple-500/20" :
+                              isPicture ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" :
+                              isDoc ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
+                              "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                            }`}>
+                              {isCCTV ? "📹 CCTV Footage" : isPicture ? "🖼️ Picture / Snapshot" : isDoc ? "📄 Document" : `📁 ${e.EvidenceType}`}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 leading-relaxed">{e.Description}</td>
+                          <td className="px-4 py-3 font-mono">
+                            {e.FileUrl ? (
+                              <a
+                                href={e.FileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-400 hover:underline flex items-center gap-1 font-bold text-[11px]"
+                              >
+                                📥 {e.FileName || "Attached Evidence File"}
+                              </a>
+                            ) : e.FileName ? (
+                              <span className="text-slate-400 font-bold">{e.FileName}</span>
+                            ) : (
+                              <span className="text-slate-600 font-italic">No Digital Attachment</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 font-mono text-slate-400">
+                            {e.CollectionDate ? new Date(e.CollectionDate).toLocaleDateString() : "N/A"}
+                          </td>
+                        </tr>
+                      );
+                    })}
                     {(!evidenceData || evidenceData.length === 0) && (
                       <tr>
-                        <td colSpan={3} className="px-4 py-4 text-center text-slate-500">No evidence entries collected.</td>
+                        <td colSpan={4} className="px-4 py-8 text-center text-slate-500 font-mono">
+                          No evidence entries collected for this case yet. Click "Upload Case Evidence" to submit CCTV, pictures, or documents.
+                        </td>
                       </tr>
                     )}
                   </tbody>
@@ -985,6 +1079,120 @@ export default function Investigation() {
                 Close Modal
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* UPLOAD EVIDENCE MODAL */}
+      {isUploadEvidenceModalOpen && caseId && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#111827] border border-[#1e293b] rounded-xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex justify-between items-center border-b border-[#1e293b] pb-3">
+              <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
+                <Package size={18} className="text-blue-500" />
+                Upload Evidence File for Case #{caseId}
+              </h2>
+              <button
+                onClick={() => setIsUploadEvidenceModalOpen(false)}
+                className="text-slate-400 hover:text-slate-200"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {evidenceUploadError && (
+              <div className="p-3 rounded bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-mono">
+                {evidenceUploadError}
+              </div>
+            )}
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!evidenceDescInput.trim()) return;
+                uploadEvidenceMutation.mutate({
+                  caseId,
+                  file: evidenceFileInput,
+                  type: evidenceTypeInput,
+                  desc: evidenceDescInput.trim(),
+                });
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-xs font-mono font-bold text-slate-300 uppercase mb-1">
+                  1. Evidence Category *
+                </label>
+                <select
+                  value={evidenceTypeInput}
+                  onChange={(e) => setEvidenceTypeInput(e.target.value)}
+                  className="w-full bg-[#1e293b] border border-[#334155] text-slate-100 text-xs rounded px-3 py-2 focus:outline-none focus:border-blue-500 font-mono"
+                  required
+                >
+                  <option value="CCTV Footage">📹 CCTV Surveillance Video Footage</option>
+                  <option value="Crime Scene Picture">🖼️ Crime Scene Picture / Snapshot</option>
+                  <option value="Document / Report">📄 Legal Document / FIR / Seizure Memo</option>
+                  <option value="Forensic DNA Report">🧪 Forensic DNA & Lab Sample</option>
+                  <option value="Recovered Weapon">🔪 Recovered Sharp Weapon / Property</option>
+                  <option value="Digital Telemetry">📱 Mobile Call Data Record (CDR)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono font-bold text-slate-300 uppercase mb-1">
+                  2. Detailed Description *
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Provide evidence details (e.g. CCTV clip showing suspect fleeing motorcycle at 22:15 hrs)..."
+                  value={evidenceDescInput}
+                  onChange={(e) => setEvidenceDescInput(e.target.value)}
+                  className="w-full bg-[#1e293b] border border-[#334155] text-slate-100 text-xs rounded px-3 py-2 focus:outline-none focus:border-blue-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono font-bold text-slate-300 uppercase mb-1">
+                  3. Attach Evidence File (CCTV Video, Image, PDF)
+                </label>
+                <input
+                  type="file"
+                  onChange={(e) => setEvidenceFileInput(e.target.files?.[0] || null)}
+                  className="w-full bg-[#1e293b] border border-[#334155] text-slate-100 text-xs rounded px-3 py-2 font-mono file:mr-3 file:py-1 file:px-2.5 file:rounded file:border-0 file:text-xs file:font-mono file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer"
+                />
+                <p className="text-[10px] text-slate-500 mt-1 font-mono">
+                  Supported: MP4, AVI, JPG, PNG, PDF, DOCX
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3 border-t border-[#1e293b]">
+                <button
+                  type="button"
+                  onClick={() => setIsUploadEvidenceModalOpen(false)}
+                  className="px-4 py-2 rounded text-xs text-slate-400 hover:text-slate-200 font-mono"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={uploadEvidenceMutation.isPending}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-2 rounded font-bold shadow-lg transition-colors font-mono"
+                >
+                  {uploadEvidenceMutation.isPending ? (
+                    <>
+                      <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></span>
+                      <span>Uploading Evidence...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload size={14} />
+                      <span>Upload Evidence</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

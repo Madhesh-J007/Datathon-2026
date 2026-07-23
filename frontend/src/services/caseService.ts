@@ -29,6 +29,15 @@ export const caseService = {
     return response.data;
   },
 
+  async uploadEvidenceFile(caseId: number, formData: FormData) {
+    const response = await apiClient.post(`/cases/${caseId}/upload-evidence`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
+  },
+
   async getCaseAccused(caseId: number) {
     const response = await apiClient.get(`/cases/${caseId}/accused`);
     return response.data;

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form, status
 from sqlalchemy.orm import Session
 from typing import Optional
 
@@ -286,6 +286,53 @@ def release_investigator(
     assignment_service.release_officer_from_case(db, assignment_id, current_user)
     return {"status": "success", "message": "Investigator released from case."}
 
+def verify_officer_case_assignment(db: Session, case_id: int, user: User):
+    """
+    Verifies if the officer/user is assigned to the specified case file.
+    Admin users have access across all cases.
+    """
+    case = case_crud.get_case_by_id(db, case_id=case_id, user=user)
+    if not case:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Case file not found or access denied.")
+
+    # 1. Admin Override
+    if user.role and user.role.RoleName == "Admin":
+        return case
+
+    # 2. Check if Primary Investigating Officer
+    if case.PolicePersonID and user.OfficerID and case.PolicePersonID == user.OfficerID:
+        return case
+
+    # 3. Check if Case Creator
+    if case.CreatedBy and case.CreatedBy == user.UserID:
+        return case
+
+    # 4. Check active CaseAssignment table
+    from app.models.case_assignment import CaseAssignment
+    if user.OfficerID:
+        assignment = db.query(CaseAssignment).filter(
+            CaseAssignment.CaseMasterID == case_id,
+            CaseAssignment.OfficerID == user.OfficerID,
+            CaseAssignment.IsActive == True
+        ).first()
+        if assignment:
+            return case
+
+    # 5. Check active TaskDelegation table
+    from app.models.task_delegation import TaskDelegation
+    task_del = db.query(TaskDelegation).filter(
+        TaskDelegation.CaseMasterID == case_id,
+        TaskDelegation.AssignedToUserID == user.UserID
+    ).first()
+    if task_del:
+        return case
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail=f"Access Denied: You are not assigned to Case #{case.CaseNo or case_id}. Only assigned officers can upload evidence (CCTV, images, docs)."
+    )
+
+
 @router.post("/{case_id}/evidence", status_code=status.HTTP_201_CREATED, summary="Add Evidence Record to Case")
 def add_case_evidence(
     case_id: int,
@@ -295,7 +342,10 @@ def add_case_evidence(
 ):
     """
     Adds an evidence item (CCTV, DNA, Seizure Memo, Weapon) linked to a case.
+    Enforces strict assignment check: only assigned officers can upload evidence.
     """
+    verify_officer_case_assignment(db, case_id, current_user)
+
     from app.models.evidence import Evidence
     from datetime import datetime
     
@@ -303,7 +353,11 @@ def add_case_evidence(
         CaseMasterID=case_id,
         EvidenceType=evidence_in.EvidenceType,
         Description=evidence_in.Description,
-        CollectionDate=evidence_in.CollectionDate or datetime.now()
+        CollectionDate=evidence_in.CollectionDate or datetime.now(),
+        FileName=evidence_in.FileName,
+        FileUrl=evidence_in.FileUrl,
+        FileSize=evidence_in.FileSize,
+        UploadedBy=current_user.UserID
     )
     db.add(new_ev)
     db.commit()
@@ -314,5 +368,71 @@ def add_case_evidence(
         "CaseMasterID": new_ev.CaseMasterID,
         "EvidenceType": new_ev.EvidenceType,
         "Description": new_ev.Description,
-        "CollectionDate": new_ev.CollectionDate
+        "CollectionDate": new_ev.CollectionDate,
+        "FileName": new_ev.FileName,
+        "FileUrl": new_ev.FileUrl,
+        "FileSize": new_ev.FileSize,
+        "UploadedBy": new_ev.UploadedBy
+    }
+
+
+@router.post("/{case_id}/upload-evidence", status_code=status.HTTP_201_CREATED, summary="Upload Evidence File to Case")
+async def upload_case_evidence_file(
+    case_id: int,
+    file: UploadFile = File(...),
+    evidence_type: str = Form(...),
+    description: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Uploads an actual file (CCTV video, image picture, PDF document) as evidence for an assigned case.
+    Strictly verifies case assignment before allowing file upload.
+    """
+    verify_officer_case_assignment(db, case_id, current_user)
+
+    import os
+    import uuid
+    from datetime import datetime
+    from app.models.evidence import Evidence
+
+    uploads_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "uploads", "evidence")
+    os.makedirs(uploads_dir, exist_ok=True)
+
+    unique_id = uuid.uuid4().hex[:10]
+    safe_filename = f"{unique_id}_{file.filename}"
+    file_save_path = os.path.join(uploads_dir, safe_filename)
+
+    file_bytes = await file.read()
+    with open(file_save_path, "wb") as f:
+        f.write(file_bytes)
+
+    file_url = f"/uploads/evidence/{safe_filename}"
+
+    new_ev = Evidence(
+        CaseMasterID=case_id,
+        EvidenceType=evidence_type,
+        Description=description,
+        CollectionDate=datetime.now(),
+        FileName=file.filename,
+        FilePath=file_save_path,
+        FileUrl=file_url,
+        FileSize=len(file_bytes),
+        UploadedBy=current_user.UserID
+    )
+    db.add(new_ev)
+    db.commit()
+    db.refresh(new_ev)
+
+    return {
+        "status": "success",
+        "EvidenceID": new_ev.EvidenceID,
+        "CaseMasterID": new_ev.CaseMasterID,
+        "EvidenceType": new_ev.EvidenceType,
+        "Description": new_ev.Description,
+        "CollectionDate": new_ev.CollectionDate,
+        "FileName": new_ev.FileName,
+        "FileUrl": new_ev.FileUrl,
+        "FileSize": new_ev.FileSize,
+        "UploadedBy": new_ev.UploadedBy
     }

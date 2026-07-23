@@ -34,6 +34,11 @@ async def lifespan(app: FastAPI):
         with engine.begin() as conn:
             conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
             conn.execute(text('ALTER TABLE report_jobs ADD COLUMN IF NOT EXISTS "CreatedBy" INTEGER;'))
+            conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "FileName" VARCHAR;'))
+            conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "FilePath" VARCHAR;'))
+            conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "FileUrl" VARCHAR;'))
+            conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "FileSize" BIGINT;'))
+            conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "UploadedBy" INTEGER;'))
         # Create all tables defined in SQLAlchemy models if they do not exist
         Base.metadata.create_all(bind=engine)
         logger.info("Database schema initialized successfully.")
@@ -50,6 +55,8 @@ async def lifespan(app: FastAPI):
     yield
 
 from fastapi import Depends
+from fastapi.staticfiles import StaticFiles
+import os
 from app.core.dependencies import rate_limit_dependency
 
 app = FastAPI(
@@ -59,6 +66,11 @@ app = FastAPI(
     dependencies=[Depends(rate_limit_dependency)],
     lifespan=lifespan
 )
+
+# Static uploads directory for evidence files (CCTV, images, docs)
+uploads_dir = os.path.join(os.path.dirname(__file__), "..", "uploads")
+os.makedirs(uploads_dir, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 # Centralized exception handling
 from app.core.exceptions import KSPException

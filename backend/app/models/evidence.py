@@ -10,6 +10,11 @@ class Evidence(Base):
     EvidenceType = Column(String, index=True)
     Description = Column(String)
     CollectionDate = Column(DateTime)
+    FileName = Column(String, nullable=True)
+    FilePath = Column(String, nullable=True)
+    FileUrl = Column(String, nullable=True)
+    FileSize = Column(BigInteger, nullable=True)
+    UploadedBy = Column(Integer, ForeignKey("users.UserID"), nullable=True)
 
     # --- ORM Relationships ---
     case = relationship("CaseMaster", back_populates="evidence_items")
