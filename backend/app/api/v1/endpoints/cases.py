@@ -11,7 +11,6 @@ from app.crud import case_crud
 from app.services import case_service, witness_service, annotation_service, assignment_service
 from app.utils.pagination import paginate
 
-
 # Pydantic Schemas
 from app.schemas.case_master import CaseMaster, CaseMasterCreate, PaginatedCaseResponse
 from app.schemas.witness import Witness, WitnessCreate
@@ -171,105 +170,6 @@ def list_case_vehicles(case_id: int, db: Session = Depends(get_db), current_user
 def list_case_witnesses(case_id: int, db: Session = Depends(get_db), current_user: User = Depends(verify_permission("cases:read"))):
     """Return witness statements attached to an accessible case file."""
     return _accessible_case_or_404(db, case_id, current_user).witnesses
-
-@router.post("", response_model=CaseMaster, status_code=status.HTTP_201_CREATED, summary="Register Case")
-def create_new_case(
-    case_in: CaseMasterCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(verify_permission("cases:create"))
-):
-    """
-    Registers a new crime case file registry entry.
-    Verifies that latitude and longitude coordinates fall within geographical state limits.
-    """
-    return case_service.register_new_case(db, case_in.model_dump(), current_user)
-
-@router.put("/{case_id}/status", response_model=CaseMaster, summary="Transition Case Status")
-def update_case_status(
-    case_id: int,
-    status_id: int = Query(..., alias="statusId", description="Target case status master ID"),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(verify_permission("cases:update"))
-):
-    """
-    Transitions the operational workflow lifecycle state of a case.
-    """
-    return case_service.transition_case_status(db, case_id, status_id, current_user)
-
-@router.put("/{case_id}/priority", response_model=CaseMaster, summary="Update Case Priority")
-def update_case_priority(
-    case_id: int,
-    priority: str = Query(..., description="Target priority (e.g. High, Medium, Low)"),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(verify_permission("cases:update"))
-):
-    """
-    Updates the investigation urgency priority classification.
-    """
-    return case_service.set_case_priority(db, case_id, priority, current_user)
-
-@router.post("/{case_id}/witnesses", response_model=Witness, status_code=status.HTTP_201_CREATED, summary="Record Witness Statement")
-def add_witness_statement(
-    case_id: int,
-    witness_in: WitnessCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(verify_permission("cases:annotate"))
-):
-    """
-    Records a witness statement linked to a case.
-    """
-    stmt_data = witness_in.model_dump()
-    stmt_data["CaseMasterID"] = case_id
-    return witness_service.record_witness_statement(db, stmt_data, current_user)
-
-@router.post("/{case_id}/annotations", response_model=CaseAnnotation, status_code=status.HTTP_201_CREATED, summary="Add Case Annotation Notes")
-def add_annotation(
-    case_id: int,
-    annotation_in: AnnotationCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(verify_permission("cases:annotate"))
-):
-    """
-    Appends investigator annotations and case notes logs.
-    """
-    return annotation_service.add_case_annotation(
-        db=db,
-        case_id=case_id,
-        notes_text=annotation_in.NotesText,
-        category=annotation_in.Category,
-        current_user=current_user
-    )
-
-@router.delete("/annotations/{annotation_id}", summary="Delete Case Annotation Notes")
-def delete_annotation(
-    annotation_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(verify_permission("cases:annotate"))
-):
-    """
-    Soft-deletes a case annotation note entry.
-    """
-    success = annotation_service.remove_case_annotation(db, annotation_id, current_user)
-    if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Annotation not found or deletion failed."
-        )
-    return {"status": "success", "message": "Annotation successfully soft-deleted."}
-
-@router.post("/{case_id}/assignments", response_model=CaseAssignment, status_code=status.HTTP_201_CREATED, summary="Assign Investigator")
-def assign_investigator(
-    case_id: int,
-    assignment_in: AssignmentCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(verify_permission("cases:update"))
-):
-    """
-    Assigns an officer investigator to a case, incrementing active caseloads.
-    """
-    return assignment_service.assign_officer_to_case(
-        db=db,
-        case_id=case_id,
 
 @router.post("", response_model=CaseMaster, status_code=status.HTTP_201_CREATED, summary="Register Case")
 def create_new_case(
