@@ -67,61 +67,97 @@ export default function Login() {
         )}
 
         {/* PROMINENT CREDENTIALS CARD */}
-        <div className="bg-[#151c2e] border border-[#1e293b] p-3.5 rounded text-xs font-mono space-y-2">
+        <div className="bg-[#151c2e] border border-[#1e293b] p-4 rounded-xl text-xs font-mono space-y-3">
           <div className="flex items-center justify-between border-b border-[#1e293b] pb-2">
-            <span className="text-amber-400 font-bold flex items-center gap-1.5 uppercase tracking-wider">
+            <span className="text-amber-400 font-bold flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
               <Key size={14} />
-              Development & Evaluation Credentials (Click Any to Login Instantly):
+              Appointed Officers Credentials Directory (Click to Login Instantly):
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 text-[11px]">
+            {/* 1. Bharathvaj DGP */}
             <button
-              onClick={() => handleInstantPreset("ksp_admin", "change_me")}
-              className="bg-[#0f172a] hover:bg-blue-600/20 border border-blue-500/30 hover:border-blue-400 p-2.5 rounded text-left transition-all group"
+              onClick={() => handleInstantPreset("Bharathvaj", "change_me")}
+              className="bg-[#0f172a] hover:bg-blue-600/20 border border-blue-500/30 hover:border-blue-400 p-2.5 rounded-lg text-left transition-all group"
             >
               <div className="flex justify-between items-center">
-                <span className="font-bold text-blue-400">⚙️ KSP System Admin</span>
+                <span className="font-bold text-blue-400">🏛️ Bharathvaj (DGP)</span>
                 <ArrowRight size={12} className="text-slate-500 group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all" />
               </div>
-              <p className="text-slate-300 mt-1">User ID: <span className="text-amber-300 font-bold">ksp_admin</span></p>
-              <p className="text-slate-400">Password: <span className="text-emerald-400 font-bold">change_me</span></p>
+              <p className="text-slate-300 mt-1">ID: <span className="text-amber-300 font-bold">Bharathvaj</span></p>
+              <p className="text-slate-400">Pass: <span className="text-emerald-400 font-bold">change_me</span></p>
+              <span className="text-[9px] text-blue-300 bg-blue-500/10 px-1.5 py-0.5 rounded mt-1 inline-block">Statewide Command</span>
             </button>
 
+            {/* 2. Ramesh SP */}
+            <button
+              onClick={() => handleInstantPreset("ramesh", "change_me")}
+              className="bg-[#0f172a] hover:bg-blue-600/20 border border-blue-500/30 hover:border-blue-400 p-2.5 rounded-lg text-left transition-all group"
+            >
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-blue-400">⭐ Ramesh (SP)</span>
+                <ArrowRight size={12} className="text-slate-500 group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all" />
+              </div>
+              <p className="text-slate-300 mt-1">ID: <span className="text-amber-300 font-bold">ramesh</span></p>
+              <p className="text-slate-400">Pass: <span className="text-emerald-400 font-bold">change_me</span></p>
+              <span className="text-[9px] text-blue-300 bg-blue-500/10 px-1.5 py-0.5 rounded mt-1 inline-block">Statewide SP Command</span>
+            </button>
+
+            {/* 3. Suda Constable */}
+            <button
+              onClick={() => handleInstantPreset("suda", "change_me")}
+              className="bg-[#0f172a] hover:bg-cyan-600/20 border border-cyan-500/30 hover:border-cyan-400 p-2.5 rounded-lg text-left transition-all group"
+            >
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-cyan-400">👮 Suda (Constable)</span>
+                <ArrowRight size={12} className="text-slate-500 group-hover:text-cyan-400 group-hover:translate-x-0.5 transition-all" />
+              </div>
+              <p className="text-slate-300 mt-1">ID: <span className="text-amber-300 font-bold">suda</span></p>
+              <p className="text-slate-400">Pass: <span className="text-emerald-400 font-bold">change_me</span></p>
+              <span className="text-[9px] text-cyan-300 bg-cyan-500/10 px-1.5 py-0.5 rounded mt-1 inline-block">Station Scope Only</span>
+            </button>
+
+            {/* 4. System Admin */}
+            <button
+              onClick={() => handleInstantPreset("ksp_admin", "change_me")}
+              className="bg-[#0f172a] hover:bg-purple-600/20 border border-purple-500/30 hover:border-purple-400 p-2.5 rounded-lg text-left transition-all group"
+            >
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-purple-400">⚙️ System Admin</span>
+                <ArrowRight size={12} className="text-slate-500 group-hover:text-purple-400 group-hover:translate-x-0.5 transition-all" />
+              </div>
+              <p className="text-slate-300 mt-1">ID: <span className="text-amber-300 font-bold">ksp_admin</span></p>
+              <p className="text-slate-400">Pass: <span className="text-emerald-400 font-bold">change_me</span></p>
+              <span className="text-[9px] text-purple-300 bg-purple-500/10 px-1.5 py-0.5 rounded mt-1 inline-block">Admin Console Access</span>
+            </button>
+
+            {/* 5. CBI Officer */}
             <button
               onClick={() => handleInstantPreset("cbi_sp_verma", "cbi@password2026")}
-              className="bg-[#0f172a] hover:bg-amber-600/20 border border-amber-500/30 hover:border-amber-400 p-2.5 rounded text-left transition-all group"
+              className="bg-[#0f172a] hover:bg-amber-600/20 border border-amber-500/30 hover:border-amber-400 p-2.5 rounded-lg text-left transition-all group"
             >
               <div className="flex justify-between items-center">
                 <span className="font-bold text-amber-400">🕵️ CBI Officer (Verma)</span>
                 <ArrowRight size={12} className="text-slate-500 group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all" />
               </div>
-              <p className="text-slate-300 mt-1">User ID: <span className="text-amber-300 font-bold">cbi_sp_verma</span></p>
-              <p className="text-slate-400">Password: <span className="text-emerald-400 font-bold">cbi@password2026</span></p>
+              <p className="text-slate-300 mt-1">ID: <span className="text-amber-300 font-bold">cbi_sp_verma</span></p>
+              <p className="text-slate-400">Pass: <span className="text-emerald-400 font-bold">cbi@password2026</span></p>
+              <span className="text-[9px] text-amber-300 bg-amber-500/10 px-1.5 py-0.5 rounded mt-1 inline-block">Federal Intelligence</span>
             </button>
 
+            {/* 6. FSL Officer */}
             <button
               onClick={() => handleInstantPreset("fsl_dna_sunita", "fsl@password2026")}
-              className="bg-[#0f172a] hover:bg-purple-600/20 border border-purple-500/30 hover:border-purple-400 p-2.5 rounded text-left transition-all group"
+              className="bg-[#0f172a] hover:bg-emerald-600/20 border border-emerald-500/30 hover:border-emerald-400 p-2.5 rounded-lg text-left transition-all group"
             >
               <div className="flex justify-between items-center">
-                <span className="font-bold text-purple-400">🧪 KSCFSL Forensic (Sunita)</span>
-                <ArrowRight size={12} className="text-slate-500 group-hover:text-purple-400 group-hover:translate-x-0.5 transition-all" />
-              </div>
-              <p className="text-slate-300 mt-1">User ID: <span className="text-amber-300 font-bold">fsl_dna_sunita</span></p>
-              <p className="text-slate-400">Password: <span className="text-emerald-400 font-bold">fsl@password2026</span></p>
-            </button>
-
-            <button
-              onClick={() => handleInstantPreset("ed_jd_hegde", "ed@password2026")}
-              className="bg-[#0f172a] hover:bg-emerald-600/20 border border-emerald-500/30 hover:border-emerald-400 p-2.5 rounded text-left transition-all group"
-            >
-              <div className="flex justify-between items-center">
-                <span className="font-bold text-emerald-400">💼 ED Financial (Hegde)</span>
+                <span className="font-bold text-emerald-400">🧪 Forensic (Sunita)</span>
                 <ArrowRight size={12} className="text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
               </div>
-              <p className="text-slate-300 mt-1">User ID: <span className="text-amber-300 font-bold">ed_jd_hegde</span></p>
-              <p className="text-slate-400">Password: <span className="text-emerald-400 font-bold">ed@password2026</span></p>
+              <p className="text-slate-300 mt-1">ID: <span className="text-amber-300 font-bold">fsl_dna_sunita</span></p>
+              <p className="text-slate-400">Pass: <span className="text-emerald-400 font-bold">fsl@password2026</span></p>
+              <span className="text-[9px] text-emerald-300 bg-emerald-500/10 px-1.5 py-0.5 rounded mt-1 inline-block">DNA & Lab Analysis</span>
             </button>
           </div>
         </div>
