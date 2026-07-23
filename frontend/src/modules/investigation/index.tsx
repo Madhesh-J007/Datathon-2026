@@ -18,10 +18,30 @@ import {
   Compass
 } from "lucide-react";
 
+import { useAuth } from "../../app/providers/AuthProvider";
+
 export default function Investigation() {
+  const { user } = useAuth();
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  const isAdmin = user?.role?.RoleName === "Admin";
+  const isSeniorOfficer =
+    isAdmin ||
+    user?.role?.RoleName === "SCRB_Officer" ||
+    user?.role?.RoleName === "SHO" ||
+    user?.Username?.includes("sp") ||
+    user?.Username?.includes("verma") ||
+    user?.Username?.includes("admin");
+
+  const isExternalOfficer =
+    user?.role?.RoleName === "ExternalAgencyOfficer" ||
+    user?.Username?.includes("cbi") ||
+    user?.Username?.includes("fsl") ||
+    user?.Username?.includes("ed");
+
+  const isConstable = !isSeniorOfficer && !isExternalOfficer;
   
   const caseId = id ? parseInt(id) : null;
   const [activeSubTab, setActiveSubTab] = useState("overview");
@@ -175,17 +195,23 @@ export default function Investigation() {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            {/* District Filter */}
-            <select
-              value={districtId}
-              onChange={(e) => { setDistrictId(e.target.value); setPage(1); }}
-              className="bg-[#1e293b] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none font-mono font-bold"
-            >
-              <option value="">All Karnataka Districts (31)</option>
-              {Object.entries(karnatakaDistricts).map(([id, name]) => (
-                <option key={id} value={id}>{name}</option>
-              ))}
-            </select>
+            {/* District Filter / Station Scope Lock */}
+            {!isConstable ? (
+              <select
+                value={districtId}
+                onChange={(e) => { setDistrictId(e.target.value); setPage(1); }}
+                className="bg-[#1e293b] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none font-mono font-bold"
+              >
+                <option value="">All Karnataka Districts (31)</option>
+                {Object.entries(karnatakaDistricts).map(([id, name]) => (
+                  <option key={id} value={id}>{name}</option>
+                ))}
+              </select>
+            ) : (
+              <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-3 py-2 rounded text-xs font-mono font-bold">
+                👮 Station Precinct Scope (Restricted to Police Station)
+              </div>
+            )}
 
             {/* Category / Status Filter */}
             <select
