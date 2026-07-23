@@ -51,6 +51,7 @@ export default function Investigation() {
   const caseId = id ? parseInt(id) : null;
   const [activeSubTab, setActiveSubTab] = useState("overview");
   const [selectedCompareCase, setSelectedCompareCase] = useState<any>(null);
+  const [workspaceTab, setWorkspaceTab] = useState<"workspace" | "cases">("workspace");
 
   // Assigned Tasks State
   const [selectedTaskToUpdate, setSelectedTaskToUpdate] = useState<TaskDelegation | null>(null);
@@ -202,61 +203,120 @@ export default function Investigation() {
 
     return (
       <div className="space-y-5 h-full flex flex-col select-none">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-100">Case Intelligence Registry</h1>
-          <p className="text-xs text-slate-400 mt-1">Investigate registered FIR files within permitted jurisdictions</p>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-slate-100 flex items-center gap-2">
+              <Shield className="text-blue-500" size={22} />
+              Officer Workspace & Operational Command
+            </h1>
+            <p className="text-xs text-slate-400 mt-1">Manage assigned operational directives, execute tasks, and inspect jurisdiction case files</p>
+          </div>
+
+          {/* TAB BAR FOR OFFICER WORKSPACE VS CASE REGISTRY */}
+          <div className="flex gap-1.5 bg-[#111827] border border-[#1e293b] p-1 rounded-lg text-xs font-mono">
+            <button
+              onClick={() => setWorkspaceTab("workspace")}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-bold transition-all ${
+                workspaceTab === "workspace"
+                  ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-[#1e293b]"
+              }`}
+            >
+              <ClipboardList size={14} />
+              <span>📌 My Assigned Directives ({myTasks?.length || 0})</span>
+            </button>
+
+            <button
+              onClick={() => setWorkspaceTab("cases")}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-bold transition-all ${
+                workspaceTab === "cases"
+                  ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-[#1e293b]"
+              }`}
+            >
+              <FileText size={14} />
+              <span>📁 Case Registry Files</span>
+            </button>
+          </div>
         </div>
 
-        {/* ASSIGNED TASKS & DIRECTIVES BANNER */}
-        {myTasks && myTasks.length > 0 && (
-          <div className="bg-[#111827] border border-blue-500/30 p-4 rounded-xl space-y-3 shadow-lg">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <ClipboardList className="text-blue-400" size={18} />
-                <h3 className="text-xs font-bold text-slate-100 font-mono uppercase tracking-wider">
-                  Operational Directives Appointed to You ({myTasks.length})
-                </h3>
-              </div>
-              <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded font-mono font-bold">
-                Real-Time Command Sync
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {myTasks.map((t) => (
-                <div
-                  key={t.TaskID}
-                  className="bg-[#151c2e] border border-[#1e293b] hover:border-blue-500/50 p-3.5 rounded-lg space-y-2 flex flex-col justify-between transition-all"
-                >
-                  <div>
-                    <div className="flex justify-between items-start">
-                      <h4 className="text-xs font-bold text-slate-100 line-clamp-1">{t.Title}</h4>
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-bold ${
-                        t.Status === 'Completed' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                      }`}>
-                        {t.Status}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-400 line-clamp-2 mt-1 leading-normal">{t.Description}</p>
-                  </div>
-
-                  <div className="pt-2 border-t border-[#1e293b] flex justify-between items-center text-[10px]">
-                    <span className="text-slate-400 font-mono">Appointed by: <strong className="text-blue-400">{t.AssignedByUsername} ({t.AssignedByRank})</strong></span>
-                    <button
-                      onClick={() => {
-                        setSelectedTaskToUpdate(t);
-                        setNewStatus(t.Status);
-                      }}
-                      className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-2.5 py-1 rounded font-mono transition-colors"
-                    >
-                      Update & Timeline
-                    </button>
-                  </div>
+        {/* WORKSPACE DIRECTIVES TAB */}
+        {workspaceTab === "workspace" && (
+          <div className="space-y-4">
+            <div className="bg-[#111827] border border-blue-500/30 p-5 rounded-xl space-y-4 shadow-xl">
+              <div className="flex justify-between items-center border-b border-[#1e293b] pb-3">
+                <div className="flex items-center gap-2">
+                  <ClipboardList className="text-blue-400" size={20} />
+                  <h3 className="text-sm font-bold text-slate-100 font-mono uppercase tracking-wider">
+                    Operational Tasks & Directives Appointed to You ({myTasks?.length || 0})
+                  </h3>
                 </div>
-              ))}
+                <span className="text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2.5 py-1 rounded-md font-mono font-bold flex items-center gap-1.5">
+                  <Sparkles size={13} />
+                  Real-Time Workspace Sync
+                </span>
+              </div>
+
+              {!myTasks || myTasks.length === 0 ? (
+                <div className="py-12 text-center text-slate-500 font-mono text-xs space-y-2">
+                  <Shield size={32} className="mx-auto text-slate-600 mb-2" />
+                  <p className="text-slate-300 font-bold">No active directives assigned to your officer account.</p>
+                  <p className="text-slate-500">Tasks appointed by superior officers (DGP, SP, DySP) will appear here in real-time.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {myTasks.map((t) => (
+                    <div
+                      key={t.TaskID}
+                      className="bg-[#151c2e] border border-[#1e293b] hover:border-blue-500/60 p-4 rounded-xl space-y-3 flex flex-col justify-between transition-all shadow-md group"
+                    >
+                      <div>
+                        <div className="flex justify-between items-start gap-2">
+                          <h4 className="text-sm font-bold text-slate-100 group-hover:text-blue-400 transition-colors leading-snug">{t.Title}</h4>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-md font-mono font-bold uppercase flex-shrink-0 ${
+                            t.Status === 'Completed' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                          }`}>
+                            {t.Status}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-400 line-clamp-3 mt-2 leading-relaxed bg-[#0d1322] p-2.5 rounded border border-slate-800/80">
+                          {t.Description}
+                        </p>
+                        {t.CaseNo && (
+                          <div className="mt-2 text-[10px] text-blue-400 font-mono font-bold flex items-center gap-1">
+                            <FileText size={12} />
+                            <span>Linked Case #{t.CaseNo}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="pt-3 border-t border-[#1e293b] flex justify-between items-center text-xs">
+                        <div className="text-[11px] text-slate-400 font-mono">
+                          Appointed by: <strong className="text-blue-400">{t.AssignedByUsername}</strong>
+                          <span className="block text-[9px] text-slate-500">{t.AssignedByRank}</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setSelectedTaskToUpdate(t);
+                            setNewStatus(t.Status);
+                          }}
+                          className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg font-mono shadow-md transition-all flex items-center gap-1"
+                        >
+                          <Clock size={13} />
+                          <span>Update Timeline</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
+
+        {/* CASE REGISTRY TAB */}
+        {workspaceTab === "cases" && (
+          <>
 
         {/* Filter controls bar */}
         <div className="bg-[#111827] border border-[#1e293b] rounded p-4 flex flex-wrap gap-4 items-center">
@@ -342,6 +402,8 @@ export default function Investigation() {
             onPageChange={(p) => setPage(p)}
           />
         </div>
+        </>
+      )}
       </div>
     );
   }

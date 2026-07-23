@@ -53,11 +53,25 @@ def get_rank_weight(rank_str: str, username: str) -> int:
         return 999
     if "dgp" in u_lower or "bharathvaj" in u_lower:
         return 100
-    if "verma" in u_lower or "ramesh" in u_lower or "sp" in u_lower:
+    if "adgp" in u_lower or "adgp" in r_lower:
+        return 90
+    if "igp" in u_lower or "igp" in r_lower:
+        return 80
+    if "digp" in u_lower or "digp" in r_lower:
+        return 70
+    if "dysp" in u_lower or "dysp" in r_lower or "deputy superintendent" in r_lower:
+        return 45
+    if "sp" in r_lower or "ramesh" in u_lower or "verma" in u_lower:
         return 60
-    if "sho" in u_lower:
+    if "inspector" in r_lower or "sho" in u_lower or "pi" in u_lower or "pi" in r_lower:
         return 40
-    if "constable" in u_lower or "suda" in u_lower:
+    if "si" in r_lower or "sub inspector" in r_lower or "psi" in u_lower:
+        return 30
+    if "asi" in r_lower or "assistant sub inspector" in r_lower:
+        return 20
+    if "head constable" in r_lower or "hc" in r_lower:
+        return 10
+    if "constable" in u_lower or "suda" in u_lower or "pc" in r_lower:
         return 5
 
     for key, weight in RANK_WEIGHTS.items():
