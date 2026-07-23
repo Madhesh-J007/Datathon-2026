@@ -109,7 +109,7 @@ export default function Admin({ activeTab: initialTab = "appointments" }: AdminP
     setFormError(null);
 
     try {
-      await adminService.createUser({
+      const createdUser = await adminService.createUser({
         Username: username,
         Password: password,
         Email: email,
@@ -117,15 +117,12 @@ export default function Admin({ activeTab: initialTab = "appointments" }: AdminP
       });
 
       // Apply Jurisdiction Scope Override
-      if (scopeLevel !== "State") {
-        const createdUser = usersList.find((u: any) => u.Username === username);
-        if (createdUser) {
-          await adminService.assignJurisdictionOverride({
-            UserID: createdUser.UserID,
-            DistrictID: districtId ? Number(districtId) : 5,
-            PoliceStationID: unitId ? Number(unitId) : 1,
-          });
-        }
+      if (scopeLevel !== "State" && createdUser?.UserID) {
+        await adminService.assignJurisdictionOverride({
+          UserID: createdUser.UserID,
+          DistrictID: districtId ? Number(districtId) : 5,
+          PoliceStationID: unitId ? Number(unitId) : 1,
+        });
       }
 
       setFormSuccess(`Officer '${officerName || username}' (${selectedRank}) appointed with ${scopeLevel} Level Access.`);

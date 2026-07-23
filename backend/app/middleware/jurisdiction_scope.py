@@ -66,8 +66,10 @@ def apply_jurisdiction_filter(query: Query, db: Session, user: User, model_class
         if user.OfficerID:
             officer = db.query(Officer).filter(Officer.OfficerID == user.OfficerID).first()
             if officer:
-                ps_ids.append(officer.PoliceStationID)
-                district_ids.append(officer.DistrictID)
+                if officer.PoliceStationID:
+                    ps_ids.append(officer.PoliceStationID)
+                elif officer.DistrictID:
+                    district_ids.append(officer.DistrictID)
                 
     # If no scope can be resolved, force empty results
     if not ps_ids and not district_ids:

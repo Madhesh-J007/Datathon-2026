@@ -36,12 +36,21 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const isAdmin = user?.role?.RoleName === "Admin";
+  const isSeniorOfficer =
+    isAdmin ||
+    user?.role?.RoleName === "SCRB_Officer" ||
+    user?.role?.RoleName === "SHO" ||
+    user?.Username?.includes("sp") ||
+    user?.Username?.includes("verma") ||
+    user?.Username?.includes("admin");
 
   const isExternalOfficer =
     user?.role?.RoleName === "ExternalAgencyOfficer" ||
     user?.Username?.includes("cbi") ||
     user?.Username?.includes("fsl") ||
     user?.Username?.includes("ed");
+
+  const isConstable = !isSeniorOfficer && !isExternalOfficer;
 
   const { data: workspaceData } = useQuery({
     queryKey: ["externalWorkspace"],
@@ -54,7 +63,11 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
 
   const [isBriefExpanded, setIsBriefExpanded] = useState(false);
   const [subMode, setSubMode] = useState<"executive" | "district" | "station">(
-    isExternalOfficer && grantedScope !== "State" ? "district" : "executive"
+    isConstable
+      ? "station"
+      : isExternalOfficer && grantedScope !== "State"
+      ? "district"
+      : "executive"
   );
   const [selectedDistrict, setSelectedDistrict] = useState<number | "">("");
   const [selectedStation, setSelectedStation] = useState<number | "">("");
@@ -120,9 +133,11 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
 
   // 3. Station Precinct Level: Local station beat subset (~65 cases per beat unit)
   const matchedStationCases = cases.filter((c: any) => c.PoliceStationID === activeStation || c.PoliceStationID === Number(activeStation));
-  const stationCases = matchedStationCases.length > 0 
-    ? (matchedStationCases.length > 100 ? matchedStationCases.slice(0, Math.floor(matchedStationCases.length / 3)) : matchedStationCases)
-    : cases.slice(0, Math.min(65, cases.length));
+  const stationCases = isConstable
+    ? cases
+    : matchedStationCases.length > 0 
+      ? matchedStationCases
+      : cases;
 
   // --- DISTRICT DIVISION FILTER & SORT PROCESSING ---
   let processedDistrictCases = [...districtCases];
@@ -389,30 +404,36 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {/* Sub-mode Switcher */}
-          <div className="flex bg-[#111827] border border-[#1e293b] rounded p-0.5 text-xs font-mono">
-            {(!isExternalOfficer || grantedScope === "State") && (
+          {!isConstable ? (
+            <div className="flex bg-[#111827] border border-[#1e293b] rounded p-0.5 text-xs font-mono">
+              {(!isExternalOfficer || grantedScope === "State") && (
+                <button
+                  onClick={() => setSubMode("executive")}
+                  className={`px-3 py-1.5 rounded transition-colors ${subMode === "executive" ? "bg-blue-600 text-white font-bold" : "text-slate-400 hover:text-slate-200"}`}
+                >
+                  Statewide Executive
+                </button>
+              )}
               <button
-                onClick={() => setSubMode("executive")}
-                className={`px-3 py-1.5 rounded transition-colors ${subMode === "executive" ? "bg-blue-600 text-white font-bold" : "text-slate-400 hover:text-slate-200"}`}
+                onClick={() => setSubMode("district")}
+                className={`px-3 py-1.5 rounded transition-colors ${subMode === "district" ? "bg-blue-600 text-white font-bold" : "text-slate-400 hover:text-slate-200"}`}
               >
-                Statewide Executive
+                {grantedScope === "Case" ? "Assigned Case Analytics" : "District Level"}
               </button>
-            )}
-            <button
-              onClick={() => setSubMode("district")}
-              className={`px-3 py-1.5 rounded transition-colors ${subMode === "district" ? "bg-blue-600 text-white font-bold" : "text-slate-400 hover:text-slate-200"}`}
-            >
-              {grantedScope === "Case" ? "Assigned Case Analytics" : "District Level"}
-            </button>
-            {(!isExternalOfficer || grantedScope === "Station") && (
-              <button
-                onClick={() => setSubMode("station")}
-                className={`px-3 py-1.5 rounded transition-colors ${subMode === "station" ? "bg-blue-600 text-white font-bold" : "text-slate-400 hover:text-slate-200"}`}
-              >
-                Station Precinct
-              </button>
-            )}
-          </div>
+              {(!isExternalOfficer || grantedScope === "Station") && (
+                <button
+                  onClick={() => setSubMode("station")}
+                  className={`px-3 py-1.5 rounded transition-colors ${subMode === "station" ? "bg-blue-600 text-white font-bold" : "text-slate-400 hover:text-slate-200"}`}
+                >
+                  Station Precinct
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded text-xs font-mono font-bold">
+              👮 Station Precinct Scope (Restricted to Police Station)
+            </div>
+          )}
 
           <div className="flex items-center gap-1.5 bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded text-xs text-red-400 font-mono">
             <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
