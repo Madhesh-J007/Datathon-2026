@@ -64,6 +64,19 @@ export default function Admin({ activeTab: initialTab = "appointments" }: AdminP
   const tablesList = tables || [];
   const usersList = Array.isArray(users) ? users : [];
 
+  const karnatakaDistrictList = [
+    { id: 31, name: "Yadgir", stations: [{ id: 460, name: "Shorapur Police Station" }, { id: 461, name: "Yadgir Town PS" }, { id: 462, name: "Shahapur PS" }] },
+    { id: 1, name: "Bagalkot", stations: [{ id: 1, name: "Bagalkot Police Station" }, { id: 2, name: "Badami Police Station" }, { id: 3, name: "Bilagi Police Station" }] },
+    { id: 5, name: "Bengaluru Urban", stations: [{ id: 51, name: "Anekal Police Station" }, { id: 52, name: "Halasuru PS" }, { id: 53, name: "Madiwala PS" }] },
+    { id: 3, name: "Belagavi", stations: [{ id: 10, name: "Belagavi City PS" }, { id: 11, name: "Bailhongal Police Station" }, { id: 12, name: "Gokak PS" }] },
+    { id: 13, name: "Dharwad", stations: [{ id: 37, name: "Kalghatgi Police Station" }, { id: 38, name: "Hubballi Town PS" }] },
+    { id: 19, name: "Kolar", stations: [{ id: 70, name: "Srinivaspur Police Station" }, { id: 71, name: "Kolar Gold Fields PS" }] },
+    { id: 11, name: "Dakshina Kannada", stations: [{ id: 72, name: "Moodabidri Police Station" }, { id: 73, name: "Mangaluru North PS" }] },
+    { id: 22, name: "Mysuru", stations: [{ id: 80, name: "Mysuru South PS" }, { id: 81, name: "Nanjangud PS" }] },
+    { id: 2, name: "Ballari", stations: [{ id: 9, name: "Ballari Town Police Station" }, { id: 10, name: "Ballari Rural PS" }] },
+    { id: 9, name: "Chikkamagaluru", stations: [{ id: 4840, name: "Tarikere Police Station" }] },
+  ];
+
   // All Officer Ranks with Automatic Access Matrix: Up to SI Grade -> State Level Access, Lower Grades -> Station Level Access
   const ipsRanks = [
     { code: "DGP", name: "Director General of Police", cadre: "IPS", scope: "State", role: "1" },
@@ -334,24 +347,49 @@ export default function Admin({ activeTab: initialTab = "appointments" }: AdminP
               </div>
 
               {!isStateLevelRank && (
-                <div className="grid grid-cols-2 gap-3 pt-1 font-mono p-3 bg-[#151c2e] border border-[#1e293b] rounded-lg">
+                <div className="p-3 bg-[#151c2e] border border-[#1e293b] rounded-lg space-y-2.5 font-mono">
+                  <span className="text-slate-300 font-bold block text-xs">
+                    📍 Assign Station Precinct Jurisdiction:
+                  </span>
+                  
                   <div>
-                    <span className="text-[10px] text-slate-400 block mb-0.5">District ID:</span>
-                    <input
-                      type="number"
+                    <label className="text-[10px] text-slate-400 block mb-1">1. Select District Division:</label>
+                    <select
                       value={districtId}
-                      onChange={(e) => setDistrictId(e.target.value)}
-                      className="w-full bg-[#0d1322] border border-[#334155] text-slate-200 rounded px-2 py-1 text-xs"
-                    />
+                      onChange={(e) => {
+                        const newDistId = e.target.value;
+                        setDistrictId(newDistId);
+                        const matchedDist = karnatakaDistrictList.find((d) => d.id === Number(newDistId));
+                        if (matchedDist && matchedDist.stations.length > 0) {
+                          setUnitId(String(matchedDist.stations[0].id));
+                        }
+                      }}
+                      className="w-full bg-[#0d1322] border border-[#334155] text-slate-100 rounded px-2.5 py-1.5 text-xs font-bold focus:outline-none focus:border-blue-500"
+                    >
+                      {karnatakaDistrictList.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name} (District #{d.id})
+                        </option>
+                      ))}
+                    </select>
                   </div>
+
                   <div>
-                    <span className="text-[10px] text-slate-400 block mb-0.5">Station Unit ID:</span>
-                    <input
-                      type="number"
+                    <label className="text-[10px] text-slate-400 block mb-1">2. Select Authorized Police Station:</label>
+                    <select
                       value={unitId}
                       onChange={(e) => setUnitId(e.target.value)}
-                      className="w-full bg-[#0d1322] border border-[#334155] text-slate-200 rounded px-2 py-1 text-xs"
-                    />
+                      className="w-full bg-[#0d1322] border border-[#334155] text-slate-100 rounded px-2.5 py-1.5 text-xs font-bold focus:outline-none focus:border-blue-500"
+                    >
+                      {(karnatakaDistrictList.find((d) => d.id === Number(districtId))?.stations || [
+                        { id: 460, name: "Shorapur Police Station" },
+                        { id: 1, name: "Bagalkot Police Station" },
+                      ]).map((st) => (
+                        <option key={st.id} value={st.id}>
+                          {st.name} (Unit #{st.id})
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               )}

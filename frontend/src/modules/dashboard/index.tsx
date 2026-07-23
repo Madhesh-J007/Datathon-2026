@@ -943,14 +943,14 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
                 <span className="text-[9px] text-slate-500 font-mono uppercase mb-0.5">1. Select District:</span>
                 <select
                   value={activeDistrict}
+                  disabled={isConstable}
                   onChange={(e) => {
                     const dId = Number(e.target.value);
                     setSelectedDistrict(dId);
-                    // Reset selected station to first station in new district
                     const firstSt = cases.find((c: any) => c.DistrictID === dId)?.PoliceStationID;
                     setSelectedStation(firstSt || "");
                   }}
-                  className="bg-[#1e293b] border border-[#1e293b] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-blue-500 font-mono font-bold"
+                  className="bg-[#1e293b] border border-[#1e293b] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-blue-500 font-mono font-bold disabled:opacity-75 disabled:cursor-not-allowed"
                 >
                   {districts.map((d) => (
                     <option key={d} value={d}>{karnatakaDistricts[d] || `District #${d}`}</option>
@@ -963,10 +963,10 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
                 <span className="text-[9px] text-slate-500 font-mono uppercase mb-0.5">2. Select Police Station:</span>
                 <select
                   value={activeStation}
+                  disabled={isConstable}
                   onChange={(e) => setSelectedStation(Number(e.target.value))}
-                  className="bg-[#1e293b] border border-[#1e293b] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-blue-500 font-mono font-bold"
+                  className="bg-[#1e293b] border border-[#1e293b] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-blue-500 font-mono font-bold disabled:opacity-75 disabled:cursor-not-allowed"
                 >
-                  {/* Filter police stations belonging to active district */}
                   {Array.from(new Set(cases.filter((c: any) => c.DistrictID === activeDistrict).map((c: any) => c.PoliceStationID).filter(Boolean))).map((s: any) => (
                     <option key={s} value={s}>
                       {cases.find((c: any) => c.PoliceStationID === s)?.PoliceStationName || `Police Station Unit #${s}`}
