@@ -79,25 +79,25 @@ export default function Admin({ activeTab: initialTab = "appointments" }: AdminP
 
   // All Officer Ranks with Automatic Access Matrix: Up to SI Grade -> State Level Access, Lower Grades -> Station Level Access
   const ipsRanks = [
-    { code: "DGP", name: "Director General of Police", cadre: "IPS", scope: "State", role: "1" },
-    { code: "ADGP", name: "Additional Director General of Police", cadre: "IPS", scope: "State", role: "1" },
-    { code: "IGP", name: "Inspector General of Police", cadre: "IPS", scope: "State", role: "1" },
-    { code: "DIGP", name: "Deputy Inspector General of Police", cadre: "IPS", scope: "State", role: "1" },
-    { code: "SP (SG)", name: "Superintendent of Police (Selection Grade)", cadre: "IPS", scope: "State", role: "1" },
-    { code: "SP", name: "Superintendent of Police", cadre: "IPS", scope: "State", role: "1" },
-    { code: "Addl. SP", name: "Additional Superintendent of Police", cadre: "IPS", scope: "State", role: "1" },
-    { code: "ASP", name: "Assistant Superintendent of Police", cadre: "IPS", scope: "State", role: "1" },
+    { code: "DGP", name: "Director General of Police", cadre: "IPS", scope: "State", role: "2" },
+    { code: "ADGP", name: "Additional Director General of Police", cadre: "IPS", scope: "State", role: "2" },
+    { code: "IGP", name: "Inspector General of Police", cadre: "IPS", scope: "State", role: "2" },
+    { code: "DIGP", name: "Deputy Inspector General of Police", cadre: "IPS", scope: "State", role: "2" },
+    { code: "SP (SG)", name: "Superintendent of Police (Selection Grade)", cadre: "IPS", scope: "State", role: "2" },
+    { code: "SP", name: "Superintendent of Police", cadre: "IPS", scope: "State", role: "2" },
+    { code: "Addl. SP", name: "Additional Superintendent of Police", cadre: "IPS", scope: "State", role: "2" },
+    { code: "ASP", name: "Assistant Superintendent of Police", cadre: "IPS", scope: "State", role: "2" },
   ];
 
   const kspsGazettedRanks = [
-    { code: "SP (KSPS)", name: "Superintendent of Police (KSPS)", cadre: "KSPS_GAZETTED", scope: "State", role: "1" },
-    { code: "Addl. SP (KSPS)", name: "Additional Superintendent of Police (KSPS)", cadre: "KSPS_GAZETTED", scope: "State", role: "1" },
-    { code: "DySP", name: "Deputy Superintendent of Police", cadre: "KSPS_GAZETTED", scope: "State", role: "1" },
-    { code: "PI and CI", name: "Police Inspector and Circle Inspector", cadre: "KSPS_GAZETTED", scope: "State", role: "1" },
+    { code: "SP (KSPS)", name: "Superintendent of Police (KSPS)", cadre: "KSPS_GAZETTED", scope: "State", role: "2" },
+    { code: "Addl. SP (KSPS)", name: "Additional Superintendent of Police (KSPS)", cadre: "KSPS_GAZETTED", scope: "State", role: "2" },
+    { code: "DySP", name: "Deputy Superintendent of Police", cadre: "KSPS_GAZETTED", scope: "State", role: "2" },
+    { code: "PI and CI", name: "Police Inspector and Circle Inspector", cadre: "KSPS_GAZETTED", scope: "State", role: "2" },
   ];
 
   const kspsNonGazettedRanks = [
-    { code: "PSI / SI", name: "Sub Inspector of Police (Investigating Officer Grade)", cadre: "KSPS_NON_GAZETTED", scope: "State", role: "1" },
+    { code: "PSI / SI", name: "Sub Inspector of Police (Investigating Officer Grade)", cadre: "KSPS_NON_GAZETTED", scope: "State", role: "2" },
     { code: "ASI", name: "Assistant Sub Inspector of Police", cadre: "KSPS_NON_GAZETTED", scope: "Station", role: "4" },
     { code: "HC", name: "Head Constable", cadre: "KSPS_NON_GAZETTED", scope: "Station", role: "4" },
     { code: "PC", name: "Police Constable", cadre: "KSPS_NON_GAZETTED", scope: "Station", role: "4" },
