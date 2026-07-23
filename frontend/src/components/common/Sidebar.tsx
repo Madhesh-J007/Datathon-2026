@@ -24,7 +24,6 @@ export default function Sidebar() {
   const roleName = user?.role?.RoleName || "Guest";
 
   const menuItems = [
-    { name: "Inter-Agency Portal", path: "/collaboration", icon: FolderSync, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
     { name: "Executive Dashboard", path: "/dashboard", icon: LayoutDashboard, roles: ["Admin", "SCRB_Officer", "SHO", "Constable", "ExternalAgencyOfficer"] },
     { name: "Officer Workspace", path: "/workspace", icon: Shield, roles: ["Admin", "SCRB_Officer", "SHO", "Constable"] },
     { name: "Cases Registry", path: "/cases", icon: FileText, roles: ["Admin", "SCRB_Officer", "SHO", "Constable"] },
@@ -32,7 +31,8 @@ export default function Sidebar() {
     { name: "Hotspots Analysis", path: "/hotspots", icon: Flame, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
     { name: "Crime Network", path: "/network", icon: Network, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
     { name: "Predictive Intel", path: "/predictive", icon: Brain, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
-    { name: "Reports Center", path: "/reports", icon: FileBarChart, roles: ["Admin", "SCRB_Officer", "SHO"] },
+    { name: "Reports Center", path: "/reports", icon: FileBarChart, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
+    { name: "Inter-Agency Portal", path: "/collaboration", icon: FolderSync, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
     { name: "Admin Console", path: "/admin", icon: UserCog, roles: ["Admin"] },
   ];
 
