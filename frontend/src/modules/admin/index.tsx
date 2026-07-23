@@ -166,11 +166,11 @@ export default function Admin({ activeTab: initialTab = "appointments" }: AdminP
           <div className="flex items-center gap-2">
             <ShieldCheck className="text-blue-500" size={22} />
             <h1 className="text-xl font-bold tracking-tight text-slate-100">
-              KSP Officer Appointments & Access Control
+              KSP Admin Command Console
             </h1>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Appoint officers with automatic rank-based access (Up to SI Grade = State Level Access, Lower Grades = Station Level).
+            System administration, officer appointments, rank access management, and database telemetry.
           </p>
         </div>
 

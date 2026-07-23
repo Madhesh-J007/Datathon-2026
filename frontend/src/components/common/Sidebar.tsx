@@ -10,7 +10,6 @@ import {
   FolderSync,
   FileBarChart,
   UserCog,
-  UserPlus,
   Shield,
   LogOut,
 } from "lucide-react";
@@ -62,7 +61,6 @@ export default function Sidebar() {
     { name: "Predictive Intel", path: "/predictive", icon: Brain, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
     { name: "Reports Center", path: "/reports", icon: FileBarChart, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
     { name: "Inter-Agency Portal", path: "/collaboration", icon: FolderSync, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
-    { name: "Officer Appointments", path: "/appointments", icon: UserPlus, roles: ["Admin", "SCRB_Officer", "SHO"] },
     { name: "Admin Console", path: "/admin", icon: UserCog, roles: ["Admin"] },
   ];
 
