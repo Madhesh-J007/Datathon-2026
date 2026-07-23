@@ -68,9 +68,10 @@ app = FastAPI(
 )
 
 # Static uploads directory for evidence files (CCTV, images, docs)
-uploads_dir = os.path.join(os.path.dirname(__file__), "..", "uploads")
-os.makedirs(uploads_dir, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
+from app.core.config import UPLOADS_DIR
+os.makedirs(UPLOADS_DIR, exist_ok=True)
+os.makedirs(os.path.join(UPLOADS_DIR, "evidence"), exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
 
 # Centralized exception handling
 from app.core.exceptions import KSPException

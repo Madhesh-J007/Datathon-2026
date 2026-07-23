@@ -1,5 +1,10 @@
+import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
+
+APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(APP_DIR)
+UPLOADS_DIR = os.path.join(BASE_DIR, "uploads")
 
 class Settings(BaseSettings):
     # --- PostgreSQL ---

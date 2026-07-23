@@ -396,12 +396,13 @@ async def upload_case_evidence_file(
     from datetime import datetime
     from app.models.evidence import Evidence
 
-    uploads_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "uploads", "evidence")
-    os.makedirs(uploads_dir, exist_ok=True)
+    from app.core.config import UPLOADS_DIR
+    evidence_dir = os.path.join(UPLOADS_DIR, "evidence")
+    os.makedirs(evidence_dir, exist_ok=True)
 
     unique_id = uuid.uuid4().hex[:10]
     safe_filename = f"{unique_id}_{file.filename}"
-    file_save_path = os.path.join(uploads_dir, safe_filename)
+    file_save_path = os.path.join(evidence_dir, safe_filename)
 
     file_bytes = await file.read()
     with open(file_save_path, "wb") as f:
