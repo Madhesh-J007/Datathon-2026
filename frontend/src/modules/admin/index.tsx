@@ -67,30 +67,30 @@ export default function Admin() {
   const tablesList = tables || [];
   const usersList = Array.isArray(users) ? users : [];
 
-  // All Officer Ranks from Official Police Insignia Chart
+  // All Officer Ranks from Official Police Insignia Chart with Automatic Scope Matrix
   const ipsRanks = [
-    { code: "DGP", name: "Director General of Police", cadre: "IPS", scope: "State" },
-    { code: "ADGP", name: "Additional Director General of Police", cadre: "IPS", scope: "State" },
-    { code: "IGP", name: "Inspector General of Police", cadre: "IPS", scope: "State" },
-    { code: "DIGP", name: "Deputy Inspector General of Police", cadre: "IPS", scope: "State" },
-    { code: "SP (SG)", name: "Superintendent of Police (Selection Grade)", cadre: "IPS", scope: "District" },
-    { code: "SP", name: "Superintendent of Police", cadre: "IPS", scope: "District" },
-    { code: "Addl. SP", name: "Additional Superintendent of Police", cadre: "IPS", scope: "District" },
-    { code: "ASP", name: "Assistant Superintendent of Police", cadre: "IPS", scope: "District" },
+    { code: "DGP", name: "Director General of Police", cadre: "IPS", scope: "State", role: "1" },
+    { code: "ADGP", name: "Additional Director General of Police", cadre: "IPS", scope: "State", role: "1" },
+    { code: "IGP", name: "Inspector General of Police", cadre: "IPS", scope: "State", role: "1" },
+    { code: "DIGP", name: "Deputy Inspector General of Police", cadre: "IPS", scope: "State", role: "1" },
+    { code: "SP (SG)", name: "Superintendent of Police (Selection Grade)", cadre: "IPS", scope: "State", role: "1" },
+    { code: "SP", name: "Superintendent of Police", cadre: "IPS", scope: "State", role: "1" },
+    { code: "Addl. SP", name: "Additional Superintendent of Police", cadre: "IPS", scope: "State", role: "1" },
+    { code: "ASP", name: "Assistant Superintendent of Police", cadre: "IPS", scope: "State", role: "1" },
   ];
 
   const kspsGazettedRanks = [
-    { code: "SP (KSPS)", name: "Superintendent of Police (KSPS)", cadre: "KSPS_GAZETTED", scope: "District" },
-    { code: "Addl. SP (KSPS)", name: "Additional Superintendent of Police (KSPS)", cadre: "KSPS_GAZETTED", scope: "District" },
-    { code: "DySP", name: "Deputy Superintendent of Police", cadre: "KSPS_GAZETTED", scope: "District" },
-    { code: "PI and CI", name: "Police Inspector and Circle Inspector", cadre: "KSPS_GAZETTED", scope: "Station" },
+    { code: "SP (KSPS)", name: "Superintendent of Police (KSPS)", cadre: "KSPS_GAZETTED", scope: "State", role: "1" },
+    { code: "Addl. SP (KSPS)", name: "Additional Superintendent of Police (KSPS)", cadre: "KSPS_GAZETTED", scope: "State", role: "1" },
+    { code: "DySP", name: "Deputy Superintendent of Police", cadre: "KSPS_GAZETTED", scope: "State", role: "1" },
+    { code: "PI and CI", name: "Police Inspector and Circle Inspector (Investigating Command)", cadre: "KSPS_GAZETTED", scope: "State", role: "1" },
   ];
 
   const kspsNonGazettedRanks = [
-    { code: "PSI / SI", name: "Sub Inspector of Police", cadre: "KSPS_NON_GAZETTED", scope: "Station" },
-    { code: "ASI", name: "Assistant Sub Inspector of Police", cadre: "KSPS_NON_GAZETTED", scope: "Station" },
-    { code: "HC", name: "Head Constable", cadre: "KSPS_NON_GAZETTED", scope: "Station" },
-    { code: "PC", name: "Police Constable", cadre: "KSPS_NON_GAZETTED", scope: "Station" },
+    { code: "PSI / SI", name: "Sub Inspector of Police (Investigating Officer)", cadre: "KSPS_NON_GAZETTED", scope: "State", role: "1" },
+    { code: "ASI", name: "Assistant Sub Inspector of Police", cadre: "KSPS_NON_GAZETTED", scope: "Station", role: "4" },
+    { code: "HC", name: "Head Constable", cadre: "KSPS_NON_GAZETTED", scope: "Station", role: "4" },
+    { code: "PC", name: "Police Constable", cadre: "KSPS_NON_GAZETTED", scope: "Station", role: "4" },
   ];
 
   const allRanks = [...ipsRanks, ...kspsGazettedRanks, ...kspsNonGazettedRanks];
@@ -100,12 +100,19 @@ export default function Admin() {
     const found = allRanks.find((r) => r.code === rankCode);
     if (found) {
       setScopeLevel(found.scope);
+      setRoleId(found.role);
       if (found.scope === "State") {
-        setRoleId("1"); // Admin / Statewide Auditor
-      } else if (found.scope === "District") {
-        setRoleId("3"); // SHO / District Supervisor
+        setPermFIR(true);
+        setPermGIS(true);
+        setPermNetwork(true);
+        setPermPredictive(true);
+        setPermPDF(true);
       } else {
-        setRoleId("4"); // Constable / Officer
+        setPermFIR(true);
+        setPermGIS(true);
+        setPermNetwork(false);
+        setPermPredictive(false);
+        setPermPDF(false);
       }
     }
   };
