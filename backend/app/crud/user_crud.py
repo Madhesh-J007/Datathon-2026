@@ -2,8 +2,8 @@ from sqlalchemy.orm import Session
 from app.models.user import User
 
 def get_user_by_username(db: Session, username: str) -> User | None:
-    """Retrieves a user record by their unique username."""
-    return db.query(User).filter(User.Username == username).first()
+    """Retrieves a user record by their unique username (case-insensitive)."""
+    return db.query(User).filter(User.Username.ilike(username)).first()
 
 def get_user_by_id(db: Session, user_id: int) -> User | None:
     """Retrieves a user record by their primary key UserID."""
