@@ -2,8 +2,10 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { reportService } from "../../services/reportService";
 import { FileText, Download, CheckCircle, Eye, X } from "lucide-react";
+import { useLanguage } from "../../app/providers/LanguageContext";
 
 export default function Reports() {
+  const { t } = useLanguage();
   const queryClient = useQueryClient();
   const [caseInput, setCaseInput] = useState("");
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
@@ -43,25 +45,26 @@ export default function Reports() {
 
   // Generate Report Mutation
   const generateMutation = useMutation({
-    mutationFn: (input: string) => reportService.generateReport(input),
-    onSuccess: async (data: any) => {
+    mutationFn: (caseMasterIdOrNo: string) => reportService.generateReport(caseMasterIdOrNo),
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["reportHistory"] });
       setCaseInput("");
       
       if (data?.ReportJobID) {
-        await handleDownload(data.ReportJobID, data.CaseMasterID);
+        handleDownload(data.ReportJobID, data.CaseMasterID);
       }
     },
     onError: (err: any) => {
-      alert(err?.response?.data?.detail || "Failed to compile dossier. Please verify the Case ID or Case Number.");
+      const detail = err?.response?.data?.detail || "Failed to compile dossier. Please verify the Case ID or Case Number.";
+      alert(detail);
     }
   });
 
   return (
     <div className="space-y-6 select-none relative">
       <div>
-        <h1 className="text-xl font-bold tracking-tight text-slate-100">Executive Report Compiler</h1>
-        <p className="text-xs text-slate-400 mt-1">Compile and export official case dossiers for judicial registry submissions</p>
+        <h1 className="text-xl font-bold tracking-tight text-slate-100">{t("report_title")}</h1>
+        <p className="text-xs text-slate-400 mt-1">{t("report_sub")}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

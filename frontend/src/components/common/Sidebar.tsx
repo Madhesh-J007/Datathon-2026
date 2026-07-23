@@ -1,22 +1,22 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../app/providers/AuthProvider";
+import { useLanguage } from "../../app/providers/LanguageContext";
 import {
   LayoutDashboard,
   FileText,
-  Map,
   Flame,
   Network,
   Brain,
   FolderSync,
   FileBarChart,
   UserCog,
-  Shield,
   LogOut,
   ClipboardList
 } from "lucide-react";
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
   const location = useLocation();
 
   const roleName = user?.role?.RoleName || "Guest";
@@ -61,17 +61,15 @@ export default function Sidebar() {
   const officialRankTitle = getOfficialRankTitle(user?.Username, roleName, user?.Rank);
 
   const menuItems = [
-    { name: "Executive Dashboard", path: "/dashboard", icon: LayoutDashboard, roles: ["Admin", "SCRB_Officer", "SHO", "Constable", "ExternalAgencyOfficer"] },
-    { name: "Officer Workspace", path: "/workspace", icon: Shield, roles: ["Admin", "SCRB_Officer", "SHO", "Constable"] },
-    { name: "Cases Registry", path: "/cases", icon: FileText, roles: ["Admin", "SCRB_Officer", "SHO", "Constable"] },
-    { name: "GIS Crime Map", path: "/map", icon: Map, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
-    { name: "Hotspots Analysis", path: "/hotspots", icon: Flame, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
-    { name: "Crime Network", path: "/network", icon: Network, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
-    { name: "Predictive Intel", path: "/predictive", icon: Brain, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
-    { name: "Reports Center", path: "/reports", icon: FileBarChart, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
-    { name: "Inter-Agency Portal", path: "/collaboration", icon: FolderSync, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
-    { name: "Task Delegation", path: "/delegation", icon: ClipboardList, roles: ["SCRB_Officer", "SHO"] },
-    { name: "Admin Console", path: "/admin", icon: UserCog, roles: ["Admin"] },
+    { name: t("nav_dashboard"), path: "/dashboard", icon: LayoutDashboard, roles: ["Admin", "SCRB_Officer", "SHO", "Constable", "ExternalAgencyOfficer"] },
+    { name: t("nav_cases"), path: "/cases", icon: FileText, roles: ["Admin", "SCRB_Officer", "SHO", "Constable"] },
+    { name: t("nav_hotspot"), path: "/hotspots", icon: Flame, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
+    { name: t("nav_network"), path: "/network", icon: Network, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
+    { name: t("nav_predictive"), path: "/predictive", icon: Brain, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
+    { name: t("nav_reports"), path: "/reports", icon: FileBarChart, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
+    { name: t("nav_collaboration"), path: "/collaboration", icon: FolderSync, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
+    { name: t("nav_delegation"), path: "/delegation", icon: ClipboardList, roles: ["SCRB_Officer", "SHO"] },
+    { name: t("nav_admin"), path: "/admin", icon: UserCog, roles: ["Admin"] },
   ];
 
   const allowedItems = menuItems.filter((item) => item.roles.includes(roleName));
@@ -83,11 +81,11 @@ export default function Sidebar() {
           KSP
         </div>
         <div>
-          <h1 className="text-sm font-bold text-slate-100 tracking-tight leading-tight">
-            KSP Intelligence
+          <h1 className="text-xs font-bold text-slate-100 tracking-tight leading-tight uppercase font-mono">
+            {t("nav_system_title")}
           </h1>
           <span className="text-[10px] text-blue-500 font-mono tracking-widest uppercase">
-            Command Center
+            {t("nav_system_sub")}
           </span>
         </div>
       </div>

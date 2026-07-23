@@ -29,9 +29,11 @@ import {
 import { taskService, TaskDelegation } from "../../services/taskService";
 
 import { useAuth } from "../../app/providers/AuthProvider";
+import { useLanguage } from "../../app/providers/LanguageContext";
 
 export default function Investigation() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -489,13 +491,13 @@ export default function Investigation() {
   }
 
   const tabs = [
-    { id: "overview", label: "Overview", icon: FileText },
-    { id: "people", label: "People / Accused", icon: User },
-    { id: "evidence", label: "Evidence & Witnesses", icon: Package },
-    { id: "ai", label: "AI Threat & Risk", icon: Shield },
-    { id: "network", label: "Network Graph", icon: Share2 },
-    { id: "timeline", label: "Smart Timeline", icon: Clock },
-    { id: "similar", label: "Similar Cases", icon: FolderOpen },
+    { id: "overview", label: t("tab_overview"), icon: FileText },
+    { id: "people", label: t("tab_people"), icon: User },
+    { id: "evidence", label: t("tab_evidence"), icon: Package },
+    { id: "ai", label: t("tab_ai"), icon: Shield },
+    { id: "network", label: t("tab_network"), icon: Share2 },
+    { id: "timeline", label: t("tab_timeline"), icon: Clock },
+    { id: "similar", label: t("tab_similar"), icon: FolderOpen },
   ];
 
   return (
@@ -676,7 +678,7 @@ export default function Investigation() {
             <div>
               <div className="flex justify-between items-center mb-3">
                 <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono">
-                  Physical & Digital Evidence Collections
+                  {t("section_evidence_items")}
                 </h3>
                 <button
                   onClick={() => {
@@ -686,7 +688,7 @@ export default function Investigation() {
                   className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold font-mono transition-all flex items-center gap-1.5 shadow-md"
                 >
                   <Plus size={14} />
-                  <span>Upload Case Evidence (Assigned Officers Only)</span>
+                  <span>{t("btn_upload_assigned_only")}</span>
                 </button>
               </div>
 
@@ -701,11 +703,11 @@ export default function Investigation() {
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="bg-[#0f1524] border-b border-[#1e293b] text-slate-400 font-mono text-[11px]">
-                      <th className="px-4 py-2.5">Item Category</th>
-                      <th className="px-4 py-2.5">Description</th>
-                      <th className="px-4 py-2.5">Attachment / File</th>
-                      <th className="px-4 py-2.5">Collection Date</th>
-                      <th className="px-4 py-2.5 text-right">Actions</th>
+                      <th className="px-4 py-2.5">{t("col_item_category")}</th>
+                      <th className="px-4 py-2.5">{t("col_description")}</th>
+                      <th className="px-4 py-2.5">{t("col_attachment")}</th>
+                      <th className="px-4 py-2.5">{t("col_collection_date")}</th>
+                      <th className="px-4 py-2.5 text-right">{t("col_actions")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#1e293b] text-slate-300">
@@ -723,7 +725,7 @@ export default function Investigation() {
                               isDoc ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
                               "bg-blue-500/10 text-blue-400 border-blue-500/20"
                             }`}>
-                              {isCCTV ? "📹 CCTV Footage" : isPicture ? "🖼️ Picture / Snapshot" : isDoc ? "📄 Document" : `📁 ${e.EvidenceType}`}
+                              {isCCTV ? t("cat_cctv") : isPicture ? t("cat_picture") : isDoc ? t("cat_document") : `📁 ${e.EvidenceType}`}
                             </span>
                           </td>
                           <td className="px-4 py-3 leading-relaxed max-w-xs">{e.Description}</td>
@@ -738,7 +740,7 @@ export default function Investigation() {
                             ) : e.FileName ? (
                               <span className="text-slate-400 font-bold">{e.FileName}</span>
                             ) : (
-                              <span className="text-slate-600 italic font-mono text-[10px]">No Digital File</span>
+                              <span className="text-slate-600 italic font-mono text-[10px]">{t("file_no_digital")}</span>
                             )}
                           </td>
                           <td className="px-4 py-3 font-mono text-slate-400">
@@ -750,7 +752,7 @@ export default function Investigation() {
                               className="bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/40 text-blue-400 text-[11px] px-2.5 py-1 rounded font-bold font-mono transition-all inline-flex items-center gap-1"
                             >
                               <Eye size={12} />
-                              <span>{isCCTV ? "Play CCTV" : isPicture ? "View Image" : "Preview"}</span>
+                              <span>{isCCTV ? t("btn_play_cctv") : isPicture ? t("btn_view_image") : t("btn_view_preview")}</span>
                             </button>
                           </td>
                         </tr>

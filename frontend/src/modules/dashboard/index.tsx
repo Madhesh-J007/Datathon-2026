@@ -28,12 +28,15 @@ import {
   UserCog
 } from "lucide-react";
 
+import { useLanguage } from "../../app/providers/LanguageContext";
+
 interface DashboardProps {
   activeTab?: "executive" | "workspace";
 }
 
 export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const isAdmin = user?.role?.RoleName === "Admin";
   const isSeniorOfficer =
@@ -398,9 +401,9 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-[#1e293b] pb-4 gap-4">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-slate-100 uppercase tracking-widest font-mono">
-            KSP Command Center
+            {t("dash_title")}
           </h1>
-          <p className="text-xs text-slate-400 mt-1">Real-time situational intelligence and proactive decision support</p>
+          <p className="text-xs text-slate-400 mt-1">{t("dash_sub")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {/* Sub-mode Switcher */}
