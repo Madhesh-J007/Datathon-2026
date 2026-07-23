@@ -33,7 +33,7 @@ import { useLanguage } from "../../app/providers/LanguageContext";
 
 export default function Investigation() {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, translateData } = useLanguage();
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -579,7 +579,7 @@ export default function Investigation() {
                 Official Brief Facts Narrative
               </h3>
               <p className="text-xs text-slate-400 leading-relaxed font-sans bg-[#111827] border border-[#1e293b] p-4 rounded">
-                {caseDetails.BriefFacts}
+                {translateData(caseDetails.BriefFacts)}
               </p>
             </div>
           </div>
@@ -728,7 +728,7 @@ export default function Investigation() {
                               {isCCTV ? t("cat_cctv") : isPicture ? t("cat_picture") : isDoc ? t("cat_document") : `📁 ${e.EvidenceType}`}
                             </span>
                           </td>
-                          <td className="px-4 py-3 leading-relaxed max-w-xs">{e.Description}</td>
+                          <td className="px-4 py-3 leading-relaxed max-w-xs">{translateData(e.Description)}</td>
                           <td className="px-4 py-3 font-mono">
                             {e.FileUrl ? (
                               <button

@@ -36,7 +36,7 @@ interface DashboardProps {
 
 export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, translateData } = useLanguage();
   const navigate = useNavigate();
   const isAdmin = user?.role?.RoleName === "Admin";
   const isSeniorOfficer =
@@ -267,7 +267,7 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
           r.InvestigationPriority === "Medium" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
           "bg-slate-500/10 text-slate-400 border-slate-500/20"
         }`}>
-          {r.InvestigationPriority}
+          {translateData(r.InvestigationPriority)}
         </span>
       )
     },
@@ -279,7 +279,7 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
       )
     },
     { header: "Incident Brief", accessorKey: "BriefFacts", render: (r: any) => (
-        <p className="truncate max-w-xs">{r.BriefFacts}</p>
+        <p className="truncate max-w-xs">{translateData(r.BriefFacts)}</p>
       )
     }
   ];
@@ -457,7 +457,7 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
               <div className="whitespace-nowrap inline-block animate-pulse text-slate-400">
                 {cases.slice(0, 4).map((c: any, idx: number) => (
                   <span key={idx} className="mr-8 inline-block">
-                    <span className="text-blue-400 font-bold">[{c.CaseNo || `Case #${idx}`}]</span> {c.BriefFacts || "Telemetry received."}
+                    <span className="text-blue-400 font-bold">[{c.CaseNo || `Case #${idx}`}]</span> {translateData(c.BriefFacts || "Telemetry received.")}
                   </span>
                 ))}
               </div>
