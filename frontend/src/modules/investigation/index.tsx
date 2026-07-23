@@ -22,7 +22,9 @@ import {
   Sparkles,
   Upload,
   Plus,
-  AlertCircle
+  AlertCircle,
+  Eye,
+  Download
 } from "lucide-react";
 import { taskService, TaskDelegation } from "../../services/taskService";
 
@@ -56,12 +58,22 @@ export default function Investigation() {
   const [selectedCompareCase, setSelectedCompareCase] = useState<any>(null);
   const [workspaceTab, setWorkspaceTab] = useState<"workspace" | "cases">("workspace");
 
-  // Evidence Upload State & Mutation
+  // Evidence Upload & Preview State
+  const [selectedEvidenceForPreview, setSelectedEvidenceForPreview] = useState<any>(null);
   const [isUploadEvidenceModalOpen, setIsUploadEvidenceModalOpen] = useState(false);
   const [evidenceTypeInput, setEvidenceTypeInput] = useState("CCTV Footage");
   const [evidenceDescInput, setEvidenceDescInput] = useState("");
   const [evidenceFileInput, setEvidenceFileInput] = useState<File | null>(null);
   const [evidenceUploadError, setEvidenceUploadError] = useState<string | null>(null);
+
+  const getFullMediaUrl = (url?: string) => {
+    if (!url) return "";
+    if (url.startsWith("http://") || url.startsWith("https://")) return url;
+    const apiHost = (import.meta as any).env?.VITE_API_BASE_URL
+      ? (import.meta as any).env.VITE_API_BASE_URL.replace("/api/v1", "")
+      : "http://localhost:8000";
+    return `${apiHost}${url}`;
+  };
 
   const uploadEvidenceMutation = useMutation({
     mutationFn: async ({ caseId, file, type, desc }: { caseId: number; file: File | null; type: string; desc: string }) => {
@@ -693,6 +705,7 @@ export default function Investigation() {
                       <th className="px-4 py-2.5">Description</th>
                       <th className="px-4 py-2.5">Attachment / File</th>
                       <th className="px-4 py-2.5">Collection Date</th>
+                      <th className="px-4 py-2.5 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#1e293b] text-slate-300">
@@ -700,6 +713,7 @@ export default function Investigation() {
                       const isCCTV = e.EvidenceType?.toLowerCase().includes("cctv") || e.EvidenceType?.toLowerCase().includes("video");
                       const isPicture = e.EvidenceType?.toLowerCase().includes("picture") || e.EvidenceType?.toLowerCase().includes("photo") || e.EvidenceType?.toLowerCase().includes("image");
                       const isDoc = e.EvidenceType?.toLowerCase().includes("doc") || e.EvidenceType?.toLowerCase().includes("memo") || e.EvidenceType?.toLowerCase().includes("report");
+
                       return (
                         <tr key={idx} className="hover:bg-[#151c2e] transition-colors">
                           <td className="px-4 py-3 font-bold text-slate-100 flex items-center gap-2">
@@ -712,32 +726,39 @@ export default function Investigation() {
                               {isCCTV ? "📹 CCTV Footage" : isPicture ? "🖼️ Picture / Snapshot" : isDoc ? "📄 Document" : `📁 ${e.EvidenceType}`}
                             </span>
                           </td>
-                          <td className="px-4 py-3 leading-relaxed">{e.Description}</td>
+                          <td className="px-4 py-3 leading-relaxed max-w-xs">{e.Description}</td>
                           <td className="px-4 py-3 font-mono">
                             {e.FileUrl ? (
-                              <a
-                                href={e.FileUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-400 hover:underline flex items-center gap-1 font-bold text-[11px]"
+                              <button
+                                onClick={() => setSelectedEvidenceForPreview(e)}
+                                className="text-blue-400 hover:text-blue-300 hover:underline flex items-center gap-1 font-bold text-[11px]"
                               >
                                 📥 {e.FileName || "Attached Evidence File"}
-                              </a>
+                              </button>
                             ) : e.FileName ? (
                               <span className="text-slate-400 font-bold">{e.FileName}</span>
                             ) : (
-                              <span className="text-slate-600 font-italic">No Digital Attachment</span>
+                              <span className="text-slate-600 italic font-mono text-[10px]">No Digital File</span>
                             )}
                           </td>
                           <td className="px-4 py-3 font-mono text-slate-400">
                             {e.CollectionDate ? new Date(e.CollectionDate).toLocaleDateString() : "N/A"}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <button
+                              onClick={() => setSelectedEvidenceForPreview(e)}
+                              className="bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/40 text-blue-400 text-[11px] px-2.5 py-1 rounded font-bold font-mono transition-all inline-flex items-center gap-1"
+                            >
+                              <Eye size={12} />
+                              <span>{isCCTV ? "Play CCTV" : isPicture ? "View Image" : "Preview"}</span>
+                            </button>
                           </td>
                         </tr>
                       );
                     })}
                     {(!evidenceData || evidenceData.length === 0) && (
                       <tr>
-                        <td colSpan={4} className="px-4 py-8 text-center text-slate-500 font-mono">
+                        <td colSpan={5} className="px-4 py-8 text-center text-slate-500 font-mono">
                           No evidence entries collected for this case yet. Click "Upload Case Evidence" to submit CCTV, pictures, or documents.
                         </td>
                       </tr>
@@ -1193,6 +1214,123 @@ export default function Investigation() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* EVIDENCE PREVIEW MODAL */}
+      {selectedEvidenceForPreview && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-[#111827] border border-[#1e293b] rounded-xl max-w-2xl w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex justify-between items-center border-b border-[#1e293b] pb-3">
+              <div>
+                <h2 className="text-base font-bold text-slate-100 flex items-center gap-2 font-mono">
+                  {selectedEvidenceForPreview.EvidenceType?.toLowerCase().includes("cctv") || selectedEvidenceForPreview.EvidenceType?.toLowerCase().includes("video") ? "📹 CCTV Footage Preview" :
+                   selectedEvidenceForPreview.EvidenceType?.toLowerCase().includes("picture") || selectedEvidenceForPreview.EvidenceType?.toLowerCase().includes("photo") || selectedEvidenceForPreview.EvidenceType?.toLowerCase().includes("image") ? "🖼️ Image Evidence Preview" :
+                   "📄 Evidence Artifact File"}
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5 font-mono">
+                  Collected: {selectedEvidenceForPreview.CollectionDate ? new Date(selectedEvidenceForPreview.CollectionDate).toLocaleString() : "N/A"}
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedEvidenceForPreview(null)}
+                className="text-slate-400 hover:text-slate-200 p-1 rounded"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="bg-[#151c2e] p-3 rounded border border-[#1e293b] text-xs">
+                <span className="text-slate-400 font-mono font-bold uppercase text-[10px]">Description:</span>
+                <p className="text-slate-200 mt-1 font-sans leading-relaxed">{selectedEvidenceForPreview.Description}</p>
+              </div>
+
+              {/* MEDIA PREVIEW DISPLAY */}
+              {selectedEvidenceForPreview.FileUrl ? (
+                <div className="bg-[#0b0f19] p-4 rounded-xl border border-[#1e293b] flex flex-col items-center justify-center min-h-[250px]">
+                  {selectedEvidenceForPreview.EvidenceType?.toLowerCase().includes("cctv") || selectedEvidenceForPreview.EvidenceType?.toLowerCase().includes("video") || selectedEvidenceForPreview.FileName?.endsWith(".mp4") || selectedEvidenceForPreview.FileName?.endsWith(".avi") ? (
+                    <div className="w-full space-y-2">
+                      <video
+                        controls
+                        autoPlay={false}
+                        src={getFullMediaUrl(selectedEvidenceForPreview.FileUrl)}
+                        className="w-full max-h-[380px] rounded-lg border border-[#1e293b] bg-black shadow-lg"
+                      >
+                        Your browser does not support HTML5 video playback.
+                      </video>
+                      <div className="flex justify-between items-center text-[10px] font-mono text-slate-400 px-1 pt-1">
+                        <span>Video Stream File: {selectedEvidenceForPreview.FileName}</span>
+                        <a
+                          href={getFullMediaUrl(selectedEvidenceForPreview.FileUrl)}
+                          download={selectedEvidenceForPreview.FileName}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:underline font-bold flex items-center gap-1"
+                        >
+                          <Download size={12} /> Download Raw CCTV Video
+                        </a>
+                      </div>
+                    </div>
+                  ) : selectedEvidenceForPreview.EvidenceType?.toLowerCase().includes("picture") || selectedEvidenceForPreview.EvidenceType?.toLowerCase().includes("photo") || selectedEvidenceForPreview.EvidenceType?.toLowerCase().includes("image") || selectedEvidenceForPreview.FileName?.endsWith(".jpg") || selectedEvidenceForPreview.FileName?.endsWith(".png") || selectedEvidenceForPreview.FileName?.endsWith(".jpeg") ? (
+                    <div className="w-full space-y-2 text-center">
+                      <img
+                        src={getFullMediaUrl(selectedEvidenceForPreview.FileUrl)}
+                        alt={selectedEvidenceForPreview.FileName || "Evidence Picture"}
+                        className="max-h-[380px] object-contain mx-auto rounded-lg border border-[#1e293b] shadow-lg"
+                      />
+                      <div className="flex justify-between items-center text-[10px] font-mono text-slate-400 px-1 pt-1">
+                        <span>Image File: {selectedEvidenceForPreview.FileName}</span>
+                        <a
+                          href={getFullMediaUrl(selectedEvidenceForPreview.FileUrl)}
+                          download={selectedEvidenceForPreview.FileName}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:underline font-bold flex items-center gap-1"
+                        >
+                          <Download size={12} /> Download High-Res Snapshot
+                        </a>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full text-center space-y-4 py-8">
+                      <div className="p-4 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 inline-block">
+                        <FileText size={36} />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-200 font-mono">{selectedEvidenceForPreview.FileName || "Document Attachment"}</h4>
+                        <p className="text-xs text-slate-400 mt-1 font-mono">
+                          Size: {selectedEvidenceForPreview.FileSize ? `${(selectedEvidenceForPreview.FileSize / 1024).toFixed(1)} KB` : "Standard File"}
+                        </p>
+                      </div>
+                      <a
+                        href={getFullMediaUrl(selectedEvidenceForPreview.FileUrl)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-2 rounded-lg font-bold font-mono transition-all shadow-lg"
+                      >
+                        <Download size={14} />
+                        <span>View / Download Document</span>
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="bg-[#151c2e] p-8 rounded-lg border border-[#1e293b] text-center text-xs text-slate-400 font-mono">
+                  Physical evidence record logged into digital vault. No digital file attachment uploaded.
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-3 border-t border-[#1e293b]">
+              <button
+                onClick={() => setSelectedEvidenceForPreview(null)}
+                className="bg-[#1e293b] hover:bg-[#334155] text-slate-200 text-xs px-4 py-2 rounded-lg font-bold font-mono transition-colors"
+              >
+                Close Preview
+              </button>
+            </div>
           </div>
         </div>
       )}
