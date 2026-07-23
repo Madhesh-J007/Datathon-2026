@@ -33,6 +33,7 @@ from app.models.collaboration_request import CollaborationRequest
 from app.models.external_agency import ExternalAgency
 from app.models.external_agency_officer import ExternalAgencyOfficer
 from app.models.collaboration_access import CollaborationAccess
+from app.models.task_delegation import TaskDelegation, TaskTimelineEvent
 
 __all__ = [
     "State", "District", "UnitType", "PoliceStation", "CrimeType", "CrimeSubType",
@@ -41,5 +42,6 @@ __all__ = [
     "CaseMaster", "Accused", "Victim", "Witness", "Evidence", "Vehicle",
     "CaseAssignment", "CaseAnnotation", "CaseEmbedding", "CriminalRelationship",
     "ReportJob", "AIModelRun", "AuditLog", "Notification", "CollaborationRequest",
-    "ExternalAgency", "ExternalAgencyOfficer", "CollaborationAccess"
+    "ExternalAgency", "ExternalAgencyOfficer", "CollaborationAccess",
+    "TaskDelegation", "TaskTimelineEvent"
 ]

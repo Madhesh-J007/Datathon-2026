@@ -15,8 +15,13 @@ import {
   Package,
   FolderOpen,
   Share2,
-  Compass
+  Compass,
+  ClipboardList,
+  Send,
+  X,
+  Sparkles
 } from "lucide-react";
+import { taskService, TaskDelegation } from "../../services/taskService";
 
 import { useAuth } from "../../app/providers/AuthProvider";
 
@@ -46,6 +51,27 @@ export default function Investigation() {
   const caseId = id ? parseInt(id) : null;
   const [activeSubTab, setActiveSubTab] = useState("overview");
   const [selectedCompareCase, setSelectedCompareCase] = useState<any>(null);
+
+  // Assigned Tasks State
+  const [selectedTaskToUpdate, setSelectedTaskToUpdate] = useState<TaskDelegation | null>(null);
+  const [newStatus, setNewStatus] = useState("In Progress");
+  const [statusNote, setStatusNote] = useState("");
+
+  const { data: myTasks } = useQuery({
+    queryKey: ["myAssignedTasks"],
+    queryFn: () => taskService.getTasksAssignedToMe(),
+    refetchInterval: 5000,
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ taskId, status, note }: { taskId: number; status: string; note?: string }) =>
+      taskService.updateTaskStatus(taskId, status, note),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["myAssignedTasks"] });
+      setSelectedTaskToUpdate(null);
+      setStatusNote("");
+    },
+  });
 
   // Query search & filters
   const [search, setSearch] = useState("");
@@ -180,6 +206,57 @@ export default function Investigation() {
           <h1 className="text-xl font-bold tracking-tight text-slate-100">Case Intelligence Registry</h1>
           <p className="text-xs text-slate-400 mt-1">Investigate registered FIR files within permitted jurisdictions</p>
         </div>
+
+        {/* ASSIGNED TASKS & DIRECTIVES BANNER */}
+        {myTasks && myTasks.length > 0 && (
+          <div className="bg-[#111827] border border-blue-500/30 p-4 rounded-xl space-y-3 shadow-lg">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <ClipboardList className="text-blue-400" size={18} />
+                <h3 className="text-xs font-bold text-slate-100 font-mono uppercase tracking-wider">
+                  Operational Directives Appointed to You ({myTasks.length})
+                </h3>
+              </div>
+              <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded font-mono font-bold">
+                Real-Time Command Sync
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {myTasks.map((t) => (
+                <div
+                  key={t.TaskID}
+                  className="bg-[#151c2e] border border-[#1e293b] hover:border-blue-500/50 p-3.5 rounded-lg space-y-2 flex flex-col justify-between transition-all"
+                >
+                  <div>
+                    <div className="flex justify-between items-start">
+                      <h4 className="text-xs font-bold text-slate-100 line-clamp-1">{t.Title}</h4>
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-bold ${
+                        t.Status === 'Completed' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                      }`}>
+                        {t.Status}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 line-clamp-2 mt-1 leading-normal">{t.Description}</p>
+                  </div>
+
+                  <div className="pt-2 border-t border-[#1e293b] flex justify-between items-center text-[10px]">
+                    <span className="text-slate-400 font-mono">Appointed by: <strong className="text-blue-400">{t.AssignedByUsername} ({t.AssignedByRank})</strong></span>
+                    <button
+                      onClick={() => {
+                        setSelectedTaskToUpdate(t);
+                        setNewStatus(t.Status);
+                      }}
+                      className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-2.5 py-1 rounded font-mono transition-colors"
+                    >
+                      Update & Timeline
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Filter controls bar */}
         <div className="bg-[#111827] border border-[#1e293b] rounded p-4 flex flex-wrap gap-4 items-center">
@@ -749,6 +826,106 @@ export default function Investigation() {
           </div>
         )}
       </div>
+      {/* SUBORDINATE TASK UPDATE & REAL-TIME TIMELINE MODAL */}
+      {selectedTaskToUpdate && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#111827] border border-[#1e293b] rounded-xl max-w-xl w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex justify-between items-center border-b border-[#1e293b] pb-3">
+              <div>
+                <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
+                  <Sparkles size={18} className="text-blue-400" />
+                  Update Operational Progress & Timeline
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">Task ID #{selectedTaskToUpdate.TaskID}: {selectedTaskToUpdate.Title}</p>
+              </div>
+              <button onClick={() => setSelectedTaskToUpdate(null)} className="text-slate-400 hover:text-slate-200">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="bg-[#151c2e] p-3.5 rounded-lg border border-[#1e293b] space-y-1">
+              <div className="flex justify-between text-xs text-slate-300 font-mono">
+                <span>Appointed By: <strong className="text-blue-400">{selectedTaskToUpdate.AssignedByUsername} ({selectedTaskToUpdate.AssignedByRank})</strong></span>
+              </div>
+              <p className="text-xs text-slate-400 leading-relaxed bg-[#0d1322] p-2.5 rounded border border-slate-800">
+                {selectedTaskToUpdate.Description}
+              </p>
+            </div>
+
+            {/* Status Update Form */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                updateStatusMutation.mutate({
+                  taskId: selectedTaskToUpdate.TaskID,
+                  status: newStatus,
+                  note: statusNote,
+                });
+              }}
+              className="space-y-3 bg-[#151c2e] p-4 rounded-lg border border-blue-500/20"
+            >
+              <h4 className="text-xs font-bold text-blue-400 font-mono uppercase">Log Real-Time Progress Update</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-mono text-slate-400 uppercase font-bold mb-1">Update Status</label>
+                  <select
+                    value={newStatus}
+                    onChange={(e) => setNewStatus(e.target.value)}
+                    className="w-full bg-[#1e293b] border border-[#334155] text-slate-100 text-xs rounded px-3 py-1.5 font-mono"
+                  >
+                    <option value="In Progress">⏳ In Progress</option>
+                    <option value="Evidence Collected">📁 Evidence Collected</option>
+                    <option value="Under Review">🔍 Under Review for Senior Approval</option>
+                    <option value="Completed">✅ Directive Completed</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-mono text-slate-400 uppercase font-bold mb-1">Execution Note / Report</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Conducted site audit, collected CCTV logs."
+                    value={statusNote}
+                    onChange={(e) => setStatusNote(e.target.value)}
+                    className="w-full bg-[#1e293b] border border-[#334155] text-slate-100 text-xs rounded px-3 py-1.5"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={updateStatusMutation.isPending}
+                  className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs px-3.5 py-1.5 rounded font-bold font-mono transition-colors"
+                >
+                  <Send size={12} />
+                  <span>{updateStatusMutation.isPending ? "Logging..." : "Log Progress Event"}</span>
+                </button>
+              </div>
+            </form>
+
+            {/* Stepper Timeline */}
+            <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
+              <h4 className="text-xs font-bold text-slate-300 font-mono uppercase">Execution Timeline History</h4>
+              {selectedTaskToUpdate.timeline_events.map((ev, idx) => (
+                <div key={ev.EventID} className="flex gap-3 text-xs bg-[#151c2e] p-2.5 rounded border border-[#1e293b]">
+                  <span className="font-mono text-blue-400 font-bold">#{idx + 1} {ev.Status}:</span>
+                  <span className="text-slate-300 flex-1">{ev.Note}</span>
+                  <span className="text-[10px] text-slate-500 font-mono">{new Date(ev.Timestamp).toLocaleTimeString()}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end border-t border-[#1e293b] pt-3">
+              <button
+                onClick={() => setSelectedTaskToUpdate(null)}
+                className="bg-[#1e293b] text-slate-300 text-xs px-4 py-2 rounded font-mono font-bold"
+              >
+                Close Modal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

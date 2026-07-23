@@ -12,6 +12,7 @@ import Predictive from "../../modules/predictive";
 import Reports from "../../modules/reports";
 import Collaboration from "../../modules/collaboration";
 import Admin from "../../modules/admin";
+import TaskDelegationModule from "../../modules/delegation";
 
 export default function AppRoutes() {
   return (
@@ -46,6 +47,9 @@ export default function AppRoutes() {
         
         {/* Collaboration Requests */}
         <Route path="collaboration" element={<Collaboration />} />
+        
+        {/* Task Delegation */}
+        <Route path="delegation" element={<TaskDelegationModule />} />
         
         {/* Reports */}
         <Route path="reports" element={<Reports />} />
