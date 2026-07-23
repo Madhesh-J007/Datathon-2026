@@ -224,13 +224,14 @@ def update_task_status(
     return build_task_out(db, task)
 
 
-@router.get("/subordinate-officers", summary="List Available Subordinate Officers for Task Assignment")
+@router.get("/subordinate-officers", summary="List Available Subordinate Police Officers for Task Assignment")
 def get_subordinate_officers(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """
-    Retrieves list of subordinate officers strictly lower in rank than the current officer.
+    Retrieves list of subordinate Karnataka Police officers strictly lower in rank than the current officer.
+    Excludes external agencies (CBI, FSL, ED) and System Admin.
     """
     current_officer = db.query(Officer).filter(Officer.OfficerID == current_user.OfficerID).first() if current_user.OfficerID else None
     current_weight = get_rank_weight(current_officer.Rank if current_officer else "", current_user.Username)
@@ -239,18 +240,25 @@ def get_subordinate_officers(
     officers_list = []
     
     for u in users:
+        role_name = u.role.RoleName if u.role else ""
+        u_name = u.Username.lower()
+        
+        # Strictly exclude External Agency Officers (CBI, FSL, ED) & System Admin
+        if u.RoleID == 5 or role_name == "ExternalAgencyOfficer" or u.RoleID == 1 or role_name == "Admin" or any(x in u_name for x in ["cbi", "fsl", "ed", "admin"]):
+            continue
+
         off = db.query(Officer).filter(Officer.OfficerID == u.OfficerID).first() if u.OfficerID else None
-        rank_name = off.Rank if off else "Officer"
+        rank_name = off.Rank if off else "Police Officer"
         target_weight = get_rank_weight(rank_name, u.Username)
         
-        # Only include officers whose rank weight is STRICTLY LOWER (<)
+        # Only include POLICE officers whose rank weight is STRICTLY LOWER (<)
         if target_weight < current_weight:
             officers_list.append({
                 "UserID": u.UserID,
                 "Username": u.Username,
-                "RoleName": u.role.RoleName if u.role else "Officer",
+                "RoleName": role_name,
                 "Rank": rank_name,
-                "BadgeNumber": off.BadgeNumber if off else "N/A",
+                "BadgeNumber": off.BadgeNumber if off else "KSP-OFFICER",
                 "Weight": target_weight
             })
 
