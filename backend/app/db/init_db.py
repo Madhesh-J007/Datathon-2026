@@ -368,31 +368,43 @@ def seed_roles_and_permissions(db: Session):
 
 def seed_users(db: Session):
     """
-    Seeds a default user 'ksp_admin' with password 'change_me' linked to OfficerID 1 and Admin role.
+    Seeds default user accounts (Bharathvaj, ramesh, suda, ksp_admin, cbi_sp_verma, fsl_dna_sunita, ed_jd_hegde).
     """
-    if db.query(User).first() is not None:
-        logger.info("Table 'users' is already seeded.")
-        return
-
     admin_role = db.query(Role).filter(Role.RoleName == "Admin").first()
-    admin_role_id = admin_role.RoleID if admin_role else None
+    scrb_role = db.query(Role).filter(Role.RoleName == "SCRB_Officer").first()
+    sho_role = db.query(Role).filter(Role.RoleName == "SHO").first()
+    constable_role = db.query(Role).filter(Role.RoleName == "Constable").first()
+    ext_role = db.query(Role).filter(Role.RoleName == "ExternalAgencyOfficer").first()
 
-    logger.info("Seeding default user 'ksp_admin'...")
+    preset_users = [
+        ("ksp_admin", "change_me", "admin@ksp.gov.in", 1, admin_role.RoleID if admin_role else 1),
+        ("Bharathvaj", "change_me", "bharathvaj@ksp.gov.in", 2, scrb_role.RoleID if scrb_role else 1),
+        ("ramesh", "change_me", "ramesh@ksp.gov.in", 3, sho_role.RoleID if sho_role else 1),
+        ("suda", "change_me", "suda@ksp.gov.in", 4, constable_role.RoleID if constable_role else 4),
+        ("cbi_sp_verma", "cbi@password2026", "verma@cbi.gov.in", None, ext_role.RoleID if ext_role else 5),
+        ("fsl_dna_sunita", "fsl@password2026", "sunita@fsl.gov.in", None, ext_role.RoleID if ext_role else 5),
+        ("ed_jd_hegde", "ed@password2026", "hegde@ed.gov.in", None, ext_role.RoleID if ext_role else 5),
+    ]
+
+    logger.info("Seeding preset officer user accounts...")
     try:
-        admin_user = User(
-            Username="ksp_admin",
-            PasswordHash=hash_password("change_me"),
-            Email="admin@ksp.gov.in",
-            OfficerID=1,
-            RoleID=admin_role_id,
-            IsActive=True
-        )
-        db.add(admin_user)
+        for username, password, email, officer_id, role_id in preset_users:
+            existing = db.query(User).filter(User.Username.ilike(username)).first()
+            if not existing:
+                u = User(
+                    Username=username,
+                    PasswordHash=hash_password(password),
+                    Email=email,
+                    OfficerID=officer_id,
+                    RoleID=role_id,
+                    IsActive=True
+                )
+                db.add(u)
         db.commit()
-        logger.info("Successfully seeded default user 'ksp_admin'!")
+        logger.info("Successfully seeded preset officer user accounts!")
     except Exception as e:
         db.rollback()
-        logger.error(f"Error seeding user: {e}")
+        logger.error(f"Error seeding user accounts: {e}")
 
 def reset_db_sequences(db: Session):
     """
