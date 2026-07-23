@@ -24,6 +24,11 @@ export const caseService = {
     return response.data;
   },
 
+  async addEvidence(caseId: number, payload: { EvidenceType: string; Description: string }) {
+    const response = await apiClient.post(`/cases/${caseId}/evidence`, payload);
+    return response.data;
+  },
+
   async getCaseAccused(caseId: number) {
     const response = await apiClient.get(`/cases/${caseId}/accused`);
     return response.data;

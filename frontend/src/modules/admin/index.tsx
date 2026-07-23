@@ -115,6 +115,7 @@ export default function Admin({ activeTab: initialTab = "appointments" }: AdminP
   };
 
   const isStateLevelRank = scopeLevel === "State";
+  const currentDistrictObject = karnatakaDistrictList.find((d) => d.id === Number(districtId)) || karnatakaDistrictList[0];
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,8 +131,8 @@ export default function Admin({ activeTab: initialTab = "appointments" }: AdminP
         Rank: selectedRank,
       });
 
-      // Apply Jurisdiction Scope Override
-      if (scopeLevel !== "State" && createdUser?.UserID) {
+      // Apply Jurisdiction Scope Override for District & Station Command
+      if (createdUser?.UserID) {
         await adminService.assignJurisdictionOverride({
           UserID: createdUser.UserID,
           DistrictID: districtId ? Number(districtId) : 5,
@@ -347,53 +348,48 @@ export default function Admin({ activeTab: initialTab = "appointments" }: AdminP
                 />
               </div>
 
-              {!isStateLevelRank && (
-                <div className="p-3 bg-[#151c2e] border border-[#1e293b] rounded-lg space-y-2.5 font-mono">
-                  <span className="text-slate-300 font-bold block text-xs">
-                    📍 Assign Station Precinct Jurisdiction:
-                  </span>
-                  
-                  <div>
-                    <label className="text-[10px] text-slate-400 block mb-1">1. Select District Division:</label>
-                    <select
-                      value={districtId}
-                      onChange={(e) => {
-                        const newDistId = e.target.value;
-                        setDistrictId(newDistId);
-                        const matchedDist = karnatakaDistrictList.find((d) => d.id === Number(newDistId));
-                        if (matchedDist && matchedDist.stations.length > 0) {
-                          setUnitId(String(matchedDist.stations[0].id));
-                        }
-                      }}
-                      className="w-full bg-[#0d1322] border border-[#334155] text-slate-100 rounded px-2.5 py-1.5 text-xs font-bold focus:outline-none focus:border-blue-500"
-                    >
-                      {karnatakaDistrictList.map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.name} (District #{d.id})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] text-slate-400 block mb-1">2. Select Authorized Police Station:</label>
-                    <select
-                      value={unitId}
-                      onChange={(e) => setUnitId(e.target.value)}
-                      className="w-full bg-[#0d1322] border border-[#334155] text-slate-100 rounded px-2.5 py-1.5 text-xs font-bold focus:outline-none focus:border-blue-500"
-                    >
-                      {(karnatakaDistrictList.find((d) => d.id === Number(districtId))?.stations || [
-                        { id: 460, name: "Shorapur Police Station" },
-                        { id: 1, name: "Bagalkot Police Station" },
-                      ]).map((st) => (
-                        <option key={st.id} value={st.id}>
-                          {st.name} (Unit #{st.id})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+              <div className="p-3 bg-[#151c2e] border border-blue-500/20 rounded-lg space-y-2.5 font-mono">
+                <span className="text-blue-400 font-bold block text-xs">
+                  📍 Assign Officer Jurisdiction & Command District:
+                </span>
+                
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-1">1. Select District Division Command:</label>
+                  <select
+                    value={districtId}
+                    onChange={(e) => {
+                      const newDistId = e.target.value;
+                      setDistrictId(newDistId);
+                      const matchedDist = karnatakaDistrictList.find((d) => d.id === Number(newDistId));
+                      if (matchedDist && matchedDist.stations.length > 0) {
+                        setUnitId(String(matchedDist.stations[0].id));
+                      }
+                    }}
+                    className="w-full bg-[#0d1322] border border-[#334155] text-slate-100 rounded px-2.5 py-1.5 text-xs font-bold focus:outline-none focus:border-blue-500"
+                  >
+                    {karnatakaDistrictList.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name} (District #{d.id})
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              )}
+
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-1">2. Select Primary Police Station Unit:</label>
+                  <select
+                    value={unitId}
+                    onChange={(e) => setUnitId(e.target.value)}
+                    className="w-full bg-[#0d1322] border border-[#334155] text-slate-100 rounded px-2.5 py-1.5 text-xs font-bold focus:outline-none focus:border-blue-500"
+                  >
+                    {currentDistrictObject?.stations.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} (Unit #{s.id})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
               <button
                 type="submit"

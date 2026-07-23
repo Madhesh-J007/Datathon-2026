@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { taskService, TaskDelegation } from "../../services/taskService";
+import { caseService } from "../../services/caseService";
 import {
   ClipboardList,
   Plus,
@@ -12,7 +13,8 @@ import {
   ChevronRight,
   Shield,
   Send,
-  Sparkles
+  Sparkles,
+  Package
 } from "lucide-react";
 
 export default function TaskDelegationModule() {
@@ -26,9 +28,38 @@ export default function TaskDelegationModule() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [assignedToUserId, setAssignedToUserId] = useState<number | "">("");
+  const [selectedCaseMasterId, setSelectedCaseMasterId] = useState<number | "">("");
   const [priority, setPriority] = useState("High");
   const [dueDate, setDueDate] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Evidence State
+  const [evidenceType, setEvidenceType] = useState("CCTV Footage");
+  const [evidenceDesc, setEvidenceDesc] = useState("");
+  const [showAddEvidenceForm, setShowAddEvidenceForm] = useState(false);
+
+  // Fetch cases accessible to appointing officer
+  const { data: accessibleCases } = useQuery({
+    queryKey: ["accessibleCasesList"],
+    queryFn: () => caseService.getCases({ pageSize: 100 }),
+  });
+
+  const addEvidenceMutation = useMutation({
+    mutationFn: ({ caseId, payload }: { caseId: number; payload: { EvidenceType: string; Description: string } }) =>
+      caseService.addEvidence(caseId, payload),
+    onSuccess: async (_, vars) => {
+      if (selectedTaskForTimeline) {
+        await taskService.updateTaskStatus(
+          selectedTaskForTimeline.TaskID,
+          "Evidence Collected",
+          `Added Case Evidence (${vars.payload.EvidenceType}): ${vars.payload.Description}`
+        );
+      }
+      queryClient.invalidateQueries({ queryKey: ["tasksAssignedByMe"] });
+      setShowAddEvidenceForm(false);
+      setEvidenceDesc("");
+    },
+  });
 
   // Fetch subordinate officers for selection
   const { data: officersList } = useQuery({
@@ -72,6 +103,7 @@ export default function TaskDelegationModule() {
       Title: title,
       Description: description,
       AssignedToUserID: Number(assignedToUserId),
+      CaseMasterID: selectedCaseMasterId ? Number(selectedCaseMasterId) : undefined,
       Priority: priority,
       DueDate: dueDate || undefined,
     });
@@ -311,6 +343,24 @@ export default function TaskDelegationModule() {
 
               <div>
                 <label className="block text-xs font-mono font-bold text-slate-300 uppercase mb-1">
+                  2. Link to Registered Case / FIR (Jurisdiction Filtered)
+                </label>
+                <select
+                  value={selectedCaseMasterId}
+                  onChange={(e) => setSelectedCaseMasterId(e.target.value ? Number(e.target.value) : "")}
+                  className="w-full bg-[#1e293b] border border-[#334155] text-slate-100 text-xs rounded px-3 py-2 focus:outline-none focus:border-blue-500 font-mono"
+                >
+                  <option value="">-- No Specific Case Link (General Patrol Directive) --</option>
+                  {accessibleCases?.data?.map((c: any) => (
+                    <option key={c.CaseMasterID} value={c.CaseMasterID}>
+                      Case #{c.CaseNo} — Priority: {c.InvestigationPriority || 'Standard'} (FIR Reg: {c.FIRDate || '2026'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono font-bold text-slate-300 uppercase mb-1">
                   2. Directive Title *
                 </label>
                 <input
@@ -415,6 +465,75 @@ export default function TaskDelegationModule() {
                 {selectedTaskForTimeline.Description}
               </p>
             </div>
+
+            {/* ADD CASE EVIDENCE SECTION */}
+            {selectedTaskForTimeline.CaseMasterID && (
+              <div className="bg-[#151c2e] border border-blue-500/30 p-3.5 rounded-lg space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-bold text-blue-400 font-mono flex items-center gap-1.5 uppercase">
+                    <Package size={14} />
+                    Add Evidence Artifact for Case #{selectedTaskForTimeline.CaseNo || selectedTaskForTimeline.CaseMasterID}
+                  </span>
+                  <button
+                    onClick={() => setShowAddEvidenceForm(!showAddEvidenceForm)}
+                    className="text-[10px] bg-blue-600 hover:bg-blue-500 text-white px-2.5 py-1 rounded font-mono font-bold transition-colors"
+                  >
+                    {showAddEvidenceForm ? "Close Form" : "➕ Add Case Evidence"}
+                  </button>
+                </div>
+
+                {showAddEvidenceForm && (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (!evidenceDesc || !selectedTaskForTimeline.CaseMasterID) return;
+                      addEvidenceMutation.mutate({
+                        caseId: selectedTaskForTimeline.CaseMasterID,
+                        payload: { EvidenceType: evidenceType, Description: evidenceDesc }
+                      });
+                    }}
+                    className="space-y-2 pt-2 border-t border-[#1e293b]"
+                  >
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[10px] font-mono text-slate-400 uppercase font-bold mb-1">Evidence Type</label>
+                        <select
+                          value={evidenceType}
+                          onChange={(e) => setEvidenceType(e.target.value)}
+                          className="w-full bg-[#1e293b] border border-[#334155] text-slate-100 text-xs rounded px-2.5 py-1 font-mono"
+                        >
+                          <option value="CCTV Footage">📹 CCTV Surveillance Footage</option>
+                          <option value="Seizure Memo">📜 Physical Seizure Memo</option>
+                          <option value="Forensic DNA Report">🧪 Forensic DNA & Lab Sample</option>
+                          <option value="Recovered Weapon">🔪 Recovered Sharp Dagger / Weapon</option>
+                          <option value="Digital Telemetry">📱 Mobile Tower / Call Telemetry</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-mono text-slate-400 uppercase font-bold mb-1">Evidence Description</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Recovered DVR recorder unit #460"
+                          value={evidenceDesc}
+                          onChange={(e) => setEvidenceDesc(e.target.value)}
+                          className="w-full bg-[#1e293b] border border-[#334155] text-slate-100 text-xs rounded px-2.5 py-1"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end">
+                      <button
+                        type="submit"
+                        disabled={addEvidenceMutation.isPending}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1 rounded font-bold font-mono transition-colors"
+                      >
+                        {addEvidenceMutation.isPending ? "Logging..." : "Submit Evidence & Log Timeline"}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            )}
 
             {/* Stepper Timeline List */}
             <div className="space-y-4 max-h-72 overflow-y-auto pr-2">
