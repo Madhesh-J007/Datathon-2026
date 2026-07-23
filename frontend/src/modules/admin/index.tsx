@@ -127,6 +127,7 @@ export default function Admin({ activeTab: initialTab = "appointments" }: AdminP
         Password: password,
         Email: email,
         RoleID: Number(roleId),
+        Rank: selectedRank,
       });
 
       // Apply Jurisdiction Scope Override

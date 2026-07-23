@@ -7,6 +7,7 @@ class UserCreate(BaseModel):
     Email: str
     OfficerID: Optional[int] = None
     RoleID: Optional[int] = None
+    Rank: Optional[str] = None
 
 class UserJurisdictionCreate(BaseModel):
     UserID: int

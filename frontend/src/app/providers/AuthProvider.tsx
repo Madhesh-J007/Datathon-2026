@@ -7,6 +7,7 @@ export interface User {
   Email: string;
   OfficerID: number;
   RoleID: number;
+  Rank?: string;
   IsActive: boolean;
   role?: {
     RoleID: number;

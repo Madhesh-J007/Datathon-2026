@@ -37,17 +37,35 @@ def create_user(
             detail="Username already registered."
         )
         
+    officer_id = user_in.OfficerID
+    if not officer_id and user_in.Rank:
+        from app.models.officer import Officer
+        new_officer = Officer(
+            Name=user_in.Username,
+            Rank=user_in.Rank,
+            BadgeNumber=f"KSP-{hash(user_in.Username) % 8999 + 1000}"
+        )
+        db.add(new_officer)
+        db.commit()
+        db.refresh(new_officer)
+        officer_id = new_officer.OfficerID
+
     db_user = User(
         Username=user_in.Username,
         PasswordHash=hash_password(user_in.Password),
         Email=user_in.Email,
-        OfficerID=user_in.OfficerID,
+        OfficerID=officer_id,
         RoleID=user_in.RoleID,
         IsActive=True
     )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
+    if officer_id:
+        from app.models.officer import Officer
+        officer = db.query(Officer).filter(Officer.OfficerID == officer_id).first()
+        if officer:
+            setattr(db_user, "Rank", officer.Rank)
     return db_user
 
 @router.get("/users", response_model=List[UserOut], summary="List Platform Users")
@@ -58,7 +76,13 @@ def list_users(
     """
     Retrieves all user identities registered on the platform.
     """
-    return db.query(User).all()
+    from app.models.officer import Officer
+    users = db.query(User).all()
+    officers = {o.OfficerID: o.Rank for o in db.query(Officer).all()}
+    for u in users:
+        if u.OfficerID in officers:
+            setattr(u, "Rank", officers[u.OfficerID])
+    return users
 
 @router.post("/jurisdictions", response_model=UserJurisdictionOut, status_code=status.HTTP_201_CREATED, summary="Assign User Jurisdiction Override")
 def assign_jurisdiction(

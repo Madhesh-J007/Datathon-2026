@@ -27,6 +27,7 @@ class UserOut(BaseModel):
     Username: str
     Email: str
     OfficerID: Optional[int] = None
+    Rank: Optional[str] = None
     IsActive: bool
     CreatedAt: datetime
     role: Optional[RoleOut] = None

@@ -29,8 +29,16 @@ def logout(request: TokenRefreshRequest):
     auth_service.logout_user(request.refresh_token)
 
 @router.get("/me", response_model=UserOut, summary="Get Current User Profile")
-def get_me(current_user: User = Depends(get_current_active_user)):
+def get_me(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     """
     Retrieves the profile details of the currently logged-in active user.
     """
+    if current_user.OfficerID:
+        from app.models.officer import Officer
+        officer = db.query(Officer).filter(Officer.OfficerID == current_user.OfficerID).first()
+        if officer:
+            setattr(current_user, "Rank", officer.Rank)
     return current_user
