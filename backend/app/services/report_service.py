@@ -1,3 +1,4 @@
+import logging
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from fastapi import HTTPException, status
@@ -6,6 +7,8 @@ from app.models.case_master import CaseMaster
 from app.models.user import User
 from app.tasks.report_tasks import generate_pdf_report_task
 from app.middleware.jurisdiction_scope import apply_jurisdiction_filter
+
+logger = logging.getLogger("ksp_backend")
 
 def create_report_job(db: Session, case_input: str | int, current_user: User) -> ReportJob:
     """
