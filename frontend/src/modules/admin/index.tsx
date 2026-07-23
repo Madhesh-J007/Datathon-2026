@@ -13,8 +13,12 @@ import {
   X,
 } from "lucide-react";
 
-export default function Admin() {
-  const [activeTab, setActiveTab] = useState<"system" | "appointments">("appointments");
+interface AdminProps {
+  activeTab?: "system" | "appointments";
+}
+
+export default function Admin({ activeTab: initialTab = "appointments" }: AdminProps) {
+  const [activeTab, setActiveTab] = useState<"system" | "appointments">(initialTab);
 
   // User form states
   const [username, setUsername] = useState("");
@@ -23,17 +27,10 @@ export default function Admin() {
   const [officerName, setOfficerName] = useState("");
   const [badgeNumber, setBadgeNumber] = useState("");
   const [selectedRank, setSelectedRank] = useState("PSI / SI");
-  const [roleId, setRoleId] = useState("4"); // default Constable / Officer
-  const [scopeLevel, setScopeLevel] = useState("Station");
+  const [roleId, setRoleId] = useState("1"); // default Senior / Investigating Command
+  const [scopeLevel, setScopeLevel] = useState("State");
   const [districtId, setDistrictId] = useState("5"); // default Bengaluru Urban
   const [unitId, setUnitId] = useState("1");
-
-  // Permission Toggles
-  const [permFIR, setPermFIR] = useState(true);
-  const [permGIS, setPermGIS] = useState(true);
-  const [permNetwork, setPermNetwork] = useState(true);
-  const [permPredictive, setPermPredictive] = useState(true);
-  const [permPDF, setPermPDF] = useState(true);
 
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -67,7 +64,7 @@ export default function Admin() {
   const tablesList = tables || [];
   const usersList = Array.isArray(users) ? users : [];
 
-  // All Officer Ranks from Official Police Insignia Chart with Automatic Scope Matrix
+  // All Officer Ranks with Automatic Access Matrix: Up to SI Grade -> State Level Access, Lower Grades -> Station Level Access
   const ipsRanks = [
     { code: "DGP", name: "Director General of Police", cadre: "IPS", scope: "State", role: "1" },
     { code: "ADGP", name: "Additional Director General of Police", cadre: "IPS", scope: "State", role: "1" },
@@ -83,11 +80,11 @@ export default function Admin() {
     { code: "SP (KSPS)", name: "Superintendent of Police (KSPS)", cadre: "KSPS_GAZETTED", scope: "State", role: "1" },
     { code: "Addl. SP (KSPS)", name: "Additional Superintendent of Police (KSPS)", cadre: "KSPS_GAZETTED", scope: "State", role: "1" },
     { code: "DySP", name: "Deputy Superintendent of Police", cadre: "KSPS_GAZETTED", scope: "State", role: "1" },
-    { code: "PI and CI", name: "Police Inspector and Circle Inspector (Investigating Command)", cadre: "KSPS_GAZETTED", scope: "State", role: "1" },
+    { code: "PI and CI", name: "Police Inspector and Circle Inspector", cadre: "KSPS_GAZETTED", scope: "State", role: "1" },
   ];
 
   const kspsNonGazettedRanks = [
-    { code: "PSI / SI", name: "Sub Inspector of Police (Investigating Officer)", cadre: "KSPS_NON_GAZETTED", scope: "State", role: "1" },
+    { code: "PSI / SI", name: "Sub Inspector of Police (Investigating Officer Grade)", cadre: "KSPS_NON_GAZETTED", scope: "State", role: "1" },
     { code: "ASI", name: "Assistant Sub Inspector of Police", cadre: "KSPS_NON_GAZETTED", scope: "Station", role: "4" },
     { code: "HC", name: "Head Constable", cadre: "KSPS_NON_GAZETTED", scope: "Station", role: "4" },
     { code: "PC", name: "Police Constable", cadre: "KSPS_NON_GAZETTED", scope: "Station", role: "4" },
@@ -101,21 +98,10 @@ export default function Admin() {
     if (found) {
       setScopeLevel(found.scope);
       setRoleId(found.role);
-      if (found.scope === "State") {
-        setPermFIR(true);
-        setPermGIS(true);
-        setPermNetwork(true);
-        setPermPredictive(true);
-        setPermPDF(true);
-      } else {
-        setPermFIR(true);
-        setPermGIS(true);
-        setPermNetwork(false);
-        setPermPredictive(false);
-        setPermPDF(false);
-      }
     }
   };
+
+  const isStateLevelRank = scopeLevel === "State";
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,7 +128,7 @@ export default function Admin() {
         }
       }
 
-      setFormSuccess(`Officer '${officerName || username}' (${selectedRank}) successfully appointed with ${scopeLevel}-Level Scope Access.`);
+      setFormSuccess(`Officer '${officerName || username}' (${selectedRank}) appointed with ${scopeLevel} Level Access.`);
       setUsername("");
       setPassword("");
       setEmail("");
@@ -174,7 +160,7 @@ export default function Admin() {
             </h1>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Appoint officers across IPS Cadre, KSPS Gazetted, and Non-Gazetted ranks and configure granular database permissions.
+            Appoint officers with automatic rank-based access (Up to SI Grade = State Level Access, Lower Grades = Station Level).
           </p>
         </div>
 
@@ -204,7 +190,7 @@ export default function Admin() {
 
       {activeTab === "appointments" && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* LEFT: APPOINT OFFICER FORM */}
+          {/* LEFT: APPOINT OFFICER FORM (Cleaned Up without manual scope/permission checkboxes) */}
           <div className="lg:col-span-5 bg-[#111827] border border-[#1e293b] rounded-xl p-5 space-y-4 shadow-xl">
             <div className="flex items-center gap-2 border-b border-[#1e293b] pb-3">
               <UserPlus className="text-blue-500" size={18} />
@@ -230,7 +216,7 @@ export default function Admin() {
               <div>
                 <label className="block text-slate-300 font-bold mb-1 flex items-center gap-1.5">
                   <Award size={14} className="text-amber-400" />
-                  <span>Officer Rank & Cadre (Official Hierarchy)</span>
+                  <span>Officer Rank & Designation</span>
                 </label>
                 <select
                   value={selectedRank}
@@ -259,6 +245,33 @@ export default function Admin() {
                     ))}
                   </optgroup>
                 </select>
+              </div>
+
+              {/* AUTOMATIC RANK ACCESS INDICATOR */}
+              <div
+                className={`p-3 border rounded-lg space-y-1 font-mono transition-all ${
+                  isStateLevelRank
+                    ? "bg-blue-950/40 border-blue-500/40 text-blue-300"
+                    : "bg-emerald-950/40 border-emerald-500/40 text-emerald-300"
+                }`}
+              >
+                <div className="flex items-center justify-between font-bold text-xs">
+                  <span>AUTOMATIC ACCESS LEVEL:</span>
+                  <span
+                    className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase border ${
+                      isStateLevelRank
+                        ? "bg-blue-500/20 text-blue-300 border-blue-400/40"
+                        : "bg-emerald-500/20 text-emerald-300 border-emerald-400/40"
+                    }`}
+                  >
+                    {isStateLevelRank ? "🌟 STATE LEVEL ACCESS" : "👮 STATION LEVEL ACCESS"}
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-300 leading-normal font-sans">
+                  {isStateLevelRank
+                    ? "Officers up to Sub-Inspector (SI) grade automatically receive Statewide Command Access across all districts & investigation features."
+                    : "Constables and lower grades automatically receive Police Station Precinct Access restricted to local station analytics."}
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -323,97 +336,50 @@ export default function Admin() {
                 />
               </div>
 
-              {/* Scope Level & Jurisdiction */}
-              <div className="p-3 bg-[#151c2e] border border-[#1e293b] rounded-lg space-y-2">
-                <label className="block text-slate-200 font-bold flex items-center justify-between">
-                  <span>Authorized Jurisdiction Scope Level</span>
-                  <span className="text-[10px] bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded font-mono">
-                    {scopeLevel} Level
-                  </span>
-                </label>
-                <select
-                  value={scopeLevel}
-                  onChange={(e) => setScopeLevel(e.target.value)}
-                  className="w-full bg-[#0d1322] border border-[#334155] rounded px-3 py-1.5 text-slate-100 font-mono focus:outline-none focus:border-blue-500"
-                >
-                  <option value="State">🏛️ Statewide Full Command Scope (DGP / ADGP / Admin)</option>
-                  <option value="District">🏙️ District Level Division Scope (SP / DySP / Inspector)</option>
-                  <option value="Station">👮 Police Station Precinct Scope (PSI / Constable)</option>
-                  <option value="Case">💼 Case-Specific Access Scope (External Agency Officers)</option>
-                </select>
-
-                {scopeLevel !== "State" && (
-                  <div className="grid grid-cols-2 gap-2 pt-1 font-mono">
-                    <div>
-                      <span className="text-[10px] text-slate-400 block mb-0.5">District ID:</span>
-                      <input
-                        type="number"
-                        value={districtId}
-                        onChange={(e) => setDistrictId(e.target.value)}
-                        className="w-full bg-[#0d1322] border border-[#334155] text-slate-200 rounded px-2 py-1"
-                      />
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 block mb-0.5">Station Unit ID:</span>
-                      <input
-                        type="number"
-                        value={unitId}
-                        onChange={(e) => setUnitId(e.target.value)}
-                        className="w-full bg-[#0d1322] border border-[#334155] text-slate-200 rounded px-2 py-1"
-                      />
-                    </div>
+              {!isStateLevelRank && (
+                <div className="grid grid-cols-2 gap-3 pt-1 font-mono p-3 bg-[#151c2e] border border-[#1e293b] rounded-lg">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block mb-0.5">District ID:</span>
+                    <input
+                      type="number"
+                      value={districtId}
+                      onChange={(e) => setDistrictId(e.target.value)}
+                      className="w-full bg-[#0d1322] border border-[#334155] text-slate-200 rounded px-2 py-1 text-xs"
+                    />
                   </div>
-                )}
-              </div>
-
-              {/* Feature Permission Checkboxes */}
-              <div className="p-3 bg-[#151c2e] border border-[#1e293b] rounded-lg space-y-2">
-                <span className="text-slate-300 font-bold block mb-1">Grant Feature Permissions:</span>
-                <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-slate-300">
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input type="checkbox" checked={permFIR} onChange={(e) => setPermFIR(e.target.checked)} className="rounded accent-blue-600" />
-                    <span>View FIR Registry</span>
-                  </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input type="checkbox" checked={permGIS} onChange={(e) => setPermGIS(e.target.checked)} className="rounded accent-blue-600" />
-                    <span>View GIS & Hotspots</span>
-                  </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input type="checkbox" checked={permNetwork} onChange={(e) => setPermNetwork(e.target.checked)} className="rounded accent-blue-600" />
-                    <span>Crime Network Graph</span>
-                  </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input type="checkbox" checked={permPredictive} onChange={(e) => setPermPredictive(e.target.checked)} className="rounded accent-blue-600" />
-                    <span>Predictive Intel</span>
-                  </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer col-span-2">
-                    <input type="checkbox" checked={permPDF} onChange={(e) => setPermPDF(e.target.checked)} className="rounded accent-blue-600" />
-                    <span>Export Official KSP PDF Dossiers</span>
-                  </label>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block mb-0.5">Station Unit ID:</span>
+                    <input
+                      type="number"
+                      value={unitId}
+                      onChange={(e) => setUnitId(e.target.value)}
+                      className="w-full bg-[#0d1322] border border-[#334155] text-slate-200 rounded px-2 py-1 text-xs"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               <button
                 type="submit"
                 className="w-full bg-blue-600 hover:bg-blue-500 text-white font-extrabold py-2.5 rounded-lg transition-colors shadow-lg shadow-blue-600/20 text-xs font-mono uppercase tracking-wider"
               >
-                Appoint Officer & Grant Access
+                Appoint Officer
               </button>
             </form>
           </div>
 
-          {/* RIGHT: REGISTERED OFFICERS DIRECTORY TABLE */}
+          {/* RIGHT: REGISTERED OFFICERS DIRECTORY TABLE WITH CONFIGURE ACCESS BUTTON */}
           <div className="lg:col-span-7 space-y-6">
             <div className="bg-[#111827] border border-[#1e293b] rounded-xl p-5 flex flex-col h-[650px] shadow-xl">
               <div className="flex items-center justify-between border-b border-[#1e293b] pb-3 mb-4">
                 <div className="flex items-center gap-2">
                   <Users className="text-blue-500" size={18} />
                   <h3 className="text-xs font-bold text-slate-200 font-mono uppercase tracking-wider">
-                    Active Appointed Officers Directory ({usersList.length})
+                    Appointed Officers Directory ({usersList.length})
                   </h3>
                 </div>
                 <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] px-2 py-0.5 rounded font-mono font-bold">
-                  ADMIN COMMAND CONTROLS
+                  ADMIN CONFIGURE CONTROLS
                 </span>
               </div>
 
@@ -424,8 +390,7 @@ export default function Admin() {
                   </div>
                 ) : (
                   usersList.map((u: any) => {
-                    const isIPS = u.Username.includes("sp") || u.Username.includes("dgp") || u.Username.includes("igp");
-                    const rankLabel = isIPS ? "IPS Cadre Command" : "KSPS Precinct Officer";
+                    const isStateAccess = u.role?.RoleName === "Admin" || u.role?.RoleName === "SCRB_Officer" || u.role?.RoleName === "SHO" || u.Username.includes("sp") || u.Username.includes("verma");
                     return (
                       <div
                         key={u.UserID}
@@ -437,12 +402,12 @@ export default function Admin() {
                               <span className="font-extrabold text-slate-100 text-sm font-mono">{u.Username}</span>
                               <span
                                 className={`text-[9px] px-2 py-0.5 rounded font-bold font-mono uppercase border ${
-                                  isIPS
-                                    ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
-                                    : "bg-blue-500/20 text-blue-300 border-blue-500/30"
+                                  isStateAccess
+                                    ? "bg-blue-500/20 text-blue-300 border-blue-500/30"
+                                    : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
                                 }`}
                               >
-                                {u.role?.RoleName || "Constable"}
+                                {isStateAccess ? "State Level Access" : "Station Level Access"}
                               </span>
                             </div>
                             <p className="text-[11px] text-slate-400 mt-0.5 font-mono">{u.Email}</p>
@@ -459,17 +424,17 @@ export default function Admin() {
 
                         <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#1e293b] text-[10px] font-mono text-slate-400">
                           <div>
-                            <span className="text-slate-500 block">CADRE & RANK:</span>
-                            <span className="text-slate-200 font-bold">{rankLabel}</span>
+                            <span className="text-slate-500 block">ROLE ASSIGNED:</span>
+                            <span className="text-slate-200 font-bold">{u.role?.RoleName || "Constable"}</span>
                           </div>
                           <div>
-                            <span className="text-slate-500 block">JURISDICTION SCOPE:</span>
+                            <span className="text-slate-500 block">SCOPE JURISDICTION:</span>
                             <span className="text-emerald-400 font-bold uppercase">
-                              {u.role?.RoleName === "Admin" ? "Statewide Full Command" : "District / Precinct Scope"}
+                              {isStateAccess ? "Statewide Command" : "Station Precinct Scope"}
                             </span>
                           </div>
                           <div>
-                            <span className="text-slate-500 block">ACCOUNT STATUS:</span>
+                            <span className="text-slate-500 block">STATUS:</span>
                             <span className="text-blue-400 font-bold">Active & Verified</span>
                           </div>
                         </div>
@@ -549,7 +514,7 @@ export default function Admin() {
               <div className="flex items-center gap-2">
                 <ShieldCheck size={20} className="text-blue-400" />
                 <h3 className="text-sm font-bold text-slate-100 font-mono uppercase">
-                  Configure Access Scope: {selectedOfficerConfig.Username}
+                  Configure Access: {selectedOfficerConfig.Username}
                 </h3>
               </div>
               <button onClick={() => setSelectedOfficerConfig(null)} className="text-slate-400 hover:text-slate-200">
@@ -565,17 +530,17 @@ export default function Admin() {
 
             <div className="space-y-4 text-xs font-mono">
               <div>
-                <label className="block text-slate-400 mb-1 font-bold">Upgrade Scope Level:</label>
+                <label className="block text-slate-400 mb-1 font-bold">Configure Access Scope Level:</label>
                 <select className="w-full bg-[#151c2e] border border-[#334155] rounded-lg px-3 py-2 text-slate-100 font-bold">
-                  <option value="State">🏛️ Statewide Full Command Scope</option>
-                  <option value="District">🏙️ District Level Scope</option>
-                  <option value="Station">👮 Station Precinct Scope</option>
-                  <option value="Case">💼 Case-Specific Scope</option>
+                  <option value="State">🌟 State Level Access (Statewide Command View)</option>
+                  <option value="District">🏙️ District Level Access</option>
+                  <option value="Station">👮 Station Level Access (Precinct Scope)</option>
+                  <option value="Case">💼 Case-Specific Access Scope</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1 font-bold">Assigned Role:</label>
+                <label className="block text-slate-400 mb-1 font-bold">Assigned Security Role:</label>
                 <select className="w-full bg-[#151c2e] border border-[#334155] rounded-lg px-3 py-2 text-slate-100 font-bold">
                   <option value="1">Admin (Super Administrator)</option>
                   <option value="2">SCRB Officer (State Auditor)</option>

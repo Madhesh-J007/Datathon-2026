@@ -50,8 +50,9 @@ export default function AppRoutes() {
         {/* Reports */}
         <Route path="reports" element={<Reports />} />
         
-        {/* Admin management */}
-        <Route path="admin" element={<Admin />} />
+        {/* Admin management & Officer Appointments */}
+        <Route path="appointments" element={<Admin activeTab="appointments" />} />
+        <Route path="admin" element={<Admin activeTab="system" />} />
         
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
