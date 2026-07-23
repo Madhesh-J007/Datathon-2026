@@ -15,21 +15,13 @@ from app.models.victim import Victim
 from app.models.user import User
 from app.services import ai_audit_service, report_service
 
-KNOWN_DISTRICTS = [
-    "bengaluru", "belagavi", "mysuru", "dharwad", "hubballi", "bagalkot",
-    "ballari", "bidar", "chamarajanagar", "chikballapur", "chikkamagaluru",
-    "chitradurga", "dakshina kannada", "davanagere", "gadag", "hassan",
-    "haveri", "kalaburagi", "kodagu", "kolar", "koppal", "mandya",
-    "raichur", "ramanagara", "shivamogga", "tumakuru", "udupi", "uttara kannada", "vijayanagara", "yadgir"
-]
-
 def query_assistant(db: Session, query: str, current_user: User) -> dict:
     """
-    Multi-source RAG query assistant service. Dynamically queries PostgreSQL database
-    tables (CaseMaster, Accused, Evidence, Victim, District, PoliceStation) based on query
-    intent, compiles real live database rows, and forwards to the AI Engine.
+    Multi-source RAG query assistant service. Queries PostgreSQL database
+    tables (CaseMaster, Accused, Evidence, Victim, District, PoliceStation) dynamically,
+    compiles rich entity details, and forwards to the AI Engine serving endpoint.
     """
-    q_lower = query.lower()
+    q_lower = query.lower().strip()
     telemetry_lines = []
     search_lines = []
     source_cases = []
@@ -55,140 +47,85 @@ def query_assistant(db: Session, query: str, current_user: User) -> dict:
     telemetry_lines.append(f"Top District Volume: {dist_summary}")
     telemetry_lines.append("=========================================\n")
 
-    # 2. Case Number Match (e.g. 202200001 or Case #1)
+    # Clean query into search tokens for flexible PostgreSQL lookup
+    stop_words = {"tell", "me", "about", "abt", "who", "is", "the", "accused", "suspect", "in", "case", "cases", "details", "for", "and", "give", "show", "search", "find", "analyze", "what", "where", "please", "info", "information"}
+    search_tokens = [w for w in re.sub(r'[^\w\s]', '', q_lower).split() if w not in stop_words and len(w) >= 2]
+
+    # Helper function to convert CaseMaster row into rich pipe-separated string
+    def format_case_row(c: CaseMaster) -> str:
+        if c not in source_cases:
+            source_cases.append(c)
+
+        ps = db.query(PoliceStation).filter(PoliceStation.UnitID == c.PoliceStationID).first()
+        dist = db.query(District).filter(District.DistrictID == ps.DistrictID).first() if ps else None
+        station_name = ps.UnitName if ps else "Precinct PS"
+        dist_name = dist.DistrictName if dist else "Karnataka"
+
+        accused_list = db.query(Accused).filter(Accused.CaseMasterID == c.CaseMasterID).all()
+        accused_str = ", ".join([f"{a.AccusedName} ({a.AgeYear or 'N/A'} yrs, {'Repeat Offender' if a.IsRepeatOffender else 'First Offence'})" for a in accused_list if a.AccusedName]) or "None listed"
+
+        victims_list = db.query(Victim).filter(Victim.CaseMasterID == c.CaseMasterID).all()
+        victims_str = ", ".join([f"{v.VictimName} ({getattr(v, 'AgeYear', None) or 'N/A'} yrs, {getattr(v, 'InjurySeverity', None) or 'Victim'})" for v in victims_list if getattr(v, 'VictimName', None)]) or "None listed"
+
+        evidences = db.query(Evidence).filter(Evidence.CaseMasterID == c.CaseMasterID).all()
+        ev_summary = ", ".join([f"{e.Description} ({e.EvidenceType or 'Item'})" for e in evidences if e.Description]) or "Standard crime scene evidence"
+
+        reg_date = str(c.CrimeRegisteredDate)[:10] if c.CrimeRegisteredDate else "N/A"
+        risk_pct = int((c.AIRiskScore or 0) * 100)
+
+        return (
+            f"CaseID: {c.CaseMasterID} | CaseNo: {c.CaseNo} | Date: {reg_date} | District: {dist_name} | "
+            f"Station: {station_name} | RiskScore: {risk_pct}% | Priority: {c.InvestigationPriority or 'Normal'} | "
+            f"Accused: {accused_str} | Victims: {victims_str} | Evidence: {ev_summary} | Facts: {(c.BriefFacts or 'N/A')[:180]}"
+        )
+
+    # 2. Case Number or ID Match (e.g. 202200001, 202300005, Case 1)
     case_no_match = re.search(r'\b(20\d{7}|\d{1,5})\b', query)
     if case_no_match:
         matched_str = case_no_match.group(1)
-        found_case = db.query(CaseMaster).filter(
+        found_cases = db.query(CaseMaster).filter(
             or_(
                 CaseMaster.CaseNo == matched_str,
                 CaseMaster.CaseMasterID == (int(matched_str) if matched_str.isdigit() else -1)
             )
-        ).first()
+        ).all()
 
-        if found_case:
-            source_cases.append(found_case)
-            accused_names = ", ".join([a.AccusedName for a in found_case.accused_list if a.AccusedName]) or "None listed"
-            evidences = db.query(Evidence).filter(Evidence.CaseMasterID == found_case.CaseMasterID).all()
-            ev_summary = ", ".join([e.Description for e in evidences if e.Description]) or "Standard crime scene evidence"
+        for fc in found_cases:
+            search_lines.append(format_case_row(fc))
 
-            search_lines.append(
-                f"CaseID: {found_case.CaseMasterID} | CaseNo: {found_case.CaseNo} | RiskScore: {int((found_case.AIRiskScore or 0)*100)}% | Priority: {found_case.InvestigationPriority} | Accused: {accused_names} | Evidence: {ev_summary} | Facts: {found_case.BriefFacts}"
-            )
+    # 3. Flexible Keyword & BriefFacts Search in PostgreSQL
+    if search_tokens:
+        or_conditions = []
+        for t in search_tokens:
+            or_conditions.append(CaseMaster.BriefFacts.ilike(f"%{t}%"))
+            or_conditions.append(CaseMaster.CaseNo.ilike(f"%{t}%"))
 
-    # 3. Accused / Suspect Search (e.g. Ramesh, Sunita, Hegde, Verma)
-    stop_words = {"tell", "me", "about", "abt", "who", "is", "the", "accused", "suspect", "in", "case", "details", "for", "and", "give", "show", "search", "find", "analyze"}
-    clean_name_query = " ".join([w for w in q_lower.replace("?", "").replace(".", "").replace(",", "").split() if w not in stop_words and len(w) >= 2]).strip()
+        matched_kw_cases = db.query(CaseMaster).filter(or_(*or_conditions)).order_by(desc(CaseMaster.AIRiskScore)).limit(8).all()
+        for c in matched_kw_cases:
+            row_str = format_case_row(c)
+            if row_str not in search_lines:
+                search_lines.append(row_str)
 
-    if clean_name_query and len(clean_name_query) >= 3:
-        accused_rows = db.query(
-            Accused.AccusedName,
-            Accused.AgeYear,
-            Accused.Occupation,
-            Accused.IsRepeatOffender,
-            CaseMaster.CaseMasterID,
-            CaseMaster.CaseNo,
-            CaseMaster.BriefFacts,
-            PoliceStation.UnitName
-        ).join(
-            CaseMaster, Accused.CaseMasterID == CaseMaster.CaseMasterID
-        ).outerjoin(
-            PoliceStation, CaseMaster.PoliceStationID == PoliceStation.UnitID
-        ).filter(
-            Accused.AccusedName.ilike(f"%{clean_name_query}%")
-        ).limit(10).all()
+        # Also search Accused table for suspect names
+        for t in search_tokens:
+            acc_rows = db.query(Accused).filter(Accused.AccusedName.ilike(f"%{t}%")).limit(5).all()
+            for acc in acc_rows:
+                c_obj = db.query(CaseMaster).filter(CaseMaster.CaseMasterID == acc.CaseMasterID).first()
+                if c_obj:
+                    row_str = format_case_row(c_obj)
+                    if row_str not in search_lines:
+                        search_lines.append(row_str)
 
-        if accused_rows:
-            search_lines.append("=== MATCHED ACCUSED / SUSPECT RECORDS ===")
-            for r in accused_rows:
-                a_name, age, occ, repeat, c_id, c_no, facts, p_name = r
-                c_obj = db.query(CaseMaster).filter(CaseMaster.CaseMasterID == c_id).first()
-                if c_obj and c_obj not in source_cases:
-                    source_cases.append(c_obj)
-                search_lines.append(
-                    f"- AccusedName: {a_name} | Age: {age or 'N/A'} | Occupation: {occ or 'N/A'} | RepeatOffender: {'Yes' if repeat else 'No'} | CaseID: {c_id} | CaseNo: {c_no} | Station: {p_name or 'N/A'} | Facts: {(facts or 'N/A')[:130]}"
-                )
-
-    # 4. Keyword / Crime Head Search (e.g. theft, cyber, fraud, murder, robbery, narcotics, burglary)
-    keywords = ["mobile", "theft", "robbery", "vehicle", "murder", "burglary", "cyber", "extortion", "harassment", "narcotics", "drug", "assault", "weapon", "accident", "fraud"]
-    matched_kw = [kw for kw in keywords if kw in q_lower]
-
-    if matched_kw:
-        kw = matched_kw[0]
-        kw_cases = db.query(CaseMaster).filter(CaseMaster.BriefFacts.ilike(f"%{kw}%")).order_by(desc(CaseMaster.AIRiskScore)).limit(10).all()
-        if kw_cases:
-            search_lines.append(f"=== MATCHED KEYWORD CRIME DOSSIERS ({kw.upper()}) ===")
-            for c in kw_cases:
-                if c not in source_cases:
-                    source_cases.append(c)
-                accused_names = ", ".join([a.AccusedName for a in c.accused_list if a.AccusedName]) or "None listed"
-                search_lines.append(
-                    f"CaseID: {c.CaseMasterID} | CaseNo: {c.CaseNo} | RiskScore: {int((c.AIRiskScore or 0)*100)}% | Priority: {c.InvestigationPriority} | Accused: {accused_names} | Facts: {(c.BriefFacts or 'N/A')[:120]}"
-                )
-
-    # 5. Location / District Search (e.g. Belagavi, Bengaluru, Mysuru)
-    matched_district = None
-    for dist in KNOWN_DISTRICTS:
-        if dist in q_lower:
-            matched_district = dist
-            break
-
-    if matched_district:
-        dist_cases = db.query(
-            District.DistrictName,
-            PoliceStation.UnitName,
-            CaseMaster.CaseMasterID,
-            CaseMaster.CaseNo,
-            CaseMaster.AIRiskScore,
-            CaseMaster.BriefFacts
-        ).join(
-            PoliceStation, CaseMaster.PoliceStationID == PoliceStation.UnitID
-        ).join(
-            District, PoliceStation.DistrictID == District.DistrictID
-        ).filter(
-            District.DistrictName.ilike(f"%{matched_district}%")
-        ).order_by(desc(CaseMaster.AIRiskScore)).limit(10).all()
-
-        if dist_cases:
-            search_lines.append(f"=== DISTRICT LOCATION RECORDS ({matched_district.upper()}) ===")
-            for row in dist_cases:
-                d_name, p_name, c_id, c_no, risk_score, facts = row
-                c_obj = db.query(CaseMaster).filter(CaseMaster.CaseMasterID == c_id).first()
-                if c_obj and c_obj not in source_cases:
-                    source_cases.append(c_obj)
-                search_lines.append(
-                    f"- Station: {p_name} | District: {d_name} | CaseID: {c_id} | CaseNo: {c_no} | RiskScore: {int((risk_score or 0)*100)}% | Facts: {(facts or 'N/A')[:110]}"
-                )
-
-    # 6. Repeat Offender / Linkage Intent
-    if any(k in q_lower for k in ["repeat", "linkage", "linked", "gang", "network", "accomplice"]):
-        repeat_accused_list = db.query(
-            Accused.AccusedName,
-            func.count(Accused.CaseMasterID).label("cnt")
-        ).group_by(
-            Accused.AccusedName
-        ).order_by(desc("cnt")).limit(5).all()
-
-        search_lines.append("=== REPEAT OFFENDER MULTI-FIR OVERLAPS ===")
-        for a_name, cnt in repeat_accused_list:
-            search_lines.append(f"- AccusedName: {a_name} | LinkedCasesCount: {cnt}")
-
-    # 7. Fallback: If no specific search lines matched, retrieve top high-risk cases in DB
+    # 4. Fallback: If search_lines is empty, fetch top highest-risk FIR cases in PostgreSQL
     if not search_lines:
-        top_cases = db.query(CaseMaster).order_by(desc(CaseMaster.AIRiskScore)).limit(10).all()
-        search_lines.append("=== TOP HIGH-RISK PRECINCT CASE DOSSIERS ===")
+        top_cases = db.query(CaseMaster).order_by(desc(CaseMaster.AIRiskScore)).limit(8).all()
         for c in top_cases:
-            if c not in source_cases:
-                source_cases.append(c)
-            accused_names = ", ".join([a.AccusedName for a in c.accused_list if a.AccusedName]) or "None listed"
-            search_lines.append(
-                f"CaseID: {c.CaseMasterID} | CaseNo: {c.CaseNo} | RiskScore: {int((c.AIRiskScore or 0)*100)}% | Priority: {c.InvestigationPriority} | Accused: {accused_names} | Facts: {(c.BriefFacts or 'N/A')[:120]}"
-            )
+            search_lines.append(format_case_row(c))
 
     full_context_lines = telemetry_lines + search_lines
     context_str = "\n".join(full_context_lines)
 
-    # 8. Call AI inference engine
+    # 5. Call AI Engine serving endpoint
     payload = {
         "query": query,
         "context": context_str

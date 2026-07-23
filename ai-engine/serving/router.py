@@ -197,32 +197,32 @@ def assistant_query(payload: dict) -> dict:
         if not line.strip() or "CaseID:" not in line:
             continue
         parts = line.split(" | ")
-        case_id = None
-        case_no = "N/A"
-        accused = "None listed"
-        facts = "N/A"
+        c_dict = {}
         for p in parts:
-            if p.startswith("CaseID:"):
-                try:
-                    case_id = int(p.split(":")[1].strip())
-                except ValueError:
-                    pass
-            elif p.startswith("CaseNo:"):
-                case_no = p.split(":")[1].strip()
-            elif p.startswith("Accused:"):
-                accused_val = p.split(":", 1)[1].strip()
-                if accused_val:
-                    accused = accused_val
-            elif p.startswith("Facts:"):
-                facts = p.split(":", 1)[1].strip()
+            if ":" in p:
+                k, v = p.split(":", 1)
+                c_dict[k.strip().lower()] = v.strip()
 
-        if case_id:
-            parsed_cases.append({
-                "id": case_id,
-                "no": case_no,
-                "accused": accused,
-                "facts": facts
-            })
+        c_id = None
+        if "caseid" in c_dict:
+            try:
+                c_id = int(c_dict["caseid"])
+            except ValueError:
+                pass
+
+        parsed_cases.append({
+            "id": c_id or 0,
+            "no": c_dict.get("caseno", "N/A"),
+            "date": c_dict.get("date", "N/A"),
+            "district": c_dict.get("district", "N/A"),
+            "station": c_dict.get("station", "N/A"),
+            "risk": c_dict.get("riskscore", "N/A"),
+            "priority": c_dict.get("priority", "N/A"),
+            "accused": c_dict.get("accused", "None listed"),
+            "victims": c_dict.get("victims", "None listed"),
+            "evidence": c_dict.get("evidence", "None listed"),
+            "facts": c_dict.get("facts", "N/A"),
+        })
 
     # PDF / Report Generation Check
     is_pdf_req = any(k in query_lower for k in ["pdf", "report", "dossier", "export", "download"])
@@ -461,27 +461,36 @@ def assistant_query(payload: dict) -> dict:
         if "Total Registered FIRs" in line or "High AI Threat Risk" in line or "Active Pending" in line or "Top District Volume" in line:
             dataset_snapshot_lines.append(line)
 
-    if dataset_snapshot_lines or is_general_summary:
+    if dataset_snapshot_lines or parsed_cases:
         snap_bullets = "\n".join([f"* **{line.split(':')[0].strip()}**: `{line.split(':', 1)[1].strip()}`" for line in dataset_snapshot_lines if ":" in line])
-        top_cases = parsed_cases[:3]
-        source_case_ids = [c["id"] for c in top_cases]
-        case_summary_bullets = "\n".join([
-            f"* **Case {c['no']}**: Suspects: `{c['accused']}` — *{c['facts'][:110]}...*"
-            for c in top_cases
-        ]) if top_cases else "* Active FIR dossiers indexed in PostgreSQL database."
+        top_cases = parsed_cases[:4]
+        source_case_ids = [c["id"] for c in top_cases if c["id"]]
+
+        case_dossier_blocks = []
+        for c in top_cases:
+            case_dossier_blocks.append(
+                f"### 📋 Case File Dossier: **FIR #{c['no']}** (Case ID: {c['id']})\n"
+                f"* **Jurisdiction**: `{c['district']}` | `{c['station']}`\n"
+                f"* **Registered Date**: `{c['date']}` | Status: **Active**\n"
+                f"* **AI Threat Risk Score**: **{c['risk']}** | Priority: **{c['priority']}**\n"
+                f"* **Accused Suspects**: `{c['accused']}`\n"
+                f"* **Victims**: `{c['victims']}`\n"
+                f"* **Seized Evidence**: `{c['evidence']}`\n"
+                f"* **Brief Registered Facts**: *\"{c['facts']}\"*"
+            )
+
+        case_details_text = "\n\n".join(case_dossier_blocks) if case_dossier_blocks else "* Active FIR dossiers indexed in PostgreSQL database."
 
         answer = (
-            f"### 🛡️ KSP Whole-Dataset Comprehensive Crime Intelligence Report\n\n"
+            f"### 🛡️ KSP PostgreSQL Live Case Intelligence Report\n\n"
             f"**Query**: *\"{raw_query}\"*\n"
-            f"**Data Scope**: 5,000 PostgreSQL FIR Database Records Evaluated\n\n"
+            f"**Data Scope**: Real Live PostgreSQL CaseMaster & Entity Tables Evaluated\n\n"
+            f"{case_details_text}\n\n"
             f"#### 📊 Whole Dataset Telemetry Overview:\n"
             f"{snap_bullets if snap_bullets else '* **Database Records**: 5,000 Active FIR Files'}\n\n"
-            f"#### 🔍 Key Active Precinct Case Dossiers:\n"
-            f"{case_summary_bullets}\n\n"
             f"#### 🚨 Actionable AI Tactical Directives:\n"
-            f"* **Hotspot Patrol Deployments**: Increase mobile beat car patrols around high-risk precincts between 18:00 - 23:00 hrs.\n"
-            f"* **Cross-Agency Case Tracking**: Share inter-agency collaboration requests for multi-district suspect networks.\n"
-            f"* **PDF Dossier Compilation**: Ask me to compile an official KSP PDF Dossier for any case ID."
+            f"* **Dossier Download**: Type *'Compile PDF dossier for Case {top_cases[0]['no'] if top_cases else '1'}'* for official PDF export.\n"
+            f"* **Cross-Agency Case Tracking**: Share inter-agency collaboration requests for multi-district suspect networks."
         )
     else:
         answer = (
