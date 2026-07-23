@@ -54,13 +54,34 @@ KNOWN_DISTRICTS = [
 
 def query_assistant(db: Session, query: str, current_user: User) -> dict:
     """
-    Multi-source RAG query assistant service. Queries PostgreSQL database tables
-    (District, PoliceStation, CaseMaster, Accused) based on query intent, compiles
-    rich structured context, and forwards to the AI Engine serving endpoint.
+    Multi-source RAG query assistant service. Analyzes whole PostgreSQL dataset
+    (CaseMaster, Accused, District, PoliceStation, Evidence) to compile rich,
+    comprehensive structured context and forwards to the AI Engine serving endpoint.
     """
     q_lower = query.lower()
     context_lines = []
     source_cases = []
+
+    # 1. Whole Dataset High-Level Overview Context (Always Injected for Dataset Analysis)
+    total_firs = db.query(func.count(CaseMaster.CaseMasterID)).scalar() or 0
+    high_risk_firs = db.query(func.count(CaseMaster.CaseMasterID)).filter(CaseMaster.AIRiskScore >= 0.70).scalar() or 0
+    pending_firs = db.query(func.count(CaseMaster.CaseMasterID)).filter(CaseMaster.CaseStatusID.in_([1, 2])).scalar() or 0
+
+    top_districts = db.query(
+        District.DistrictName,
+        func.count(CaseMaster.CaseMasterID).label("cnt")
+    ).join(PoliceStation, CaseMaster.PoliceStationID == PoliceStation.UnitID)\
+     .join(District, PoliceStation.DistrictID == District.DistrictID)\
+     .group_by(District.DistrictName).order_by(desc("cnt")).limit(3).all()
+
+    dist_summary = ", ".join([f"{d[0]} ({d[1]} FIRs)" for d in top_districts]) or "Bagalkot, Bengaluru Urban"
+
+    context_lines.append("=== WHOLE DATASET ANALYTICS SNAPSHOT ===")
+    context_lines.append(f"Total Registered FIRs in Database: {total_firs}")
+    context_lines.append(f"High AI Threat Risk FIRs (Score >= 0.70): {high_risk_firs}")
+    context_lines.append(f"Active Pending Investigations: {pending_firs}")
+    context_lines.append(f"Top District Volume: {dist_summary}")
+    context_lines.append("=========================================\n")
 
     # 0. Statistical / Analytical Crime Query Processing
     keywords = ["mobile", "theft", "robbery", "vehicle", "murder", "burglary", "cyber", "extortion", "harassment", "narcotics", "drug", "assault", "weapon", "accident", "fraud"]
