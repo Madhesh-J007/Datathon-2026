@@ -27,7 +27,9 @@ export default function Sidebar() {
     if (u === "ksp_admin") {
       return "System Administrator";
     }
-    if (u.includes("dgp")) return "DGP — Director General of Police";
+    if (u.includes("bharathvaj") || u.includes("dgp")) {
+      return "DGP — Director General of Police";
+    }
     if (u.includes("adgp")) return "ADGP — Addl. Director General";
     if (u.includes("igp")) return "IGP — Inspector General";
     if (u.includes("digp")) return "DIGP — Deputy Inspector General";
@@ -43,7 +45,7 @@ export default function Sidebar() {
     if (u.includes("ed")) return "JD — Enforcement Directorate";
     
     if (roleName === "Admin") return "System Administrator";
-    if (roleName === "SCRB_Officer") return "Senior Investigative Officer";
+    if (roleName === "SCRB_Officer") return "DGP — Director General of Police";
     if (roleName === "SHO") return "PI — Station House Officer";
     if (roleName === "Constable") return "PC — Police Constable";
     
