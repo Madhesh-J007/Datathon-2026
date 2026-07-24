@@ -235,12 +235,15 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const t = (key: string, fallback?: string): string => {
-    if (language === "en") {
-      return key;
-    }
     const dict = translations[language];
     if (dict && dict[key]) {
       return dict[key];
+    }
+    if (translations["en"][key]) {
+      return translations["en"][key];
+    }
+    if (language === "en") {
+      return key;
     }
     if (dataDictionary[key]) {
       return dataDictionary[key];
