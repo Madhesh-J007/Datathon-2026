@@ -75,7 +75,7 @@ export default function Investigation() {
   const caseId = id ? parseInt(id) : null;
   const [activeSubTab, setActiveSubTab] = useState("overview");
   const [selectedCompareCase, setSelectedCompareCase] = useState<any>(null);
-  const [workspaceTab, setWorkspaceTab] = useState<"workspace" | "cases">("workspace");
+  const [workspaceTab, setWorkspaceTab] = useState<"workspace" | "cases">("cases");
 
   // Evidence Upload & Preview State
   const [selectedEvidenceForPreview, setSelectedEvidenceForPreview] = useState<any>(null);
