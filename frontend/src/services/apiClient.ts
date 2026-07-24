@@ -2,14 +2,11 @@ import axios from "axios";
 
 const getApiBaseUrl = () => {
   const envUrl = (import.meta as any).env?.VITE_API_BASE_URL;
-  if (envUrl && envUrl.trim() !== "") {
+  if (envUrl && envUrl.trim() !== "" && envUrl.startsWith("http")) {
+    // If explicitly pointing to backend
     return envUrl;
   }
-  if (typeof window !== "undefined") {
-    const hostname = window.location.hostname || "127.0.0.1";
-    return `http://${hostname}:8000/api/v1`;
-  }
-  return "http://127.0.0.1:8000/api/v1";
+  return "/api/v1";
 };
 
 const API_BASE_URL = getApiBaseUrl();
