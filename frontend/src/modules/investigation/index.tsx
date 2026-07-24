@@ -231,27 +231,27 @@ export default function Investigation() {
     // CASE LIST VIEW
     // ----------------------------------------------------
     const columns = [
-      { header: "Case Number", accessorKey: "CaseNo", render: (r: any) => <span className="text-blue-400 font-bold font-mono">{r.CaseNo}</span> },
-      { header: "Reg Date", accessorKey: "CrimeRegisteredDate" },
-      { header: "Priority", accessorKey: "InvestigationPriority", render: (r: any) => (
+      { header: t("Case Number", "ಪ್ರಕರಣ ಸಂಖ್ಯೆ"), accessorKey: "CaseNo", render: (r: any) => <span className="text-blue-400 font-bold font-mono">{r.CaseNo}</span> },
+      { header: t("Reg Date", "ನೋಂದಾಯಿತ ದಿನಾಂಕ"), accessorKey: "CrimeRegisteredDate" },
+      { header: t("Priority", "ಆದ್ಯತೆ"), accessorKey: "InvestigationPriority", render: (r: any) => (
           <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono border ${
             r.InvestigationPriority === "High" ? "bg-red-500/10 text-red-400 border-red-500/20" :
             r.InvestigationPriority === "Medium" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
             "bg-slate-500/10 text-slate-400 border-slate-500/20"
           }`}>
-            {r.InvestigationPriority}
+            {translateData(r.InvestigationPriority)}
           </span>
         )
       },
-      { header: "Severity ID", accessorKey: "GravityOffenceID", render: (r: any) => (
-          <span className="font-mono text-slate-300">Level {r.GravityOffenceID}</span>
+      { header: t("Severity ID", "ಗಾಂಭೀರ್ಯತೆ ಸೂಚ್ಯಂಕ"), accessorKey: "GravityOffenceID", render: (r: any) => (
+          <span className="font-mono text-slate-300">{t("Level", "ಹಂತ")} {r.GravityOffenceID}</span>
         )
       },
-      { header: "AI Risk Score", accessorKey: "AIRiskScore", render: (r: any) => (
+      { header: t("AI Risk Score", "ಎಐ ರಿಸ್ಕ್ ಸ್ಕೋರ್"), accessorKey: "AIRiskScore", render: (r: any) => (
           <span className="font-mono font-bold text-red-400">{(r.AIRiskScore || 0).toFixed(2)}</span>
         )
       },
-      { header: "Brief Facts", accessorKey: "BriefFacts", render: (r: any) => <p className="truncate max-w-sm">{r.BriefFacts}</p> }
+      { header: t("Brief Facts", "ಅಪರಾಧ ಸಾರಾಂಶ"), accessorKey: "BriefFacts", render: (r: any) => <p className="truncate max-w-sm">{translateData(r.BriefFacts)}</p> }
     ];
 
     return (

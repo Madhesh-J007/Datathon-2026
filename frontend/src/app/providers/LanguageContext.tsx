@@ -259,13 +259,28 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // 2. Pattern sentence replacements for FIR descriptions & AI narratives
     let translated = text;
 
-    // Sentence structure replacements
+    // Sentence & phrase structure replacements
     translated = translated.replace(/Offence registered regarding property harassment and financial fraud/gi, "ಆಸ್ತಿ ಕಿರುಕುಳ ಮತ್ತು ಆರ್ಥಿಕ ವಂಚನೆಗೆ ಸಂಬಂಧಿಸಿದಂತೆ ಅಪರಾಧ ನೋಂದಾಯಿಸಲಾಗಿದೆ");
     translated = translated.replace(/Offence registered regarding/gi, "ಸಂಬಂಧಿಸಿದಂತೆ ಪ್ರಕರಣ ನೋಂದಾಯಿಸಲಾಗಿದೆ:");
+    translated = translated.replace(/Offence registered|Offense registered/gi, "ಅಪರಾಧ ನೋಂದಾಯಿಸಲಾಗಿದೆ");
     translated = translated.replace(/The accused brandished a gun in a public place during a local dispute/gi, "ಸ್ಥಳೀಯ ಗಲಾಟೆಯ ಸಮಯದಲ್ಲಿ ಆರೋಪಿಯು ಸಾರ್ವಜನಿಕ ಸ್ಥಳದಲ್ಲಿ ಬಂದೂಕು ತೋರಿಸಿ ಬೆದರಿಕೆ ಹಾಕಿದ್ದಾನೆ");
     translated = translated.replace(/Police later collected Scene Photograph and Witness Statement Record as part of the case file/gi, "ತನಿಖಾಧಿಕಾರಿಗಳು ಅಪರಾಧ ಸ್ಥಳದ ಛಾಯಾಚಿತ್ರ ಮತ್ತು ಸಾಕ್ಷಿಗಳ ಹೇಳಿಕೆಯನ್ನು ಸಂಗ್ರಹಿಸಿದ್ದಾರೆ");
+    translated = translated.replace(/Police later collected/gi, "ಪೊಲೀಸರು ತರುವಾಯ ಸಂಗ್ರಹಿಸಿದ್ದಾರೆ");
+    translated = translated.replace(/Scene Photograph/gi, "ಅಪರಾಧ ಸ್ಥಳದ ಛಾಯಾಚಿತ್ರ");
+    translated = translated.replace(/Witness Statement Record/gi, "ಸಾಕ್ಷಿಗಳ ಹೇಳಿಕೆ ದಾಖಲೆ");
+    translated = translated.replace(/as part of the case file/gi, "ಕೇಸ್ ಫೈಲ್ ಭಾಗವಾಗಿ");
     translated = translated.replace(/The suspect was arrested for transporting chemically spiked prohibited narcotics/gi, "ರಾಸಾಯನಿಕ ಮಿಶ್ರಿತ ನಿಷೇಧಿತ ಮಾದಕ ದ್ರವ್ಯ ಸಾಗಿಸುತ್ತಿದ್ದ ಶಂಕಿತ ಆರೋಪಿಯನ್ನು ಬಂಧಿಸಲಾಗಿದೆ");
+    translated = translated.replace(/prohibited narcotics/gi, "ನಿಷೇಧಿತ ಮಾದಕ ದ್ರವ್ಯ");
+    translated = translated.replace(/chemically spiked/gi, "ರಾಸಾಯನಿಕ ಮಿಶ್ರಿತ");
+    translated = translated.replace(/was arrested for transporting/gi, "ಸಾಗಾಣಿಕೆಗಾಗಿ ಬಂಧಿಸಲಾಗಿದೆ");
     translated = translated.replace(/The offense occurred near a general\/public place/gi, "ಸಾರ್ವಜನಿಕ ಪ್ರದೇಶದ ಸಮೀಪದಲ್ಲಿ ಅಪರಾಧ ಸಂಭವಿಸಿದೆ");
+    translated = translated.replace(/The offense occurred near|The offence occurred near/gi, "ಅಪರಾಧ ಸ್ಥಳ:");
+    translated = translated.replace(/general\/public place/gi, "ಸಾರ್ವಜನಿಕ ಪ್ರದೇಶ");
+    translated = translated.replace(/property harassment/gi, "ಆಸ್ತಿ ಕಿರುಕುಳ");
+    translated = translated.replace(/financial fraud/gi, "ಆರ್ಥಿಕ ವಂಚನೆ");
+    translated = translated.replace(/brandished a gun/gi, "ಬಂದೂಕು ತೋರಿಸಿ ಬೆದರಿಕೆ ಹಾಕಿದ್ದಾನೆ");
+    translated = translated.replace(/in a public place/gi, "ಸಾರ್ವಜನಿಕ ಸ್ಥಳದಲ್ಲಿ");
+    translated = translated.replace(/during a local dispute/gi, "ಸ್ಥಳೀಯ ಗಲಾಟೆಯ ಸಮಯದಲ್ಲಿ");
     translated = translated.replace(/The complainant reported that/gi, "ದೂರುದಾರರು ಸಲ್ಲಿಸಿದ ದೂರಿನಂತೆ");
     translated = translated.replace(/unknown miscreants/gi, "ಅಪರಿಚಿತ ದುಷ್ಕರ್ಮಿಗಳು");
     translated = translated.replace(/broke into/gi, "ಅಕ್ರಮವಾಗಿ ಪ್ರವೇಶಿಸಿ");
