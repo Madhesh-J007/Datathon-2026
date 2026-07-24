@@ -1,26 +1,27 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../app/providers/AuthProvider";
-import { Lock, User, AlertCircle, ShieldCheck, Key, ArrowRight } from "lucide-react";
+import { Lock, User, AlertCircle, ShieldCheck, ArrowRight, Eye, EyeOff, KeyRound, Fingerprint } from "lucide-react";
 
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e?: React.FormEvent, uOverride?: string, pOverride?: string) => {
-    if (e) e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!username.trim() || !password.trim()) return;
+
     setError("");
     setLoading(true);
 
-    const u = uOverride || username;
-    const p = pOverride || password;
-
     try {
-      await login(u, p);
+      await login(username, password);
+      const u = username.toLowerCase();
       if (u.includes("cbi") || u.includes("fsl") || u.includes("ed")) {
         navigate("/collaboration");
       } else {
@@ -32,144 +33,63 @@ export default function Login() {
       if (detail) {
         setError(detail);
       } else if (err.message) {
-        setError(`Backend Connection Error (${err.message}). Ensure backend container is running.`);
+        setError(`Connection Error (${err.message}). Ensure system services are active.`);
       } else {
-        setError("Authentication failed. Please verify connection & credentials.");
+        setError("Invalid User ID or Password. Please verify your officer credentials.");
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleInstantPreset = (u: string, p: string) => {
-    setUsername(u);
-    setPassword(p);
-    handleSubmit(undefined, u, p);
-  };
-
   return (
-    <div className="flex h-screen w-screen items-center justify-center bg-[#070b13] p-4 select-none font-sans">
-      <div className="w-full max-w-xl bg-[#0d1322] border border-[#1e293b] rounded-lg p-8 shadow-2xl relative space-y-5">
-        <div className="flex flex-col items-center">
-          <div className="w-12 h-12 rounded bg-blue-600 flex items-center justify-center font-bold text-white text-xl tracking-wider mb-2 shadow-lg shadow-blue-600/30">
-            KSP
+    <div className="relative flex min-h-screen w-screen items-center justify-center bg-[#050811] p-4 select-none font-sans overflow-hidden">
+      {/* Dynamic Background Ambient Light Gradients */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[140px] pointer-events-none"></div>
+      <div className="absolute bottom-10 right-10 w-[400px] h-[400px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+      {/* Main High-End Login Glassmorphism Card */}
+      <div className="w-full max-w-md bg-[#0a0f1d]/90 backdrop-blur-2xl border border-blue-500/20 rounded-2xl p-8 shadow-[0_0_60px_rgba(15,23,42,0.8)] relative space-y-6 z-10 font-sans">
+        
+        {/* Top Header Badge & Insignia */}
+        <div className="flex flex-col items-center text-center space-y-3">
+          <div className="relative">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-700 via-blue-600 to-indigo-500 flex items-center justify-center font-extrabold text-white text-2xl tracking-widest shadow-xl shadow-blue-600/30 border border-blue-400/30">
+              KSP
+            </div>
+            <div className="absolute -bottom-1 -right-1 bg-amber-500 text-black rounded-full p-1 border-2 border-[#0a0f1d]">
+              <ShieldCheck size={12} />
+            </div>
           </div>
-          <h2 className="text-base font-bold text-slate-100 tracking-tight leading-tight text-center font-mono uppercase">
-            Karnataka State Police Crime Intelligence Platform
-          </h2>
-          <span className="text-xs text-blue-400 font-mono tracking-widest uppercase mt-1 flex items-center gap-1">
-            <ShieldCheck size={13} />
-            Unified Authentication Portal
-          </span>
+
+          <div>
+            <span className="text-[10px] text-blue-400 font-mono tracking-[0.2em] uppercase font-semibold">
+              Government of Karnataka
+            </span>
+            <h1 className="text-base font-bold text-slate-100 tracking-tight uppercase font-mono mt-0.5">
+              Police Crime Intelligence Platform
+            </h1>
+            <p className="text-[11px] text-slate-400 mt-1 font-mono">
+              Unified Officer Command & Control Telemetry
+            </p>
+          </div>
         </div>
 
+        {/* Error Notification Bar */}
         {error && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded text-xs flex items-start gap-2.5 leading-relaxed font-mono">
-            <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-3.5 rounded-xl text-xs flex items-start gap-2.5 leading-relaxed font-mono animate-in fade-in zoom-in-95 duration-150">
+            <AlertCircle size={16} className="flex-shrink-0 mt-0.5 text-red-400" />
             <span>{error}</span>
           </div>
         )}
 
-        {/* PROMINENT CREDENTIALS CARD */}
-        <div className="bg-[#151c2e] border border-[#1e293b] p-4 rounded-xl text-xs font-mono space-y-3">
-          <div className="flex items-center justify-between border-b border-[#1e293b] pb-2">
-            <span className="text-amber-400 font-bold flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
-              <Key size={14} />
-              Appointed Officers Credentials Directory (Click to Login Instantly):
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 text-[11px]">
-            {/* 1. Bharathvaj DGP */}
-            <button
-              onClick={() => handleInstantPreset("Bharathvaj", "change_me")}
-              className="bg-[#0f172a] hover:bg-blue-600/20 border border-blue-500/30 hover:border-blue-400 p-2.5 rounded-lg text-left transition-all group"
-            >
-              <div className="flex justify-between items-center">
-                <span className="font-bold text-blue-400">🏛️ Bharathvaj (DGP)</span>
-                <ArrowRight size={12} className="text-slate-500 group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all" />
-              </div>
-              <p className="text-slate-300 mt-1">ID: <span className="text-amber-300 font-bold">Bharathvaj</span></p>
-              <p className="text-slate-400">Pass: <span className="text-emerald-400 font-bold">change_me</span></p>
-              <span className="text-[9px] text-blue-300 bg-blue-500/10 px-1.5 py-0.5 rounded mt-1 inline-block">Statewide Command</span>
-            </button>
-
-            {/* 2. Ramesh SP */}
-            <button
-              onClick={() => handleInstantPreset("ramesh", "change_me")}
-              className="bg-[#0f172a] hover:bg-blue-600/20 border border-blue-500/30 hover:border-blue-400 p-2.5 rounded-lg text-left transition-all group"
-            >
-              <div className="flex justify-between items-center">
-                <span className="font-bold text-blue-400">⭐ Ramesh (SP)</span>
-                <ArrowRight size={12} className="text-slate-500 group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all" />
-              </div>
-              <p className="text-slate-300 mt-1">ID: <span className="text-amber-300 font-bold">ramesh</span></p>
-              <p className="text-slate-400">Pass: <span className="text-emerald-400 font-bold">change_me</span></p>
-              <span className="text-[9px] text-blue-300 bg-blue-500/10 px-1.5 py-0.5 rounded mt-1 inline-block">Statewide SP Command</span>
-            </button>
-
-            {/* 3. Suda Constable */}
-            <button
-              onClick={() => handleInstantPreset("suda", "change_me")}
-              className="bg-[#0f172a] hover:bg-cyan-600/20 border border-cyan-500/30 hover:border-cyan-400 p-2.5 rounded-lg text-left transition-all group"
-            >
-              <div className="flex justify-between items-center">
-                <span className="font-bold text-cyan-400">👮 Suda (Constable)</span>
-                <ArrowRight size={12} className="text-slate-500 group-hover:text-cyan-400 group-hover:translate-x-0.5 transition-all" />
-              </div>
-              <p className="text-slate-300 mt-1">ID: <span className="text-amber-300 font-bold">suda</span></p>
-              <p className="text-slate-400">Pass: <span className="text-emerald-400 font-bold">change_me</span></p>
-              <span className="text-[9px] text-cyan-300 bg-cyan-500/10 px-1.5 py-0.5 rounded mt-1 inline-block">Station Scope Only</span>
-            </button>
-
-            {/* 4. System Admin */}
-            <button
-              onClick={() => handleInstantPreset("ksp_admin", "change_me")}
-              className="bg-[#0f172a] hover:bg-purple-600/20 border border-purple-500/30 hover:border-purple-400 p-2.5 rounded-lg text-left transition-all group"
-            >
-              <div className="flex justify-between items-center">
-                <span className="font-bold text-purple-400">⚙️ System Admin</span>
-                <ArrowRight size={12} className="text-slate-500 group-hover:text-purple-400 group-hover:translate-x-0.5 transition-all" />
-              </div>
-              <p className="text-slate-300 mt-1">ID: <span className="text-amber-300 font-bold">ksp_admin</span></p>
-              <p className="text-slate-400">Pass: <span className="text-emerald-400 font-bold">change_me</span></p>
-              <span className="text-[9px] text-purple-300 bg-purple-500/10 px-1.5 py-0.5 rounded mt-1 inline-block">Admin Console Access</span>
-            </button>
-
-            {/* 5. CBI Officer */}
-            <button
-              onClick={() => handleInstantPreset("cbi_sp_verma", "cbi@password2026")}
-              className="bg-[#0f172a] hover:bg-amber-600/20 border border-amber-500/30 hover:border-amber-400 p-2.5 rounded-lg text-left transition-all group"
-            >
-              <div className="flex justify-between items-center">
-                <span className="font-bold text-amber-400">🕵️ CBI Officer (Verma)</span>
-                <ArrowRight size={12} className="text-slate-500 group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all" />
-              </div>
-              <p className="text-slate-300 mt-1">ID: <span className="text-amber-300 font-bold">cbi_sp_verma</span></p>
-              <p className="text-slate-400">Pass: <span className="text-emerald-400 font-bold">cbi@password2026</span></p>
-              <span className="text-[9px] text-amber-300 bg-amber-500/10 px-1.5 py-0.5 rounded mt-1 inline-block">Federal Intelligence</span>
-            </button>
-
-            {/* 6. FSL Officer */}
-            <button
-              onClick={() => handleInstantPreset("fsl_dna_sunita", "fsl@password2026")}
-              className="bg-[#0f172a] hover:bg-emerald-600/20 border border-emerald-500/30 hover:border-emerald-400 p-2.5 rounded-lg text-left transition-all group"
-            >
-              <div className="flex justify-between items-center">
-                <span className="font-bold text-emerald-400">🧪 Forensic (Sunita)</span>
-                <ArrowRight size={12} className="text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
-              </div>
-              <p className="text-slate-300 mt-1">ID: <span className="text-amber-300 font-bold">fsl_dna_sunita</span></p>
-              <p className="text-slate-400">Pass: <span className="text-emerald-400 font-bold">fsl@password2026</span></p>
-              <span className="text-[9px] text-emerald-300 bg-emerald-500/10 px-1.5 py-0.5 rounded mt-1 inline-block">DNA & Lab Analysis</span>
-            </button>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4 font-mono text-xs">
+        {/* High-End Login Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* User ID Field */}
           <div>
-            <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">
-              Manual Officer User ID / Code
+            <label className="block text-[10px] uppercase font-bold font-mono tracking-wider text-slate-300 mb-1.5 flex items-center gap-1.5">
+              <User size={13} className="text-blue-400" />
+              <span>Officer User ID</span>
             </label>
             <div className="relative">
               <input
@@ -177,38 +97,75 @@ export default function Login() {
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="e.g. ksp_admin, cbi_sp_verma"
-                className="w-full bg-[#111827] border border-[#1e293b] text-slate-200 text-xs rounded pl-9 pr-4 py-2.5 focus:outline-none focus:border-blue-500 transition-colors"
+                placeholder="Enter Official User ID"
+                className="w-full bg-[#111827]/80 border border-[#1e293b] focus:border-blue-500 text-slate-100 text-xs rounded-xl pl-9 pr-4 py-3 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all font-mono placeholder:text-slate-600"
               />
-              <User className="absolute left-3 top-3 text-slate-500" size={14} />
+              <User className="absolute left-3 top-3.5 text-slate-500" size={15} />
             </div>
           </div>
 
+          {/* Password Field */}
           <div>
-            <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">
-              Security Code / Password
+            <label className="block text-[10px] uppercase font-bold font-mono tracking-wider text-slate-300 mb-1.5 flex items-center gap-1.5">
+              <KeyRound size={13} className="text-blue-400" />
+              <span>Password</span>
             </label>
             <div className="relative">
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full bg-[#111827] border border-[#1e293b] text-slate-200 text-xs rounded pl-9 pr-4 py-2.5 focus:outline-none focus:border-blue-500 transition-colors"
+                placeholder="Enter Secure Password"
+                className="w-full bg-[#111827]/80 border border-[#1e293b] focus:border-blue-500 text-slate-100 text-xs rounded-xl pl-9 pr-10 py-3 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all font-mono placeholder:text-slate-600"
               />
-              <Lock className="absolute left-3 top-3 text-slate-500" size={14} />
+              <Lock className="absolute left-3 top-3.5 text-slate-500" size={15} />
+              
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-3.5 text-slate-500 hover:text-slate-300 transition-colors"
+              >
+                {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
             </div>
           </div>
 
+          {/* Secure Biometric / SSL Status Line */}
+          <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 pt-1">
+            <span className="flex items-center gap-1">
+              <Fingerprint size={12} className="text-emerald-400" />
+              256-Bit Encrypted Portal
+            </span>
+            <span className="text-slate-500">Restricted Access</span>
+          </div>
+
+          {/* Submit Action Button */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white rounded py-2.5 text-xs font-bold uppercase tracking-wider transition-all shadow-lg shadow-blue-600/20"
+            className="w-full bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-mono font-bold text-xs py-3.5 rounded-xl transition-all shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 border border-blue-400/20 disabled:opacity-50"
           >
-            {loading ? "Decrypting Session..." : "Authenticate Session"}
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Authenticating Officer...
+              </span>
+            ) : (
+              <>
+                <span>Authenticate & Access Platform</span>
+                <ArrowRight size={15} />
+              </>
+            )}
           </button>
         </form>
+
+        {/* Footer Security Notice */}
+        <div className="border-t border-[#1e293b] pt-4 text-center">
+          <p className="text-[10px] text-slate-500 font-mono leading-relaxed">
+            Authorized for Karnataka State Police personnel and appointed Inter-Agency Officers. Unlawful access attempts are logged under IT Act & BNSS regulations.
+          </p>
+        </div>
       </div>
     </div>
   );
