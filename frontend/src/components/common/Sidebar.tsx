@@ -4,6 +4,7 @@ import { useLanguage } from "../../app/providers/LanguageContext";
 import {
   LayoutDashboard,
   FileText,
+  MapPin,
   Flame,
   Network,
   Brain,
@@ -64,6 +65,7 @@ export default function Sidebar() {
   const menuItems = [
     { name: t("nav_dashboard"), path: "/dashboard", icon: LayoutDashboard, roles: ["Admin", "SCRB_Officer", "SHO", "Constable", "ExternalAgencyOfficer"] },
     { name: t("nav_cases"), path: "/cases", icon: FileText, roles: ["Admin", "SCRB_Officer", "SHO", "Constable"] },
+    { name: t("nav_map"), path: "/map", icon: MapPin, roles: ["Admin", "SCRB_Officer", "SHO", "Constable", "ExternalAgencyOfficer"] },
     { name: t("nav_hotspot"), path: "/hotspots", icon: Flame, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
     { name: t("nav_network"), path: "/network", icon: Network, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
     { name: t("nav_predictive"), path: "/predictive", icon: Brain, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },

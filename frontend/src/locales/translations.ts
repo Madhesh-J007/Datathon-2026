@@ -5,8 +5,9 @@ export const translations: Record<Language, Record<string, string>> = {
     // --- Navigation & Sidebar ---
     nav_dashboard: "Command Center",
     nav_cases: "Cases Registry",
+    nav_map: "GIS Crime Map",
+    nav_hotspot: "Hotspot Analytics",
     nav_network: "Network Analytics",
-    nav_hotspot: "GIS Hotspots",
     nav_predictive: "Predictive AI",
     nav_court: "Court Case Monitoring",
     nav_reports: "Executive Reports",
@@ -160,8 +161,9 @@ export const translations: Record<Language, Record<string, string>> = {
     // --- Navigation & Sidebar ---
     nav_dashboard: "ಆದೇಶ ಮತ್ತು ನಿಯಂತ್ರಣ ಕೇಂದ್ರ",
     nav_cases: "ಪ್ರಕರಣಗಳ ನೋಂದಣಿ",
+    nav_map: "ಜಿಐಎಸ್ ಅಪರಾಧ ನಕ್ಷೆ",
+    nav_hotspot: "ಅಪರಾಧ ಹಾಟ್‌ಸ್ಪಾಟ್‌ಗಳು",
     nav_network: "ಜಾಲಬಂಧ ವಿಶ್ಲೇಷಣೆ",
-    nav_hotspot: "ಜಿಐಎಸ್ ಹಾಟ್‌ಸ್ಪಾಟ್‌ಗಳು",
     nav_predictive: "ಭವಿಷ್ಯವಾಣಿ ಎಐ",
     nav_court: "ನ್ಯಾಯಾಲಯ ಪ್ರಕರಣಗಳ ಮೇಲ್ವಿಚಾರಣೆ",
     nav_reports: "ವರದಿ ಕೇಂದ್ರ",
