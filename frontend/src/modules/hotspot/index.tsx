@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { hotspotService } from "../../services/hotspotService";
-import { Filter, Layers, Compass, Play, Pause, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "lucide-react";
+import { Filter, Layers, Compass, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -20,8 +20,7 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
   const patrolRouteLayer = useRef<L.Polyline | null>(null);
 
   const [selectedHotspot, setSelectedHotspot] = useState<any>(null);
-  const [timeHour, setTimeHour] = useState(12);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const timeHour = 24;
   const [filters, setFilters] = useState({
     district: "",
     crimeType: "",
@@ -116,18 +115,7 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
     }
   }, [filters.district]);
 
-  // Play/pause simulation timer
-  useEffect(() => {
-    let timer: any = null;
-    if (isPlaying) {
-      timer = setInterval(() => {
-        setTimeHour((prev) => (prev >= 24 ? 0 : prev + 4));
-      }, 1500);
-    }
-    return () => {
-      if (timer) clearInterval(timer);
-    };
-  }, [isPlaying]);
+
 
   // Dynamic Tile Layer Switching (OSM Detailed Streets/Schools vs Voyager vs Esri)
   useEffect(() => {
@@ -737,64 +725,16 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
           </div>
         )}
 
-        {/* Temporal control panel - Rendered on Hotspot Analysis page */}
-        {activeTab === "dashboard" ? (
-          <div className="bg-[#0f1422] border-t border-[#1e293b] p-3.5 flex items-center justify-between gap-4 z-20">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setIsPlaying(!isPlaying)}
-                className="bg-blue-600 hover:bg-blue-700 text-white rounded p-2 transition-colors focus:outline-none"
-              >
-                {isPlaying ? <Pause size={14} /> : <Play size={14} />}
-              </button>
-              <div className="text-xs">
-                <span className="block text-[10px] text-slate-500 uppercase font-mono">Patrol Shift Window</span>
-                <span className="font-bold text-[#60a5fa] font-mono text-xs">
-                  {timeHour === 24 ? "🌐 Cumulative All-Day Baseline" : `🕒 ${Math.max(0, timeHour - 4)}:00 - ${timeHour}:00 hrs`}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex-1 px-4">
-              <input
-                type="range"
-                min="0"
-                max="24"
-                step="4"
-                value={timeHour}
-                onChange={(e) => {
-                  setTimeHour(parseInt(e.target.value));
-                  setIsPlaying(false);
-                }}
-                className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
-              />
-              <div className="flex justify-between text-[10px] text-slate-500 font-mono mt-1 px-1">
-                <span>00:00 (Night)</span>
-                <span>04:00</span>
-                <span>08:00 (Morning)</span>
-                <span>12:00 (Noon)</span>
-                <span>16:00 (Evening)</span>
-                <span>20:00 (Peak)</span>
-                <span className="text-blue-400 font-bold">24:00 (All 5k Cases)</span>
-              </div>
-            </div>
-
-            <div className="bg-blue-500/10 border border-blue-500/20 rounded px-3 py-1.5 text-right flex-shrink-0">
-              <span className="block text-[10px] text-slate-500 font-mono uppercase">AI Shift Forecast</span>
-              <span className="text-emerald-400 font-bold text-[10px] font-mono">Real SQL Timestamp Matching</span>
-            </div>
+        {/* Clean Bottom Status Bar */}
+        <div className="bg-[#0f1422] border-t border-[#1e293b] px-4 py-2.5 flex items-center justify-between z-20">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
+            <span className="text-xs font-mono font-bold text-slate-300">Live Spatial Hotspot Analytics</span>
           </div>
-        ) : (
-          <div className="bg-[#0f1422] border-t border-[#1e293b] px-4 py-2.5 flex items-center justify-between z-20">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
-              <span className="text-xs font-mono font-bold text-slate-300">Live Spatial GIS Incident Explorer</span>
-            </div>
-            <div className="text-[11px] font-mono text-slate-400">
-              Showing Real Incident Coordinates from Karnataka State Registry (5,000 Total Cases)
-            </div>
+          <div className="text-[11px] font-mono text-slate-400">
+            Real Spatial Kernel Density Incident Mapping (Karnataka State Registry)
           </div>
-        )}
+        </div>
       </div>
 
       <style>{`
