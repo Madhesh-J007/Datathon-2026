@@ -21,6 +21,8 @@ interface DataTableProps {
   onPageChange?: (page: number) => void;
 }
 
+import { useLanguage } from "../../app/providers/LanguageContext";
+
 export default function DataTable({
   columns,
   data,
@@ -29,6 +31,8 @@ export default function DataTable({
   meta,
   onPageChange,
 }: DataTableProps) {
+  const { t } = useLanguage();
+
   return (
     <div className="flex flex-col h-full bg-[#111827] border border-[#1e293b] rounded overflow-hidden select-none">
       <div className="flex-1 overflow-auto">
@@ -41,7 +45,7 @@ export default function DataTable({
                   key={idx}
                   className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400 font-mono"
                 >
-                  {col.header}
+                  {t(col.header, col.header)}
                 </th>
               ))}
             </tr>
