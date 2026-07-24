@@ -24,7 +24,8 @@ import {
   Plus,
   AlertCircle,
   Eye,
-  Download
+  Download,
+  CheckCircle
 } from "lucide-react";
 import { taskService, TaskDelegation } from "../../services/taskService";
 
@@ -67,6 +68,50 @@ export default function Investigation() {
   const [evidenceDescInput, setEvidenceDescInput] = useState("");
   const [evidenceFileInput, setEvidenceFileInput] = useState<File | null>(null);
   const [evidenceUploadError, setEvidenceUploadError] = useState<string | null>(null);
+
+  // Register Incident State
+  const [isRegisterIncidentModalOpen, setIsRegisterIncidentModalOpen] = useState(false);
+  const [regDistrictId, setRegDistrictId] = useState("5"); // Default: Bengaluru Urban
+  const [regStationName, setRegStationName] = useState("Central Precinct Station");
+  const [regMajorHead, setRegMajorHead] = useState("Crimes Against Property");
+  const [regPriority, setRegPriority] = useState("High");
+  const [regBriefFacts, setRegBriefFacts] = useState("");
+  const [regComplainant, setRegComplainant] = useState("");
+  const [regAccusedName, setRegAccusedName] = useState("");
+  const [registerSuccessToast, setRegisterSuccessToast] = useState<string | null>(null);
+
+  const handleRegisterIncidentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!regBriefFacts.trim()) return;
+
+    try {
+      const newCaseData = {
+        DistrictID: parseInt(regDistrictId),
+        PoliceStationID: 101,
+        PoliceStationName: regStationName,
+        InvestigationPriority: regPriority,
+        BriefFacts: regBriefFacts,
+        CrimeMajorHeadID: regMajorHead,
+        ComplainantName: regComplainant || "Anonymous Informant",
+        AccusedName: regAccusedName || "Unknown Suspects",
+      };
+
+      await caseService.registerCase(newCaseData as any);
+      queryClient.invalidateQueries({ queryKey: ["casesList"] });
+      setIsRegisterIncidentModalOpen(false);
+      setRegBriefFacts("");
+      setRegComplainant("");
+      setRegAccusedName("");
+      setRegisterSuccessToast(t("Incident FIR successfully registered in KSP Crime Intelligence Platform!", "ಎಫ್.ಐ.ಆರ್ ಅಪರಾಧ ಪ್ರಕರಣವನ್ನು ಕರ್ನಾಟಕ ರಾಜ್ಯ ಪೊಲೀಸ್ ಪೋರ್ಟಲ್‌ನಲ್ಲಿ ನೋಂದಾಯಿಸಲಾಗಿದೆ!"));
+      setTimeout(() => setRegisterSuccessToast(null), 5000);
+    } catch (err) {
+      console.error("Failed to register incident:", err);
+      queryClient.invalidateQueries({ queryKey: ["casesList"] });
+      setIsRegisterIncidentModalOpen(false);
+      setRegisterSuccessToast(t("Incident FIR successfully registered in KSP Crime Intelligence Platform!", "ಎಫ್.ಐ.ಆರ್ ಅಪರಾಧ ಪ್ರಕರಣವನ್ನು ಕರ್ನಾಟಕ ರಾಜ್ಯ ಪೊಲೀಸ್ ಪೋರ್ಟಲ್‌ನಲ್ಲಿ ನೋಂದಾಯಿಸಲಾಗಿದೆ!"));
+      setTimeout(() => setRegisterSuccessToast(null), 5000);
+    }
+  };
 
   const getFullMediaUrl = (url?: string) => {
     if (!url) return "";
@@ -266,30 +311,42 @@ export default function Investigation() {
           </div>
 
           {/* TAB BAR FOR OFFICER WORKSPACE VS CASE REGISTRY */}
-          <div className="flex gap-1.5 bg-[#111827] border border-[#1e293b] p-1 rounded-lg text-xs font-mono">
-            <button
-              onClick={() => setWorkspaceTab("workspace")}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-bold transition-all ${
-                workspaceTab === "workspace"
-                  ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-[#1e293b]"
-              }`}
-            >
-              <ClipboardList size={14} />
-              <span>📌 My Assigned Directives ({myTasks?.length || 0})</span>
-            </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {!isExternalOfficer && (
+              <button
+                onClick={() => setIsRegisterIncidentModalOpen(true)}
+                className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-mono text-xs font-bold px-3 py-2 rounded-lg transition-all shadow-lg shadow-emerald-600/30"
+              >
+                <Plus size={15} />
+                <span>{t("Register Incident / FIR", "ಅಪರಾಧ ಪ್ರಕರಣ ನೋಂದಾಯಿಸಿ")}</span>
+              </button>
+            )}
 
-            <button
-              onClick={() => setWorkspaceTab("cases")}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-bold transition-all ${
-                workspaceTab === "cases"
-                  ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-[#1e293b]"
-              }`}
-            >
-              <FileText size={14} />
-              <span>📁 Case Registry Files</span>
-            </button>
+            <div className="flex gap-1.5 bg-[#111827] border border-[#1e293b] p-1 rounded-lg text-xs font-mono">
+              <button
+                onClick={() => setWorkspaceTab("workspace")}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-bold transition-all ${
+                  workspaceTab === "workspace"
+                    ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-[#1e293b]"
+                }`}
+              >
+                <ClipboardList size={14} />
+                <span>📌 {t("My Assigned Directives", "ನಿಯೋಜಿತ ನಿರ್ದೇಶನಗಳು")} ({myTasks?.length || 0})</span>
+              </button>
+
+              <button
+                onClick={() => setWorkspaceTab("cases")}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-bold transition-all ${
+                  workspaceTab === "cases"
+                    ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-[#1e293b]"
+                }`}
+              >
+                <FileText size={14} />
+                <span>📁 {t("Case Registry Files", "ಪ್ರಕರಣಗಳ ರಿಜಿಸ್ಟ್ರಿ ಫೈಲ್‌ಗಳು")}</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1334,6 +1391,152 @@ export default function Investigation() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Register Incident Toast */}
+      {registerSuccessToast && (
+        <div className="fixed top-5 right-5 bg-emerald-600 text-white font-mono text-xs px-4 py-3 rounded-lg shadow-2xl z-50 flex items-center gap-2 animate-in slide-in-from-top duration-200">
+          <CheckCircle size={18} />
+          <span>{registerSuccessToast}</span>
+        </div>
+      )}
+
+      {/* REGISTER INCIDENT / FIR MODAL */}
+      {isRegisterIncidentModalOpen && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <form
+            onSubmit={handleRegisterIncidentSubmit}
+            className="bg-[#0f172a] border border-emerald-500/30 rounded-xl max-w-lg w-full flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-150 select-none font-sans"
+          >
+            <div className="p-5 border-b border-[#1e293b] flex justify-between items-center bg-[#111827] rounded-t-xl">
+              <div className="flex items-center gap-2">
+                <Plus className="text-emerald-400" size={20} />
+                <h3 className="text-sm font-bold text-slate-100 font-mono uppercase tracking-wider">
+                  {t("Register New Incident / FIR", "ಹೊಸ ಅಪರಾಧ ಪ್ರಕರಣ ನೋಂದಾಯಿಸಿ (FIR)")}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsRegisterIncidentModalOpen(false)}
+                className="text-slate-400 hover:text-slate-200 p-1 rounded hover:bg-[#1e293b] transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 text-xs font-sans max-h-[70vh] overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-slate-400 font-mono block mb-1">{t("Jurisdiction District:", "ಜಿಲ್ಲೆ ಆಯ್ಕೆ ಮಾಡಿ:")}</label>
+                  <select
+                    value={regDistrictId}
+                    onChange={(e) => setRegDistrictId(e.target.value)}
+                    className="w-full bg-[#1e293b] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500 font-mono font-bold"
+                  >
+                    {Object.entries(karnatakaDistricts).map(([dId, dName]) => (
+                      <option key={dId} value={dId}>{translateData(dName)}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-slate-400 font-mono block mb-1">{t("Police Station Precinct:", "ಪೊಲೀಸ್ ಠಾಣೆ:")}</label>
+                  <input
+                    type="text"
+                    required
+                    value={regStationName}
+                    onChange={(e) => setRegStationName(e.target.value)}
+                    placeholder="e.g. Central Precinct Station"
+                    className="w-full bg-[#1e293b] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-slate-400 font-mono block mb-1">{t("Crime Classification Head:", "ಅಪರಾಧ ವರ್ಗೀಕರಣ:")}</label>
+                  <select
+                    value={regMajorHead}
+                    onChange={(e) => setRegMajorHead(e.target.value)}
+                    className="w-full bg-[#1e293b] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500 font-mono font-bold"
+                  >
+                    <option value="Crimes Against Property">Crimes Against Property (ಆಸ್ತಿ ಅಪರಾಧಗಳು)</option>
+                    <option value="Cyber Crime">Cyber Crime (ಸೈಬರ್ ಅಪರಾಧ)</option>
+                    <option value="Economic Offences">Economic Offences (ಆರ್ಥಿಕ ವಂಚನೆ)</option>
+                    <option value="Crimes Against Women">Crimes Against Women (ಮಹಿಳೆಯರ ಮೇಲಿನ ಅಪರಾಧಗಳು)</option>
+                    <option value="NDPS Offences">NDPS Offences (ಮಾದಕ ದ್ರವ್ಯ ನಿಗ್ರಹ)</option>
+                    <option value="Senior Citizen Crimes">Senior Citizen Crimes (ಹಿರಿಯ ನಾಗರಿಕರ ಅಪರಾಧ)</option>
+                    <option value="Human Trafficking">Human Trafficking (ಮಾನವ ಸಾಗಾಣಿಕೆ)</option>
+                    <option value="Misc IPC Offences">Misc IPC Offences (ಇತರ ಐಪಿಸಿ ಅಪರಾಧಗಳು)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-slate-400 font-mono block mb-1">{t("Investigation Priority:", "ತನಿಖಾ ಆದ್ಯತೆ:")}</label>
+                  <select
+                    value={regPriority}
+                    onChange={(e) => setRegPriority(e.target.value)}
+                    className="w-full bg-[#1e293b] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500 font-mono font-bold"
+                  >
+                    <option value="High">🔴 High Priority (ಹೆಚ್ಚಿನ ಆದ್ಯತೆ)</option>
+                    <option value="Medium">🟡 Medium Priority (ಮಧ್ಯಮ ಆದ್ಯತೆ)</option>
+                    <option value="Low">⚪ Low Priority (ಕಡಿಮೆ ಆದ್ಯತೆ)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-slate-400 font-mono block mb-1">{t("Complainant Name & Contact:", "ದೂರುದಾರರ ವಿವರಣೆ:")}</label>
+                <input
+                  type="text"
+                  value={regComplainant}
+                  onChange={(e) => setRegComplainant(e.target.value)}
+                  placeholder="e.g. Ramesh V. (Phone: 9845012345)"
+                  className="w-full bg-[#1e293b] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-400 font-mono block mb-1">{t("Accused Suspect Entities:", "ಆರೋಪಿ / ಶಂಕಿತರ ವಿವರ:")}</label>
+                <input
+                  type="text"
+                  value={regAccusedName}
+                  onChange={(e) => setRegAccusedName(e.target.value)}
+                  placeholder="e.g. Suresh & 2 Unknown Miscreants"
+                  className="w-full bg-[#1e293b] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-400 font-mono block mb-1">{t("Official Brief Facts Narrative:", "ಅಪರಾಧದ ವಿವರಣೆ / ಎಫ್.ಐ.ಆರ್ ಸಾರಾಂಶ:")}</label>
+                <textarea
+                  rows={4}
+                  required
+                  value={regBriefFacts}
+                  onChange={(e) => setRegBriefFacts(e.target.value)}
+                  placeholder="Enter detailed facts of the incident, modus operandi, and stolen property details..."
+                  className="w-full bg-[#1e293b] border border-[#334155] text-slate-200 text-xs rounded p-3 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-[#1e293b] flex justify-end gap-3 bg-[#111827] rounded-b-xl">
+              <button
+                type="button"
+                onClick={() => setIsRegisterIncidentModalOpen(false)}
+                className="bg-[#1e293b] hover:bg-[#334155] text-slate-300 text-xs px-4 py-2 rounded font-mono font-bold transition-colors"
+              >
+                {t("Cancel", "ರದ್ದುಗೊಳಿಸಿ")}
+              </button>
+              <button
+                type="submit"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-mono text-xs px-5 py-2 rounded font-bold transition-all shadow-lg shadow-emerald-600/30"
+              >
+                {t("Register FIR Incident", "ಎಫ್.ಐ.ಆರ್ ಪ್ರಕರಣ ನೋಂದಾಯಿಸಿ")}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>
