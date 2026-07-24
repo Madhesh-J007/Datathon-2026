@@ -482,26 +482,26 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
                 onClick={() => setIsBriefExpanded(!isBriefExpanded)}
                 className="text-slate-400 hover:text-slate-200 flex items-center gap-1 text-[10px] font-mono border border-[#1e293b] px-2 py-0.5 rounded transition-colors"
               >
-                <span>{isBriefExpanded ? "Collapse Intel" : "Expand Intel"}</span>
+                <span>{isBriefExpanded ? translateData("Collapse Intel") : translateData("Expand Intel")}</span>
                 {isBriefExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
               </button>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-[10px] font-mono text-slate-400 border-b border-[#1e293b]/50 pb-3">
               <div>
-                <span>Confidence Index:</span>
-                <span className="text-emerald-400 font-bold block">94% Cosine Match</span>
+                <span>{translateData("Confidence Index")}:</span>
+                <span className="text-emerald-400 font-bold block">94% {translateData("Cosine Match")}</span>
               </div>
               <div>
-                <span>Priority District:</span>
-                <span className="text-slate-200 font-bold block">Bengaluru South</span>
+                <span>{translateData("Priority District")}:</span>
+                <span className="text-slate-200 font-bold block">{translateData("Bengaluru South")}</span>
               </div>
               <div>
-                <span>Suggested Action:</span>
-                <span className="text-amber-400 font-bold block">Deploy Patrol Zone 3</span>
+                <span>{translateData("Suggested Action")}:</span>
+                <span className="text-amber-400 font-bold block">{translateData("Deploy Patrol Zone 3")}</span>
               </div>
               <div>
-                <span>Last Synced:</span>
+                <span>{translateData("Last Synced")}:</span>
                 <span className="text-slate-400 block">{new Date().toLocaleTimeString()}</span>
               </div>
             </div>
@@ -510,34 +510,34 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
               <div className="space-y-2.5">
                 <div className="flex items-start gap-2">
                   <span className="text-blue-500 font-mono">•</span>
-                  <p>Crime registered activities within active jurisdiction scope: <span className="text-slate-100 font-bold font-mono">{statewideTotal} total active files</span>.</p>
+                  <p>{translateData("Crime registered activities within active jurisdiction scope")}: <span className="text-slate-100 font-bold font-mono">{statewideTotal} {translateData("total active files")}</span>.</p>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="text-blue-500 font-mono">•</span>
-                  <p>AI threat risk engine flagged <span className="text-red-400 font-bold font-mono">{statewideHighRisk} cases</span> exceeding severity threshold limit.</p>
+                  <p>{translateData("AI threat risk engine flagged")} <span className="text-red-400 font-bold font-mono">{statewideHighRisk} {translateData("cases")}</span> {translateData("exceeding severity threshold limit")}.</p>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="text-blue-500 font-mono">•</span>
-                  <p>Modus operandi analysis shows <span className="text-slate-100 font-bold font-mono">{burglaryCount} property-related/theft</span> incident logs registered.</p>
+                  <p>{translateData("Modus operandi analysis shows")} <span className="text-slate-100 font-bold font-mono">{burglaryCount} {translateData("property-related/theft")}</span> {translateData("incident logs registered")}.</p>
                 </div>
               </div>
               <div className="space-y-2.5 md:border-l md:border-[#1e293b] md:pl-6">
                 <div className="flex items-start gap-2">
                   <span className="text-amber-400 font-mono">•</span>
-                  <p>AI recommended action: Escalated security protocols active across southern precincts.</p>
+                  <p>{translateData("AI recommended action: Escalated security protocols active across southern precincts.")}</p>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="text-amber-400 font-mono">•</span>
-                  <p>Patrol deployments reinforcement suggested near sector boundaries between <span className="text-slate-100 font-bold font-mono">18:00 - 22:00</span>.</p>
+                  <p>{translateData("Patrol deployments reinforcement suggested near sector boundaries between")} <span className="text-slate-100 font-bold font-mono">18:00 - 22:00</span>.</p>
                 </div>
               </div>
             </div>
 
             {isBriefExpanded && (
               <div className="mt-4 pt-3 border-t border-[#1e293b] text-xs text-slate-400 leading-relaxed font-sans space-y-2 bg-[#090d16]/30 p-3 rounded">
-                <h4 className="font-bold text-slate-300 font-mono uppercase text-[10px] tracking-wider">AI Operations Analysis Detail</h4>
+                <h4 className="font-bold text-slate-300 font-mono uppercase text-[10px] tracking-wider">{translateData("AI Operations Analysis Detail")}</h4>
                 <p>
-                  Security Protocols Escalation: Multiple co-offender networks indicate active expansion of modus operandi clusters in surrounding sectors. Tactical support routing coordinates have been dispatched to precinct patrol vehicles to optimize coverage density during peak forecast hours.
+                  {translateData("Security Protocols Escalation: Multiple co-offender networks indicate active expansion of modus operandi clusters in surrounding sectors. Tactical support routing coordinates have been dispatched to precinct patrol vehicles to optimize coverage density during peak forecast hours.")}
                 </p>
               </div>
             )}
@@ -550,11 +550,11 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
                 <div className="flex items-center gap-2">
                   <AlertCircle className="text-red-500 animate-bounce" size={16} />
                   <h3 className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider">
-                    Mission Critical Alerts Queue
+                    {translateData("MISSION CRITICAL ALERTS QUEUE")}
                   </h3>
                 </div>
                 <span className="bg-red-500/10 text-red-400 border border-red-500/20 text-[10px] px-1.5 py-0.5 rounded font-mono">
-                  Action Required
+                  {translateData("Action Required")}
                 </span>
               </div>
 
@@ -614,40 +614,40 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
               <div className="flex-1 overflow-y-auto space-y-2.5 pr-2">
                 <div className="p-3 bg-blue-500/5 border border-blue-500/10 rounded flex justify-between items-center text-xs">
                   <div className="space-y-1">
-                    <span className="text-[10px] text-blue-400 font-mono uppercase font-bold tracking-wider">Reinforce Patrol Route</span>
-                    <h4 className="font-bold text-slate-200">Deploy Unit to Hotspot Zone 3</h4>
-                    <p className="text-[10px] text-slate-400">Reason: Burglary probability spikes between 18:00 - 22:00.</p>
+                    <span className="text-[10px] text-blue-400 font-mono uppercase font-bold tracking-wider">{translateData("Reinforce Patrol Route")}</span>
+                    <h4 className="font-bold text-slate-200">{translateData("Deploy Unit to Hotspot Zone 3")}</h4>
+                    <p className="text-[10px] text-slate-400">{translateData("Reason: Burglary probability spikes between 18:00 - 22:00.")}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <span className="block text-[10px] text-slate-500 font-mono">Conf / Priority</span>
+                    <span className="block text-[10px] text-slate-500 font-mono">{translateData("Conf / Priority")}</span>
                     <span className="text-blue-400 font-bold font-mono">92%</span>
-                    <span className="block text-[10px] text-red-400 font-bold uppercase font-mono">CRITICAL</span>
+                    <span className="block text-[10px] text-red-400 font-bold uppercase font-mono">{translateData("CRITICAL")}</span>
                   </div>
                 </div>
 
                 <div className="p-3 bg-blue-500/5 border border-blue-500/10 rounded flex justify-between items-center text-xs">
                   <div className="space-y-1">
-                    <span className="text-[10px] text-blue-400 font-mono uppercase font-bold tracking-wider">Dossier Assignment</span>
-                    <h4 className="font-bold text-slate-200">Assign Senior Investigator to KSP-102</h4>
-                    <p className="text-[10px] text-slate-400">Reason: Complex cross-circle linkages require specialized MO experience.</p>
+                    <span className="text-[10px] text-blue-400 font-mono uppercase font-bold tracking-wider">{translateData("Dossier Assignment")}</span>
+                    <h4 className="font-bold text-slate-200">{translateData("Assign Senior Investigator to KSP-102")}</h4>
+                    <p className="text-[10px] text-slate-400">{translateData("Reason: Complex cross-circle linkages require specialized MO experience.")}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <span className="block text-[10px] text-slate-500 font-mono">Conf / Priority</span>
+                    <span className="block text-[10px] text-slate-500 font-mono">{translateData("Conf / Priority")}</span>
                     <span className="text-blue-400 font-bold font-mono">87%</span>
-                    <span className="block text-[10px] text-amber-400 font-bold uppercase font-mono">HIGH</span>
+                    <span className="block text-[10px] text-amber-400 font-bold uppercase font-mono">{translateData("HIGH")}</span>
                   </div>
                 </div>
 
                 <div className="p-3 bg-blue-500/5 border border-blue-500/10 rounded flex justify-between items-center text-xs">
                   <div className="space-y-1">
-                    <span className="text-[10px] text-blue-400 font-mono uppercase font-bold tracking-wider">Organized Crime Review</span>
-                    <h4 className="font-bold text-slate-200">Escalate Gang Alpha Similarity Linkage</h4>
-                    <p className="text-[10px] text-slate-400">Reason: Co-accused network indicates active community boundary expansions.</p>
+                    <span className="text-[10px] text-blue-400 font-mono uppercase font-bold tracking-wider">{translateData("Organized Crime Review")}</span>
+                    <h4 className="font-bold text-slate-200">{translateData("Escalate Gang Alpha Similarity Linkage")}</h4>
+                    <p className="text-[10px] text-slate-400">{translateData("Reason: Co-accused network indicates active community boundary expansions.")}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <span className="block text-[10px] text-slate-500 font-mono">Conf / Priority</span>
+                    <span className="block text-[10px] text-slate-500 font-mono">{translateData("Conf / Priority")}</span>
                     <span className="text-blue-400 font-bold font-mono">81%</span>
-                    <span className="block text-[10px] text-amber-400 font-bold uppercase font-mono">HIGH</span>
+                    <span className="block text-[10px] text-amber-400 font-bold uppercase font-mono">{translateData("HIGH")}</span>
                   </div>
                 </div>
               </div>
@@ -658,21 +658,21 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
                 <div className="flex items-center gap-2">
                   <Clock className="text-emerald-500" size={16} />
                   <h3 className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider">
-                    Chronological Mission Timeline
+                    {translateData("Chronological Mission Timeline")}
                   </h3>
                 </div>
                 <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] px-1.5 py-0.5 rounded font-mono">
-                  Live Feed
+                  {translateData("Live Feed")}
                 </span>
               </div>
 
               <div className="flex-1 overflow-y-auto space-y-3.5 pr-2">
                 {[
-                  { time: "08:14", label: "Repeat Offender Match", text: "Repeat offender resolved on suspect coordinates in Western sector.", icon: <UserCheck className="text-emerald-400" size={12} /> },
-                  { time: "08:19", label: "Hotspot Re-calculated", text: "Burglary predictions updated for Southern precinct zones.", icon: <TrendingUp className="text-blue-400" size={12} /> },
-                  { time: "08:22", label: "Case Similarity Identified", text: "Vector pgvector similarity indices mapped against Gang Alpha syndicate.", icon: <Compass className="text-amber-400" size={12} /> },
-                  { time: "08:30", label: "Dossier Assignment Alert", text: "Escalated case file dispatched to Senior Officer in Mysore circle.", icon: <Shield className="text-indigo-400" size={12} /> },
-                  { time: "08:42", label: "Risk Score Elevated", text: "KSP-102 risk classification score upgraded to 92%.", icon: <AlertCircle className="text-red-400" size={12} /> }
+                  { time: "08:14", label: translateData("Repeat Offender Match"), text: translateData("Repeat offender resolved on suspect coordinates in Western sector."), icon: <UserCheck className="text-emerald-400" size={12} /> },
+                  { time: "08:19", label: translateData("Hotspot Re-calculated"), text: translateData("Burglary predictions updated for Southern precinct zones."), icon: <TrendingUp className="text-blue-400" size={12} /> },
+                  { time: "08:22", label: translateData("Case Similarity Identified"), text: translateData("Vector pgvector similarity indices mapped against Gang Alpha syndicate."), icon: <Compass className="text-amber-400" size={12} /> },
+                  { time: "08:30", label: translateData("Dossier Assignment Alert"), text: translateData("Escalated case file dispatched to Senior Officer in Mysore circle."), icon: <Shield className="text-indigo-400" size={12} /> },
+                  { time: "08:42", label: translateData("Risk Score Elevated"), text: translateData("KSP-102 risk classification score upgraded to 92%."), icon: <AlertCircle className="text-red-400" size={12} /> }
                 ].map((event, idx) => (
                   <div key={idx} className="flex gap-3 text-xs leading-normal select-none">
                     <div className="font-mono text-slate-500 text-[10px] pt-0.5 flex-shrink-0">{event.time}</div>

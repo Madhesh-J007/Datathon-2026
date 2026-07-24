@@ -478,15 +478,15 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
             <div className="flex items-center gap-2 border-b border-[#1e293b] pb-3">
               <Compass className="text-red-400" size={16} />
               <h3 className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider">
-                Top AI Risk Hotspots
+                {translateData("TOP AI RISK HOTSPOTS")}
               </h3>
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-2 pr-1 min-h-0">
               {isPredictedLoading ? (
-                <div className="text-center text-xs text-slate-500 py-8 font-mono">Running KDE engines...</div>
+                <div className="text-center text-xs text-slate-500 py-8 font-mono">{translateData("Running KDE engines...")}</div>
               ) : predictedHotspots.length === 0 ? (
-                <div className="text-center text-xs text-slate-500 py-8 font-mono">No hotspots predicted.</div>
+                <div className="text-center text-xs text-slate-500 py-8 font-mono">{translateData("No hotspots predicted.")}</div>
               ) : (
                 predictedHotspots.map((h: any, idx: number) => {
                   const isHigh = h.confidence > 0.7;
@@ -503,19 +503,19 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
                       }`}
                     >
                       <div className="flex justify-between items-center mb-1">
-                        <span className="text-xs font-bold text-slate-200">Zone #{idx + 1}</span>
+                        <span className="text-xs font-bold text-slate-200">{translateData(`Zone #${idx + 1}`)}</span>
                         <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-bold ${
                           isHigh ? "text-red-400 bg-red-500/10 border border-red-500/20" :
                           "text-amber-400 bg-amber-500/10 border border-amber-500/20"
                         }`}>
-                          {(h.confidence * 100).toFixed(0)}% AI Risk Score
+                          {(h.confidence * 100).toFixed(0)}% {translateData("AI Risk Score")}
                         </span>
                       </div>
                       <p className="text-[11px] text-blue-400 font-semibold mb-1 leading-tight">
-                        {primaryFactor}
+                        {translateData(primaryFactor)}
                       </p>
                       <p className="text-[10px] text-slate-400 font-mono">
-                        Nearby FIR Volume: <strong className="text-emerald-400">{h.nearby_case_count || "Multi-FIR"} cases</strong>
+                        {translateData("Nearby FIR Volume")}: <strong className="text-emerald-400">{h.nearby_case_count || translateData("Multi-FIR")} {translateData("cases")}</strong>
                       </p>
                     </div>
                   );
@@ -526,7 +526,7 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
             {selectedHotspot && (
               <div className="border-t border-[#1e293b] pt-3.5 mt-auto space-y-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-slate-200 font-mono uppercase tracking-wider">Zone Intelligence Report</h4>
+                  <h4 className="text-xs font-bold text-slate-200 font-mono uppercase tracking-wider">{translateData("Zone Intelligence Report")}</h4>
                   <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 rounded font-mono font-bold">
                     KDE Model
                   </span>
