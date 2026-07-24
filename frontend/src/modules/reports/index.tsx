@@ -71,11 +71,10 @@ export default function Reports() {
         {/* Compiler Form */}
         <div className="lg:col-span-1 bg-[#111827] border border-[#1e293b] rounded p-5 space-y-4">
           <h3 className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider">
-            Compile Dossier
+            {t("COMPILE DOSSIER")}
           </h3>
           <p className="text-xs text-slate-400 leading-relaxed">
-            Enter a <strong>Case Master ID</strong> (e.g. <code>1</code>, <code>4823</code>) or <strong>Case Number</strong> (e.g. <code>202600006</code>).
-            The platform will extract incident facts, evidence items, victims, accused profiles, vehicle logs, and AI risk metrics into a downloadable PDF.
+            {t("Enter a Case Master ID (e.g. 1, 4823) or Case Number (e.g. 202600006). The platform will extract incident facts, evidence items, victims, accused profiles, vehicle logs, and AI risk metrics into a downloadable PDF.")}
           </p>
 
           <form
@@ -90,7 +89,7 @@ export default function Reports() {
           >
             <div>
               <label className="block text-[10px] uppercase font-mono tracking-wider text-slate-500 mb-1">
-                Case ID or Case Number
+                {t("CASE ID OR CASE NUMBER")}
               </label>
               <input
                 type="text"
@@ -110,12 +109,12 @@ export default function Reports() {
               {generateMutation.isPending ? (
                 <>
                   <span className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white"></span>
-                  <span>Compiling PDF Dossier...</span>
+                  <span>{t("Compiling PDF Dossier...")}</span>
                 </>
               ) : (
                 <>
                   <FileText size={14} />
-                  <span>Compile PDF Report</span>
+                  <span>{t("COMPILE PDF REPORT")}</span>
                 </>
               )}
             </button>
@@ -127,16 +126,16 @@ export default function Reports() {
           <div className="flex items-center justify-between border-b border-[#1e293b] pb-2 mb-4">
             <h3 className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider flex items-center gap-2">
               <FileText className="text-blue-400" size={14} />
-              <span>Compiled Executive Dossiers</span>
+              <span>{t("COMPILED EXECUTIVE DOSSIERS")}</span>
             </h3>
-            <span className="text-[10px] text-slate-500 font-mono">Official Judicial Registry Files</span>
+            <span className="text-[10px] text-slate-500 font-mono">{t("Official Judicial Registry Files")}</span>
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
             {isLoading ? (
-              <div className="text-center py-12 text-xs text-slate-500 font-mono">Retrieving report logs...</div>
+              <div className="text-center py-12 text-xs text-slate-500 font-mono">{t("Retrieving report logs...")}</div>
             ) : history.length === 0 ? (
-              <div className="text-center py-12 text-xs text-slate-500 font-mono">No case dossiers compiled yet.</div>
+              <div className="text-center py-12 text-xs text-slate-500 font-mono">{t("No case dossiers compiled yet.")}</div>
             ) : (
               history.map((h: any, idx: number) => (
                 <div key={idx} className="bg-[#151c2e] hover:bg-[#1a233a] border border-[#1e293b] hover:border-blue-500/30 p-4 rounded-lg flex items-center justify-between text-xs transition-all">
@@ -145,13 +144,13 @@ export default function Reports() {
                       <FileText className="text-blue-400" size={18} />
                     </div>
                     <div>
-                      <p className="font-semibold text-slate-100 text-sm">Case Dossier #{h.CaseMasterID}</p>
+                      <p className="font-semibold text-slate-100 text-sm">{t("Case Dossier #")}{h.CaseMasterID}</p>
                       <div className="flex items-center gap-3 mt-1 text-[10px] text-slate-400 font-mono">
-                        <span>Compiled: {new Date(h.CompiledAt).toLocaleString()}</span>
+                        <span>{t("Compiled:")} {new Date(h.CompiledAt).toLocaleString()}</span>
                         <span>•</span>
                         <span className="text-emerald-400 flex items-center gap-1 font-semibold">
                           <CheckCircle size={11} />
-                          <span>Ready for Export</span>
+                          <span>{t("Ready for Export")}</span>
                         </span>
                       </div>
                     </div>
@@ -162,7 +161,7 @@ export default function Reports() {
                       className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium px-3 py-1.5 rounded flex items-center gap-1.5 text-xs transition-colors border border-slate-700"
                     >
                       <Eye size={13} />
-                      <span>Preview</span>
+                      <span>{t("Preview")}</span>
                     </button>
 
                     <button
@@ -175,7 +174,7 @@ export default function Reports() {
                       ) : (
                         <Download size={13} />
                       )}
-                      <span>Download PDF</span>
+                      <span>{t("Download PDF")}</span>
                     </button>
                   </div>
                 </div>

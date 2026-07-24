@@ -420,52 +420,50 @@ export default function Collaboration() {
         <div className="bg-[#111827] border border-[#1e293b] p-4 rounded-b space-y-4 font-mono text-xs">
           <div className="flex justify-between items-center border-b border-[#1e293b] pb-3">
             <div>
-              <h3 className="text-xs font-bold text-slate-200 uppercase">
-                {isExternalOfficer ? "My Submitted Access Requests" : "Submitted Officer Access Requests & Admin Approval Queue"}
-              </h3>
-              <p className="text-[10px] text-slate-400 font-sans mt-0.5">
-                {isExternalOfficer ? "Track approval status of your requested cases." : "Review requests and configure District-Wise, State-Wide, or Case-Level read permissions."}
+              <h3 className="text-xs font-bold text-slate-200 uppercase">{t("SUBMITTED OFFICER ACCESS REQUESTS & ADMIN APPROVAL QUEUE")}</h3>
+              <p className="text-[10px] text-slate-400 font-sans">
+                {t("Review requests and configure District-Wise, State-Wide, or Case-Level read permissions.")}
               </p>
             </div>
             {!isExternalOfficer && (
               <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded font-bold">
-                Admin Granular Approval Control Active
+                {t("Admin Granular Approval Control Active")}
               </span>
             )}
           </div>
 
           <div className="space-y-3">
             {isReqLoading ? (
-              <div className="text-center py-8 text-slate-500">Loading requests...</div>
+              <div className="text-center py-8 text-slate-500">{t("Loading requests...")}</div>
             ) : !requests || requests.length === 0 ? (
-              <div className="text-center py-8 text-slate-500">No active access requests.</div>
+              <div className="text-center py-8 text-slate-500">{t("No active access requests.")}</div>
             ) : (
               requests.map((req: any) => (
                 <div key={req.request_id} className="bg-[#151c2e] border border-[#1e293b] p-4 rounded flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="space-y-1.5 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-bold text-slate-100">Request #{req.request_id}</span>
+                      <span className="font-bold text-slate-100">{t("Request #")}{req.request_id}</span>
                       <span className="bg-blue-600/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded font-bold">
-                        {req.agency_name} ({req.agency_code})
+                        {t(req.agency_name, req.agency_name)} ({req.agency_code})
                       </span>
                       <span className="bg-purple-500/10 text-purple-400 border border-purple-500/20 px-2 py-0.5 rounded">
-                        Officer: <span className="font-bold">{req.target_agency_officer_name}</span> ({req.officer_username})
+                        {t("Officer:")} <span className="font-bold">{req.target_agency_officer_name}</span> ({req.officer_username})
                       </span>
                       <span className={`px-2 py-0.5 rounded font-bold border ${
                         req.status === 'Approved' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
                         req.status === 'Rejected' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
                         'bg-amber-500/10 text-amber-400 border-amber-500/20'
                       }`}>
-                        {req.status}
+                        {t(req.status, req.status)}
                       </span>
                     </div>
 
                     <p className="text-slate-300 text-[11px]">
-                      Requested Access Scope: <span className="font-bold text-amber-400">{req.requested_scope_level}-Level Access</span> • Target Case Reference: <span className="font-bold text-blue-400">{req.case_no}</span>
+                      {t("Requested Access Scope:")} <span className="font-bold text-amber-400">{t(`${req.requested_scope_level}-Level Access`, `${req.requested_scope_level}-Level Access`)}</span> • {t("Target Case Reference:")} <span className="font-bold text-blue-400">{req.case_no}</span>
                     </p>
 
                     <p className="text-slate-400 text-xs font-sans italic bg-[#0f172a] p-2 rounded border border-[#1e293b]">
-                      "{req.reason}"
+                      "{t(req.reason, req.reason)}"
                     </p>
                   </div>
 

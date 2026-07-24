@@ -179,7 +179,7 @@ export default function TaskDelegationModule() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-[#111827] border border-[#1e293b] p-4 rounded-xl flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-mono text-slate-400 uppercase font-bold">Appointed Directives</p>
+            <p className="text-[10px] font-mono text-slate-400 uppercase font-bold">{t("APPOINTED DIRECTIVES", "ನಿಯೋಜಿತ ನಿರ್ದೇಶನಗಳು")}</p>
             <p className="text-2xl font-black text-slate-100 font-mono mt-1">{totalAppointed}</p>
           </div>
           <div className="p-3 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20">
@@ -189,7 +189,7 @@ export default function TaskDelegationModule() {
 
         <div className="bg-[#111827] border border-[#1e293b] p-4 rounded-xl flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-mono text-slate-400 uppercase font-bold">In Field Progress</p>
+            <p className="text-[10px] font-mono text-slate-400 uppercase font-bold">{t("IN FIELD PROGRESS", "ಸ್ಥಳೀಯ ತನಿಖೆಯಲ್ಲಿದೆ")}</p>
             <p className="text-2xl font-black text-blue-400 font-mono mt-1">{inProgressCount}</p>
           </div>
           <div className="p-3 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20">
@@ -199,7 +199,7 @@ export default function TaskDelegationModule() {
 
         <div className="bg-[#111827] border border-[#1e293b] p-4 rounded-xl flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-mono text-slate-400 uppercase font-bold">Under Review</p>
+            <p className="text-[10px] font-mono text-slate-400 uppercase font-bold">{t("UNDER REVIEW", "ಪರಿಶೀಲನೆಯಲ್ಲಿದೆ")}</p>
             <p className="text-2xl font-black text-purple-400 font-mono mt-1">{underReviewCount}</p>
           </div>
           <div className="p-3 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20">
@@ -209,7 +209,7 @@ export default function TaskDelegationModule() {
 
         <div className="bg-[#111827] border border-[#1e293b] p-4 rounded-xl flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-mono text-slate-400 uppercase font-bold">Completed & Verified</p>
+            <p className="text-[10px] font-mono text-slate-400 uppercase font-bold">{t("COMPLETED & VERIFIED", "ಪೂರ್ಣಗೊಂಡಿದೆ & ಪರಿಶೀಲಿಸಲಾಗಿದೆ")}</p>
             <p className="text-2xl font-black text-emerald-400 font-mono mt-1">{completedCount}</p>
           </div>
           <div className="p-3 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -221,12 +221,12 @@ export default function TaskDelegationModule() {
       {/* Filter Tabs */}
       <div className="flex gap-2 border-b border-[#1e293b] pb-3">
         {[
-          { id: "all", label: "All Appointed Tasks" },
-          { id: "assigned", label: "📌 Assigned" },
-          { id: "in_progress", label: "⏳ In Progress" },
-          { id: "evidence_collected", label: "📁 Evidence Collected" },
-          { id: "under_review", label: "🔍 Under Review" },
-          { id: "completed", label: "✅ Completed" },
+          { id: "all", label: t("All Appointed Tasks", "ಎಲ್ಲಾ ನಿಯೋಜಿತ ಕಾರ್ಯಗಳು") },
+          { id: "assigned", label: `📌 ${t("Assigned", "ನಿಯೋಜಿಸಲಾಗಿದೆ")}` },
+          { id: "in_progress", label: `⏳ ${t("In Progress", "ಪ್ರಗತಿಯಲ್ಲಿದೆ")}` },
+          { id: "evidence_collected", label: `📁 ${t("Evidence Collected", "ಸಾಕ್ಷ್ಯ ಸಂಗ್ರಹಿಸಲಾಗಿದೆ")}` },
+          { id: "under_review", label: `🔍 ${t("Under Review", "ಪರಿಶೀಲನೆಯಲ್ಲಿದೆ")}` },
+          { id: "completed", label: `✅ ${t("Completed", "ಪೂರ್ಣಗೊಂಡಿದೆ")}` },
         ].map((tab) => (
           <button
             key={tab.id}

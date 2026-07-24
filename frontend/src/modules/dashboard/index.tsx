@@ -218,7 +218,7 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
     tooltip: { trigger: "axis" },
     xAxis: {
       type: "category",
-      data: sortedDistricts.map(([d]) => d),
+      data: sortedDistricts.map(([d]) => translateData(d)),
       axisLabel: { interval: 0, rotate: 35, color: "#94a3b8", fontSize: 10 }
     },
     yAxis: { type: "value", axisLabel: { color: "#94a3b8", fontSize: 10 } },
@@ -247,7 +247,7 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
       {
         type: "pie",
         radius: ["35%", "65%"],
-        data: Object.entries(typeCounts).map(([name, value]) => ({ name, value })),
+        data: Object.entries(typeCounts).map(([name, value]) => ({ name: translateData(name), value })),
         label: {
           color: "#cbd5e1",
           fontSize: 10,
@@ -695,46 +695,46 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
           {/* 4. CONTEXTUAL EXECUTIVE KPI CARDS */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <KpiCard
-              title="Statewide Active Cases"
+              title={translateData("STATEWIDE ACTIVE CASES")}
               value={statewideTotal}
               icon={<FileText size={16} />}
               badges={[
-                { label: "Statewide Scope", type: "neutral" },
-                { label: "31 Districts", type: "success" }
+                { label: translateData("Statewide Scope"), type: "neutral" },
+                { label: translateData("31 Districts"), type: "success" }
               ]}
-              description="Total ongoing cases registered across Karnataka."
+              description={translateData("Total ongoing cases registered across Karnataka.")}
               loading={isCasesLoading}
             />
             <KpiCard
-              title="High Risk Alerts"
+              title={translateData("HIGH RISK ALERTS")}
               value={statewideHighRisk}
               icon={<ShieldAlert size={16} />}
               badges={[
-                { label: "↑ 12 Today", type: "error" },
-                { label: "Anomaly Flags", type: "warning" }
+                { label: translateData("12 Today"), type: "error" },
+                { label: translateData("Anomaly Flags"), type: "warning" }
               ]}
-              description="High severity risk score classifications."
+              description={translateData("High severity risk score classifications.")}
               loading={isCasesLoading}
             />
             <KpiCard
-              title="Solved Records"
+              title={translateData("SOLVED RECORDS")}
               value={statewideSolved}
               icon={<CheckCircle size={16} />}
               badges={[
-                { label: "↑ 24 Today", type: "success" },
-                { label: "50% Close Rate", type: "neutral" }
+                { label: translateData("24 Today"), type: "success" },
+                { label: translateData("50% Close Rate"), type: "neutral" }
               ]}
-              description="Closed or chargesheeted investigations."
+              description={translateData("Closed or chargesheeted investigations.")}
               loading={isCasesLoading}
             />
             <KpiCard
-              title="Pending Briefs"
+              title={translateData("PENDING BRIEFS")}
               value={statewidePending}
               icon={<Clock size={16} />}
               badges={[
-                { label: "Active Horizon", type: "neutral" }
+                { label: translateData("Active Horizon"), type: "neutral" }
               ]}
-              description="Investigations awaiting senior closure approvals."
+              description={translateData("Investigations awaiting senior closure approvals.")}
               loading={isCasesLoading}
             />
           </div>
@@ -744,26 +744,26 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
             <div className="flex items-center gap-2 border-b border-[#1e293b] pb-3 mb-4">
               <Activity className="text-blue-500" size={16} />
               <h3 className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider">
-                Operational Unit & Resource Status
+                {translateData("OPERATIONAL UNIT & RESOURCE STATUS")}
               </h3>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-xs text-slate-300">
               <div className="p-3 bg-[#151c2e] border border-[#1e293b] rounded">
-                <span className="text-slate-500 block font-mono text-[10px] uppercase">Threat Level Index</span>
-                <span className="text-red-400 font-bold text-sm block mt-1">STAGE II (ELEVATED)</span>
+                <span className="text-slate-500 block font-mono text-[10px] uppercase">{translateData("THREAT LEVEL INDEX")}</span>
+                <span className="text-red-400 font-bold text-sm block mt-1">{translateData("STAGE II (ELEVATED)")}</span>
               </div>
               <div className="p-3 bg-[#151c2e] border border-[#1e293b] rounded">
-                <span className="text-slate-500 block font-mono text-[10px] uppercase">Officer Availability</span>
-                <span className="text-emerald-400 font-bold text-sm block mt-1">87% Active Shift</span>
+                <span className="text-slate-500 block font-mono text-[10px] uppercase">{translateData("OFFICER AVAILABILITY")}</span>
+                <span className="text-emerald-400 font-bold text-sm block mt-1">{translateData("87% Active Shift")}</span>
               </div>
               <div className="p-3 bg-[#151c2e] border border-[#1e293b] rounded">
-                <span className="text-slate-500 block font-mono text-[10px] uppercase">Resource Allocation</span>
-                <span className="text-slate-100 font-bold text-sm block mt-1">94% Capacity Utilized</span>
+                <span className="text-slate-500 block font-mono text-[10px] uppercase">{translateData("RESOURCE ALLOCATION")}</span>
+                <span className="text-blue-400 font-bold text-sm block mt-1">{translateData("94% Capacity Utilized")}</span>
               </div>
               <div className="p-3 bg-[#151c2e] border border-[#1e293b] rounded flex items-center justify-between">
                 <div>
-                  <span className="text-slate-500 block font-mono text-[10px] uppercase">Platform Health</span>
-                  <span className="text-emerald-400 font-bold text-sm block mt-1">ONLINE</span>
+                  <span className="text-slate-500 block font-mono text-[10px] uppercase">{translateData("PLATFORM HEALTH")}</span>
+                  <span className="text-emerald-400 font-bold text-sm block mt-1">{translateData("ONLINE")}</span>
                 </div>
                 <Server className="text-emerald-400 animate-pulse" size={16} />
               </div>
