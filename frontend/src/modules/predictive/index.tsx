@@ -48,7 +48,10 @@ const KARNATAKA_DISTRICTS = [
   { id: 31, name: "Yadgir" },
 ];
 
+import { useLanguage } from "../../app/providers/LanguageContext";
+
 export default function Predictive() {
+  const { translateData } = useLanguage();
   const [activeTab, setActiveTab] = useState<"timeSeries" | "hotspots" | "patrol" | "warnings" | "assistant">("timeSeries");
   const [districtId, setDistrictId] = useState<number | undefined>(undefined);
   const [crimeCategory, setCrimeCategory] = useState<string>("");
@@ -232,7 +235,7 @@ export default function Predictive() {
             <option value="">Statewide Command (All 31 Districts)</option>
             {KARNATAKA_DISTRICTS.map((d) => (
               <option key={d.id} value={d.id}>
-                {d.name}
+                {translateData(d.name)}
               </option>
             ))}
           </select>

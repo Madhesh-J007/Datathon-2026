@@ -5,11 +5,14 @@ import { Filter, Layers, Compass, Play, Pause, ChevronUp, ChevronDown, ChevronLe
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
+import { useLanguage } from "../../app/providers/LanguageContext";
+
 interface HotspotProps {
   activeTab?: "gis" | "dashboard";
 }
 
 export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
+  const { translateData } = useLanguage();
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletMap = useRef<L.Map | null>(null);
   const markerLayerGroup = useRef<L.LayerGroup | null>(null);
@@ -397,7 +400,7 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
                 >
                   <option value="">All Karnataka Districts (31)</option>
                   {Object.entries(karnatakaDistricts).map(([id, name]) => (
-                    <option key={id} value={id}>{name}</option>
+                    <option key={id} value={id}>{translateData(name)}</option>
                   ))}
                 </select>
               </div>
@@ -410,7 +413,7 @@ export default function Hotspot({ activeTab = "gis" }: HotspotProps) {
                   className="w-full bg-[#1e293b] border border-[#334155] text-slate-200 text-xs rounded px-2.5 py-1.5 focus:outline-none focus:border-blue-500 font-mono font-bold"
                 >
                   {crimeCategoryOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    <option key={opt.value} value={opt.value}>{translateData(opt.label)}</option>
                   ))}
                 </select>
               </div>

@@ -44,7 +44,10 @@ const KARNATAKA_DISTRICTS = [
   { id: 31, name: "Yadgir" },
 ];
 
+import { useLanguage } from "../../app/providers/LanguageContext";
+
 export default function NetworkModule() {
+  const { translateData } = useLanguage();
   const [districtId, setDistrictId] = useState<number | undefined>(undefined);
   const [crimeCategory, setCrimeCategory] = useState<string>("");
   const [startDate, setStartDate] = useState<string>("");
@@ -290,7 +293,7 @@ export default function NetworkModule() {
                         {(g.Confidence * 100).toFixed(0)}% Conf
                       </span>
                     </div>
-                    <p className="text-slate-300 text-[10px] italic">"{g.Explanation}"</p>
+                    <p className="text-slate-300 text-[10px] italic">"{translateData(g.Explanation)}"</p>
                     <div className="mt-1.5 text-[10px] text-slate-400 font-mono flex justify-between items-center">
                       <span>Members: {g.MemberPersonIDs?.length || 0} suspects</span>
                       <span className="text-blue-400 text-[9px]">High Co-offending</span>
