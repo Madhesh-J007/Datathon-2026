@@ -1,6 +1,18 @@
 import axios from "axios";
 
-const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
+const getApiBaseUrl = () => {
+  const envUrl = (import.meta as any).env?.VITE_API_BASE_URL;
+  if (envUrl && envUrl.trim() !== "") {
+    return envUrl;
+  }
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname || "127.0.0.1";
+    return `http://${hostname}:8000/api/v1`;
+  }
+  return "http://127.0.0.1:8000/api/v1";
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

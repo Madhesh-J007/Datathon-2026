@@ -27,11 +27,15 @@ export default function Login() {
         navigate("/dashboard");
       }
     } catch (err: any) {
-      console.error(err);
-      setError(
-        err.response?.data?.detail || 
-        "Authentication failed. Please verify credentials."
-      );
+      console.error("Login error details:", err);
+      const detail = err.response?.data?.detail;
+      if (detail) {
+        setError(detail);
+      } else if (err.message) {
+        setError(`Backend Connection Error (${err.message}). Ensure backend container is running.`);
+      } else {
+        setError("Authentication failed. Please verify connection & credentials.");
+      }
     } finally {
       setLoading(false);
     }

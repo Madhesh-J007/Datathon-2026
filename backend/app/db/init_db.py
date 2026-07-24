@@ -368,8 +368,10 @@ def seed_roles_and_permissions(db: Session):
 
 def seed_users(db: Session):
     """
-    Seeds default user accounts (Bharathvaj, ramesh, suda, ksp_admin, cbi_sp_verma, fsl_dna_sunita, ed_jd_hegde).
+    Seeds and permanently updates default officer user accounts.
     """
+    from app.models.officer import Officer
+
     admin_role = db.query(Role).filter(Role.RoleName == "Admin").first()
     scrb_role = db.query(Role).filter(Role.RoleName == "SCRB_Officer").first()
     sho_role = db.query(Role).filter(Role.RoleName == "SHO").first()
@@ -377,31 +379,55 @@ def seed_users(db: Session):
     ext_role = db.query(Role).filter(Role.RoleName == "ExternalAgencyOfficer").first()
 
     preset_users = [
-        ("ksp_admin", "change_me", "admin@ksp.gov.in", 1, admin_role.RoleID if admin_role else 1),
-        ("Bharathvaj", "change_me", "bharathvaj@ksp.gov.in", 2, scrb_role.RoleID if scrb_role else 1),
-        ("ramesh", "change_me", "ramesh@ksp.gov.in", 3, sho_role.RoleID if sho_role else 1),
-        ("suda", "change_me", "suda@ksp.gov.in", 4, constable_role.RoleID if constable_role else 4),
-        ("cbi_sp_verma", "cbi@password2026", "verma@cbi.gov.in", None, ext_role.RoleID if ext_role else 5),
-        ("fsl_dna_sunita", "fsl@password2026", "sunita@fsl.gov.in", None, ext_role.RoleID if ext_role else 5),
-        ("ed_jd_hegde", "ed@password2026", "hegde@ed.gov.in", None, ext_role.RoleID if ext_role else 5),
+        ("ksp_admin", "change_me", "admin@ksp.gov.in", admin_role.RoleID if admin_role else 1, "System Administrator"),
+        ("Bharathvaj", "change_me", "bharathvaj@ksp.gov.in", scrb_role.RoleID if scrb_role else 2, "DGP — Director General of Police"),
+        ("ramesh", "change_me", "ramesh@ksp.gov.in", scrb_role.RoleID if scrb_role else 2, "SP — Superintendent of Police"),
+        ("dysp_officer", "change_me", "dysp@ksp.gov.in", scrb_role.RoleID if scrb_role else 2, "DySP — Deputy Superintendent of Police"),
+        ("pi_officer", "change_me", "pi@ksp.gov.in", sho_role.RoleID if sho_role else 3, "PI — Police Inspector"),
+        ("sho_officer", "change_me", "si@ksp.gov.in", sho_role.RoleID if sho_role else 3, "PSI — Sub Inspector of Police"),
+        ("constable_officer", "change_me", "asi@ksp.gov.in", constable_role.RoleID if constable_role else 4, "ASI — Assistant Sub Inspector"),
+        ("suda", "change_me", "suda@ksp.gov.in", constable_role.RoleID if constable_role else 4, "PC — Police Constable"),
+        ("cbi_sp_verma", "cbi@password2026", "verma@cbi.gov.in", ext_role.RoleID if ext_role else 5, "SP — Central Bureau of Investigation"),
+        ("fsl_dna_sunita", "fsl@password2026", "sunita@fsl.gov.in", ext_role.RoleID if ext_role else 5, "FSL — Forensic Science Specialist"),
+        ("ed_jd_hegde", "ed@password2026", "hegde@ed.gov.in", ext_role.RoleID if ext_role else 5, "JD — Enforcement Directorate"),
     ]
 
-    logger.info("Seeding preset officer user accounts...")
+    logger.info("Seeding and syncing preset officer user accounts...")
     try:
-        for username, password, email, officer_id, role_id in preset_users:
-            existing = db.query(User).filter(User.Username.ilike(username)).first()
-            if not existing:
+        for username, password, email, role_id, rank_title in preset_users:
+            # Create or update Officer record
+            badge_code = f"KSP-{username.upper()[:6]}"
+            off = db.query(Officer).filter(Officer.Name == username).first()
+            if not off:
+                off = Officer(BadgeNumber=badge_code, Name=username, Rank=rank_title, AssignedCaseCount=0)
+                db.add(off)
+                db.commit()
+                db.refresh(off)
+            else:
+                off.Rank = rank_title
+                db.commit()
+
+            # Create or permanently update User record
+            u = db.query(User).filter(User.Username.ilike(username)).first()
+            if not u:
                 u = User(
                     Username=username,
                     PasswordHash=hash_password(password),
                     Email=email,
-                    OfficerID=officer_id,
+                    OfficerID=off.OfficerID if off else None,
                     RoleID=role_id,
                     IsActive=True
                 )
                 db.add(u)
+            else:
+                u.PasswordHash = hash_password(password)
+                u.Email = email
+                u.RoleID = role_id
+                if off:
+                    u.OfficerID = off.OfficerID
+                u.IsActive = True
         db.commit()
-        logger.info("Successfully seeded preset officer user accounts!")
+        logger.info("Successfully seeded and permanently updated preset officer user accounts!")
     except Exception as e:
         db.rollback()
         logger.error(f"Error seeding user accounts: {e}")
