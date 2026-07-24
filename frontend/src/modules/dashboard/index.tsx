@@ -259,9 +259,9 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
   };
 
   const caseColumns = [
-    { header: "Case No", accessorKey: "CaseNo", render: (r: any) => <span className="text-blue-400 font-bold">{r.CaseNo}</span> },
-    { header: "Registered Date", accessorKey: "CrimeRegisteredDate" },
-    { header: "Priority", accessorKey: "InvestigationPriority", render: (r: any) => (
+    { header: t("Case No"), accessorKey: "CaseNo", render: (r: any) => <span className="text-blue-400 font-bold">{r.CaseNo}</span> },
+    { header: t("Registered Date"), accessorKey: "CrimeRegisteredDate" },
+    { header: t("Priority"), accessorKey: "InvestigationPriority", render: (r: any) => (
         <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono border ${
           r.InvestigationPriority === "High" ? "bg-red-500/10 text-red-400 border-red-500/20" :
           r.InvestigationPriority === "Medium" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
@@ -271,14 +271,14 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
         </span>
       )
     },
-    { header: "AI Risk", accessorKey: "AIRiskScore", render: (r: any) => (
+    { header: t("AI Risk"), accessorKey: "AIRiskScore", render: (r: any) => (
         <div className="flex items-center gap-1.5 font-mono">
           <div className="w-1.5 h-1.5 rounded-full bg-red-500" style={{ opacity: r.AIRiskScore || 0 }}></div>
           <span>{(r.AIRiskScore || 0).toFixed(2)}</span>
         </div>
       )
     },
-    { header: "Incident Brief", accessorKey: "BriefFacts", render: (r: any) => (
+    { header: t("Incident Brief"), accessorKey: "BriefFacts", render: (r: any) => (
         <p className="truncate max-w-xs">{translateData(r.BriefFacts)}</p>
       )
     }
@@ -414,27 +414,27 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
                   onClick={() => setSubMode("executive")}
                   className={`px-3 py-1.5 rounded transition-colors ${subMode === "executive" ? "bg-blue-600 text-white font-bold" : "text-slate-400 hover:text-slate-200"}`}
                 >
-                  Statewide Executive
+                  {t("Statewide Executive", "ರಾಜ್ಯಮಟ್ಟದ ಆಡಳಿತ ಸಾರಾಂಶ")}
                 </button>
               )}
               <button
                 onClick={() => setSubMode("district")}
                 className={`px-3 py-1.5 rounded transition-colors ${subMode === "district" ? "bg-blue-600 text-white font-bold" : "text-slate-400 hover:text-slate-200"}`}
               >
-                {grantedScope === "Case" ? "Assigned Case Analytics" : "District Level"}
+                {grantedScope === "Case" ? t("Assigned Case Analytics", "ನಿಯೋಜಿತ ಪ್ರಕರಣಗಳ ವಿಶ್ಲೇಷಣೆ") : t("District Level", "ಜಿಲ್ಲಾ ವಿಭಾಗ")}
               </button>
               {(!isExternalOfficer || grantedScope === "Station") && (
                 <button
                   onClick={() => setSubMode("station")}
                   className={`px-3 py-1.5 rounded transition-colors ${subMode === "station" ? "bg-blue-600 text-white font-bold" : "text-slate-400 hover:text-slate-200"}`}
                 >
-                  Station Precinct
+                  {t("Station Precinct", "ಠಾಣಾ ವ್ಯಾಪ್ತಿ")}
                 </button>
               )}
             </div>
           ) : (
             <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded text-xs font-mono font-bold">
-              👮 Station Precinct Scope (Restricted to Police Station)
+              👮 {t("Station Precinct Scope (Restricted to Police Station)", "ಠಾಣಾ ವ್ಯಾಪ್ತಿಯ ಸೀಮಿತ ಪ್ರವೇಶ")}
             </div>
           )}
 
@@ -825,8 +825,8 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
           {/* District Selection Bar */}
           <div className="bg-[#111827] border border-[#1e293b] rounded p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h3 className="text-sm font-bold text-slate-300 font-mono uppercase tracking-wider">District Division Selector</h3>
-              <p className="text-xs text-slate-400 mt-1">Review district-wide FIR telemetry, active threat profiles, and police station units</p>
+              <h3 className="text-sm font-bold text-slate-300 font-mono uppercase tracking-wider">{t("District Division Selector", "ಜಿಲ್ಲಾ ವಿಭಾಗೀಯ ಆಯ್ಕೆ")}</h3>
+              <p className="text-xs text-slate-400 mt-1">{t("Review district-wide FIR telemetry, active threat profiles, and police station units", "ಜಿಲ್ಲಾವಾರು ಎಫ್.ಐ.ಆರ್ ಟೆಲಿಮೆಟ್ರಿ ಮತ್ತು ಬೆದರಿಕೆ ಸಾರಾಂಶ ಪರಿಶೀಲಿಸಿ")}</p>
             </div>
             <div className="flex items-center gap-3">
               <select
@@ -839,7 +839,7 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
                 className="bg-[#1e293b] border border-[#1e293b] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-blue-500 font-mono font-bold"
               >
                 {districts.map((d) => (
-                  <option key={d} value={d}>{karnatakaDistricts[d] || `District #${d}`}</option>
+                  <option key={d} value={d}>{translateData(karnatakaDistricts[d] || `District #${d}`)}</option>
                 ))}
               </select>
             </div>
@@ -848,32 +848,32 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
           {/* District KPIs */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <KpiCard
-              title="District Active Cases"
+              title={t("District Active Cases", "ಜಿಲ್ಲೆಯ ಸಕ್ರಿಯ ಪ್ರಕರಣಗಳು")}
               value={districtCases.length}
               icon={<FileText size={16} />}
-              badges={[{ label: karnatakaDistricts[Number(activeDistrict)] || `District #${activeDistrict}`, type: "neutral" }]}
-              description="Total cases registered inside division boundaries."
+              badges={[{ label: translateData(karnatakaDistricts[Number(activeDistrict)] || `District #${activeDistrict}`), type: "neutral" }]}
+              description={t("Total cases registered inside division boundaries.", "ವಿಭಾಗದ ವ್ಯಾಪ್ತಿಯಲ್ಲಿ ನೋಂದಾಯಿಸಲಾದ ಒಟ್ಟು ಪ್ರಕರಣಗಳು.")}
             />
             <KpiCard
-              title="Critical AI Risk Alerts"
+              title={t("Critical AI Risk Alerts", "ತುರ್ತು ಎಐ ರಿಸ್ಕ್ ಸೂಚನೆಗಳು")}
               value={districtCases.filter((c: any) => c.AIRiskScore > 0.7).length}
               icon={<ShieldAlert size={16} />}
-              badges={[{ label: "Immediate Patrols", type: "error" }]}
-              description="Precinct cases flagged with high risk profiles."
+              badges={[{ label: t("Immediate Patrols", "ತಕ್ಷಣದ ಗಸ್ತು"), type: "error" }]}
+              description={t("Precinct cases flagged with high risk profiles.", "ಉನ್ನತ ರಿಸ್ಕ್ ಸೂಚ್ಯಂಕ ಹೊಂದಿರುವ ಪ್ರಕರಣಗಳು.")}
             />
             <KpiCard
-              title="Cleared / Closed"
+              title={t("Cleared / Closed", "ಪರಿಹರಿಸಿದ / ಮುಕ್ತಾಯಗೊಂಡ ಪ್ರಕರಣಗಳು")}
               value={districtCases.filter((c: any) => c.CaseStatusID === 3 || c.CaseStatusID === 4).length}
               icon={<CheckCircle size={16} />}
-              badges={[{ label: `${((districtCases.filter((c: any) => c.CaseStatusID === 3 || c.CaseStatusID === 4).length / (districtCases.length || 1)) * 100).toFixed(0)}% Close Rate`, type: "success" }]}
-              description="Successfully closed case dossiers."
+              badges={[{ label: `${((districtCases.filter((c: any) => c.CaseStatusID === 3 || c.CaseStatusID === 4).length / (districtCases.length || 1)) * 100).toFixed(0)}% ${t("Close Rate", "ಪೂರ್ಣ ಪ್ರಮಾಣ")}`, type: "success" }]}
+              description={t("Successfully closed case dossiers.", "ಯಶಸ್ವಿಯಾಗಿ ಮುಕ್ತಾಯಗೊಂಡ ಪ್ರಕರಣ ಫೈಲ್‌ಗಳು.")}
             />
             <KpiCard
-              title="Cross-Station Actions"
+              title={t("Cross-Station Actions", "ಠಾಣಾ-ಅಂತರ ಕಾರ್ಯಾಚರಣೆಗಳು")}
               value={districtCases.filter((c: any) => c.BriefFacts?.toLowerCase().includes("gang") || c.BriefFacts?.toLowerCase().includes("network")).length}
               icon={<Activity size={16} />}
-              badges={[{ label: "Syndicate Links", type: "warning" }]}
-              description="Cases flagged for co-offending network overlays."
+              badges={[{ label: t("Syndicate Links", "ಅಪರಾಧ ಜಾಲದ ಕೊಂಡಿಗಳು"), type: "warning" }]}
+              description={t("Cases flagged for co-offending network overlays.", "ಸಹ-ಅಪರಾಧ ಜಾಲಕ್ಕೆ ಒಳಪಟ್ಟಿರುವ ಪ್ರಕರಣಗಳು.")}
             />
           </div>
 
@@ -881,7 +881,7 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
           <div className="bg-[#111827] border border-[#1e293b] rounded p-5 flex flex-col h-[400px]">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 border-b border-[#1e293b] pb-3">
               <h3 className="text-sm font-bold text-slate-300 font-mono uppercase tracking-wider">
-                District Division Case Logs ({karnatakaDistricts[Number(activeDistrict)] || "District"})
+                {t("District Division Case Logs", "ಜಿಲ್ಲಾ ವಿಭಾಗೀಯ ಪ್ರಕರಣಗಳ ದಾಖಲೆಗಳು")} ({translateData(karnatakaDistricts[Number(activeDistrict)] || "District")})
               </h3>
               <div className="flex items-center gap-2">
                 <select
@@ -894,10 +894,10 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
                   }}
                   className="bg-[#1e293b] border border-[#334155] text-slate-200 text-xs rounded px-2.5 py-1.5 focus:outline-none focus:border-blue-500 font-mono font-bold"
                 >
-                  <option value="all">📋 All Division Records</option>
-                  <option value="risk">🛡️ AI High Risk Cases</option>
-                  <option value="pending">⏳ Pending Cases</option>
-                  <option value="finished">✅ Finished / Cleared Cases</option>
+                  <option value="all">📋 {t("All Division Records", "ಎಲ್ಲಾ ವಿಭಾಗೀಯ ದಾಖಲೆಗಳು")}</option>
+                  <option value="risk">🛡️ {t("AI High Risk Cases", "ಎಐ ಉನ್ನತ ರಿಸ್ಕ್ ಪ್ರಕರಣಗಳು")}</option>
+                  <option value="pending">⏳ {t("Pending Cases", "ಬಾಕಿ ಇರುವ ಪ್ರಕರಣಗಳು")}</option>
+                  <option value="finished">✅ {t("Finished / Cleared Cases", "ಪೂರ್ಣಗೊಂಡ ಪ್ರಕರಣಗಳು")}</option>
                 </select>
 
                 <select
@@ -907,13 +907,13 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
                 >
                   {districtCategory === "risk" ? (
                     <>
-                      <option value="risk_desc">⚡ High to Low Risk</option>
-                      <option value="risk_asc">⚡ Low to High Risk</option>
+                      <option value="risk_desc">⚡ {t("High to Low Risk", "ಹೆಚ್ಚಿನ ರಿಸ್ಕ್‌ನಿಂದ ಕಡಿಮೆ ರಿಸ್ಕ್")}</option>
+                      <option value="risk_asc">⚡ {t("Low to High Risk", "ಕಡಿಮೆ ರಿಸ್ಕ್‌ನಿಂದ ಹೆಚ್ಚಿನ ರಿಸ್ಕ್")}</option>
                     </>
                   ) : (
                     <>
-                      <option value="date_desc">📅 Newest to Oldest</option>
-                      <option value="date_asc">📅 Oldest to Newest</option>
+                      <option value="date_desc">📅 {t("Newest to Oldest", "ಇತ್ತೀಚಿನವುಗಳಿಂದ ಹಳೆಯವು")}</option>
+                      <option value="date_asc">📅 {t("Oldest to Newest", "ಹಳೆಯವುಗಳಿಂದ ಇತ್ತೀಚಿನವು")}</option>
                     </>
                   )}
                 </select>
@@ -936,14 +936,14 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
           {/* Dual Cascading District & Station Selection Bar */}
           <div className="bg-[#111827] border border-[#1e293b] rounded p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h3 className="text-sm font-bold text-slate-300 font-mono uppercase tracking-wider">Precinct Station Selector</h3>
-              <p className="text-xs text-slate-400 mt-1">Select any District to review its localized police station units and FIR telemetry</p>
+              <h3 className="text-sm font-bold text-slate-300 font-mono uppercase tracking-wider">{t("Precinct Station Selector", "ಠಾಣಾ ವ್ಯಾಪ್ತಿ ಆಯ್ಕೆ")}</h3>
+              <p className="text-xs text-slate-400 mt-1">{t("Select any District to review its localized police station units and FIR telemetry", "ಯಾವುದೇ ಜಿಲ್ಲೆಯ ಪೊಲೀಸ್ ಠಾಣೆ ಘಟಕಗಳು ಮತ್ತು ಎಫ್.ಐ.ಆರ್ ತನಿಖಾ ಮಾಹಿತಿ ವೀಕ್ಷಿಸಿ")}</p>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
               {/* Step 1: Select District */}
               <div className="flex flex-col">
-                <span className="text-[9px] text-slate-500 font-mono uppercase mb-0.5">1. Select District:</span>
+                <span className="text-[9px] text-slate-500 font-mono uppercase mb-0.5">1. {t("Select District:", "ಜಿಲ್ಲೆ ಆಯ್ಕೆ ಮಾಡಿ:")}</span>
                 <select
                   value={activeDistrict}
                   disabled={isConstable}
@@ -956,14 +956,14 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
                   className="bg-[#1e293b] border border-[#1e293b] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-blue-500 font-mono font-bold disabled:opacity-75 disabled:cursor-not-allowed"
                 >
                   {districts.map((d) => (
-                    <option key={d} value={d}>{karnatakaDistricts[d] || `District #${d}`}</option>
+                    <option key={d} value={d}>{translateData(karnatakaDistricts[d] || `District #${d}`)}</option>
                   ))}
                 </select>
               </div>
 
               {/* Step 2: Select Police Station in District */}
               <div className="flex flex-col">
-                <span className="text-[9px] text-slate-500 font-mono uppercase mb-0.5">2. Select Police Station:</span>
+                <span className="text-[9px] text-slate-500 font-mono uppercase mb-0.5">2. {t("Select Police Station:", "ಪೊಲೀಸ್ ಠಾಣೆ ಆಯ್ಕೆ ಮಾಡಿ:")}</span>
                 <select
                   value={activeStation}
                   disabled={isConstable}
@@ -972,7 +972,7 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
                 >
                   {Array.from(new Set(cases.filter((c: any) => c.DistrictID === activeDistrict).map((c: any) => c.PoliceStationID).filter(Boolean))).map((s: any) => (
                     <option key={s} value={s}>
-                      {cases.find((c: any) => c.PoliceStationID === s)?.PoliceStationName || `Police Station Unit #${s}`}
+                      {translateData(cases.find((c: any) => c.PoliceStationID === s)?.PoliceStationName || `Police Station Unit #${s}`)}
                     </option>
                   ))}
                 </select>
@@ -983,32 +983,32 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
           {/* Station KPIs */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <KpiCard
-              title="Station Active Cases"
+              title={t("Station Active Cases", "ಠಾಣೆಯ ಸಕ್ರಿಯ ಪ್ರಕರಣಗಳು")}
               value={stationCases.filter((c: any) => c.CaseStatusID !== 3).length}
               icon={<FileText size={16} />}
-              badges={[{ label: cases.find((c: any) => c.PoliceStationID === activeStation)?.PoliceStationName || `Station #${activeStation}`, type: "neutral" }]}
-              description="Active dossiers currently assigned to precinct."
+              badges={[{ label: translateData(cases.find((c: any) => c.PoliceStationID === activeStation)?.PoliceStationName || `Station #${activeStation}`), type: "neutral" }]}
+              description={t("Active dossiers currently assigned to precinct.", "ಠಾಣೆಗೆ ಪ್ರಸ್ತುತ ನಿಯೋಜಿಸಲಾದ ಸಕ್ರಿಯ ಕೇಸ್ ಫೈಲ್‌ಗಳು.")}
             />
             <KpiCard
-              title="High Risk Cases"
+              title={t("High Risk Cases", "ಉನ್ನತ ರಿಸ್ಕ್ ಪ್ರಕರಣಗಳು")}
               value={stationCases.filter((c: any) => (c.AIRiskScore && c.AIRiskScore >= 0.70) || c.InvestigationPriority === "High").length}
               icon={<ShieldAlert size={16} />}
               badges={[{ label: "AI Score ≥ 0.70", type: "error" }]}
-              description="Cases flagged for immediate patrol & IO action."
+              description={t("Cases flagged for immediate patrol & IO action.", "ತಕ್ಷಣದ ಗಸ್ತು ಮತ್ತು ತನಿಖಾಧಿಕಾರಿಯ ಕಾರ್ಯಾಚರಣೆಗೆ ಗುರುತಿಸಿದ ಪ್ರಕರಣಗಳು.")}
             />
             <KpiCard
-              title="Closed / Cleared Cases"
+              title={t("Closed / Cleared Cases", "ಪರಿಹರಿಸಿದ / ಮುಕ್ತಾಯಗೊಂಡ ಪ್ರಕರಣಗಳು")}
               value={stationCases.filter((c: any) => c.CaseStatusID === 3 || c.CaseStatusID === 4).length}
               icon={<CheckCircle size={16} />}
-              badges={[{ label: `${((stationCases.filter((c: any) => c.CaseStatusID === 3 || c.CaseStatusID === 4).length / (stationCases.length || 1)) * 100).toFixed(0)}% Solved`, type: "success" }]}
-              description="Closed or chargesheeted investigations."
+              badges={[{ label: `${((stationCases.filter((c: any) => c.CaseStatusID === 3 || c.CaseStatusID === 4).length / (stationCases.length || 1)) * 100).toFixed(0)}% ${t("Solved", "ಪರಿಹರಿಸಲಾಗಿದೆ")}`, type: "success" }]}
+              description={t("Closed or chargesheeted investigations.", "ಯಶಸ್ವಿಯಾಗಿ ಮುಕ್ತಾಯಗೊಂಡ ಅಥವಾ ಚಾರ್ಜ್‌ಶೀಟ್ ಸಲ್ಲಿಸಿದ ಪ್ರಕರಣಗಳು.")}
             />
             <KpiCard
-              title="Precinct Risk Score"
+              title={t("Precinct Risk Score", "ಠಾಣೆಯ ರಿಸ್ಕ್ ಸ್ಕೋರ್")}
               value={stationCases.length > 0 ? (stationCases.reduce((acc: number, c: any) => acc + (c.AIRiskScore || 0), 0) / stationCases.length).toFixed(2) : "0.00"}
               icon={<Activity size={16} />}
-              badges={[{ label: "KDE Weighted", type: "warning" }]}
-              description="Aggregated risk score index for precinct."
+              badges={[{ label: t("KDE Weighted", "ಎಐ ತೂಕ ಸೂಚ್ಯಂಕ"), type: "warning" }]}
+              description={t("Aggregated risk score index for precinct.", "ಠಾಣಾ ವ್ಯಾಪ್ತಿಯ ಒಟ್ಟು ಅಪರಾಧ ರಿಸ್ಕ್ ಸೂಚ್ಯಂಕ.")}
             />
           </div>
 
@@ -1016,7 +1016,7 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
           <div className="bg-[#111827] border border-[#1e293b] rounded p-5 flex flex-col h-[400px]">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 border-b border-[#1e293b] pb-3">
               <h3 className="text-sm font-bold text-slate-300 font-mono uppercase tracking-wider">
-                Precinct Unit Case Logs ({cases.find((c: any) => c.PoliceStationID === activeStation)?.PoliceStationName || `Station #${activeStation}`})
+                {t("Precinct Unit Case Logs", "ಠಾಣಾ ಘಟಕದ ಪ್ರಕರಣಗಳ ದಾಖಲೆಗಳು")} ({translateData(cases.find((c: any) => c.PoliceStationID === activeStation)?.PoliceStationName || `Station #${activeStation}`)})
               </h3>
               <div className="flex items-center gap-2">
                 <select
@@ -1029,10 +1029,10 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
                   }}
                   className="bg-[#1e293b] border border-[#334155] text-slate-200 text-xs rounded px-2.5 py-1.5 focus:outline-none focus:border-blue-500 font-mono font-bold"
                 >
-                  <option value="all">📋 All Precinct Records</option>
-                  <option value="risk">🛡️ AI High Risk Cases</option>
-                  <option value="pending">⏳ Pending Cases</option>
-                  <option value="finished">✅ Finished / Cleared Cases</option>
+                  <option value="all">📋 {t("All Precinct Records", "ಎಲ್ಲಾ ಠಾಣಾ ದಾಖಲೆಗಳು")}</option>
+                  <option value="risk">🛡️ {t("AI High Risk Cases", "ಎಐ ಉನ್ನತ ರಿಸ್ಕ್ ಪ್ರಕರಣಗಳು")}</option>
+                  <option value="pending">⏳ {t("Pending Cases", "ಬಾಕಿ ಇರುವ ಪ್ರಕರಣಗಳು")}</option>
+                  <option value="finished">✅ {t("Finished / Cleared Cases", "ಪೂರ್ಣಗೊಂಡ ಪ್ರಕರಣಗಳು")}</option>
                 </select>
 
                 <select
@@ -1042,12 +1042,12 @@ export default function Dashboard({ activeTab = "executive" }: DashboardProps) {
                 >
                   {stationCategory === "risk" ? (
                     <>
-                      <option value="risk_desc">⚡ High to Low Risk</option>
-                      <option value="risk_asc">⚡ Low to High Risk</option>
+                      <option value="risk_desc">⚡ {t("High to Low Risk", "ಹೆಚ್ಚಿನ ರಿಸ್ಕ್‌ನಿಂದ ಕಡಿಮೆ ರಿಸ್ಕ್")}</option>
+                      <option value="risk_asc">⚡ {t("Low to High Risk", "ಕಡಿಮೆ ರಿಸ್ಕ್‌ನಿಂದ ಹೆಚ್ಚಿನ ರಿಸ್ಕ್")}</option>
                     </>
                   ) : (
                     <>
-                      <option value="date_desc">📅 Newest to Oldest</option>
+                      <option value="date_desc">📅 {t("Newest to Oldest", "ಇತ್ತೀಚಿನವುಗಳಿಂದ ಹಳೆಯವು")}</option>
                       <option value="date_asc">📅 Oldest to Newest</option>
                     </>
                   )}
