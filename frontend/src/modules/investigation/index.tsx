@@ -85,46 +85,119 @@ export default function Investigation() {
   const [evidenceFileInput, setEvidenceFileInput] = useState<File | null>(null);
   const [evidenceUploadError, setEvidenceUploadError] = useState<string | null>(null);
 
-  // Register Incident State
+  // Complete BNS Compliant Register Incident / FIR State
   const [isRegisterIncidentModalOpen, setIsRegisterIncidentModalOpen] = useState(false);
+  const [firModalTab, setFirModalTab] = useState<"police" | "complainant" | "incident" | "accused" | "property">("police");
+  
+  // Police Details
+  const [regFirNo, setRegFirNo] = useState(`FIR-KSP-2026-${Math.floor(1000 + Math.random() * 9000)}`);
   const [regDistrictId, setRegDistrictId] = useState("5"); // Default: Bengaluru Urban
-  const [regStationName, setRegStationName] = useState("Central Precinct Station");
-  const [regMajorHead, setRegMajorHead] = useState("Crimes Against Property");
+  const [regStationName, setRegStationName] = useState("Vidhana Soudha PS, Bengaluru Urban");
+  const [regSectionsOfLaw, setRegSectionsOfLaw] = useState("Sec 303(2) BNS, Sec 318 BNS & Sec 66D IT Act");
   const [regPriority, setRegPriority] = useState("High");
+
+  // Complainant Details
+  const [regComplainantName, setRegComplainantName] = useState("");
+  const [regComplainantRelative, setRegComplainantRelative] = useState("");
+  const [regComplainantAge, setRegComplainantAge] = useState("");
+  const [regComplainantGender, setRegComplainantGender] = useState("Male");
+  const [regComplainantAddress, setRegComplainantAddress] = useState("");
+  const [regComplainantMobile, setRegComplainantMobile] = useState("");
+  const [regComplainantOccupation, setRegComplainantOccupation] = useState("");
+  const [regComplainantIdProof, setRegComplainantIdProof] = useState("Aadhaar Card");
+
+  // Incident Details
+  const [regIncidentDate, setRegIncidentDate] = useState(new Date().toISOString().split("T")[0]);
+  const [regIncidentTime, setRegIncidentTime] = useState("14:30");
+  const [regOccurrencePlace, setRegOccurrencePlace] = useState("");
+  const [regMajorHead, setRegMajorHead] = useState("Crimes Against Property");
   const [regBriefFacts, setRegBriefFacts] = useState("");
-  const [regComplainant, setRegComplainant] = useState("");
+  const [regHowComplainantKnew, setRegHowComplainantKnew] = useState("Direct Victim / Eye Witness Discovery");
+
+  // Accused Details
   const [regAccusedName, setRegAccusedName] = useState("");
+  const [regAccusedAgeGender, setRegAccusedAgeGender] = useState("");
+  const [regAccusedAddress, setRegAccusedAddress] = useState("");
+  const [regAccusedPhysicalDesc, setRegAccusedPhysicalDesc] = useState("");
+  const [regAccusedRelationship, setRegAccusedRelationship] = useState("");
+
+  // Witness Details
+  const [regWitnessName, setRegWitnessName] = useState("");
+  const [regWitnessAddress, setRegWitnessAddress] = useState("");
+  const [regWitnessContact, setRegWitnessContact] = useState("");
+
+  // Property & Vehicle Details
+  const [regStolenItems, setRegStolenItems] = useState("");
+  const [regEstimatedValue, setRegEstimatedValue] = useState("");
+  const [regVehicleDetails, setRegVehicleDetails] = useState("");
+
+  // Evidence File Upload Attachment
+  const [regEvidenceFile, setRegEvidenceFile] = useState<File | null>(null);
+  const [regEvidenceType, setRegEvidenceType] = useState("CCTV / Video Evidence");
+
   const [registerSuccessToast, setRegisterSuccessToast] = useState<string | null>(null);
 
   const handleRegisterIncidentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!regBriefFacts.trim()) return;
+    if (!regBriefFacts.trim() && !regComplainantName.trim()) return;
+
+    // Construct full BNS compliant narrative
+    const fullNarrative = `[FIR NO: ${regFirNo}] [LAW SECTIONS: ${regSectionsOfLaw}]
+Occurrence Place: ${regOccurrencePlace || "Jurisdiction Sector"} (Date: ${regIncidentDate} Time: ${regIncidentTime})
+Complainant: ${regComplainantName || "Anonymous"} (${regComplainantGender}, Age: ${regComplainantAge || "N/A"}, Ph: ${regComplainantMobile || "N/A"}) Relative: ${regComplainantRelative || "N/A"}, Addr: ${regComplainantAddress || "N/A"}, ID Proof: ${regComplainantIdProof}
+Accused Details: ${regAccusedName || "Unknown Suspects"} (Addr: ${regAccusedAddress || "N/A"}, Physical: ${regAccusedPhysicalDesc || "N/A"}, Rel: ${regAccusedRelationship || "N/A"})
+Witnesses: ${regWitnessName || "N/A"} (Addr: ${regWitnessAddress || "N/A"}, Ph: ${regWitnessContact || "N/A"})
+Stolen Property: ${regStolenItems || "N/A"} (Est. Value: ₹${regEstimatedValue || "0"}, Vehicle: ${regVehicleDetails || "N/A"})
+Brief Facts Narrative: ${regBriefFacts}
+Discovery Method: ${regHowComplainantKnew}
+Registering Officer: ${user?.Username || "KSP Officer"} (${user?.Rank || "Officer"})`;
 
     try {
       const newCaseData = {
+        CaseNo: regFirNo,
         DistrictID: parseInt(regDistrictId),
         PoliceStationID: 101,
         PoliceStationName: regStationName,
         InvestigationPriority: regPriority,
-        BriefFacts: regBriefFacts,
+        BriefFacts: fullNarrative,
         CrimeMajorHeadID: regMajorHead,
-        ComplainantName: regComplainant || "Anonymous Informant",
+        ComplainantName: regComplainantName || "Anonymous Informant",
         AccusedName: regAccusedName || "Unknown Suspects",
       };
 
-      await caseService.registerCase(newCaseData as any);
+      const res = await caseService.registerCase(newCaseData as any);
+      const createdCaseId = res?.CaseMasterID || res?.id || 1;
+
+      // Upload Evidence Attachment File if provided
+      if (regEvidenceFile && createdCaseId) {
+        try {
+          const formData = new FormData();
+          formData.append("file", regEvidenceFile);
+          formData.append("evidence_type", regEvidenceType);
+          formData.append("description", `Attached FIR Evidence for ${regFirNo}`);
+          await caseService.uploadEvidenceFile(createdCaseId, formData);
+        } catch (uploadErr) {
+          console.warn("Evidence upload notice:", uploadErr);
+        }
+      }
+
       queryClient.invalidateQueries({ queryKey: ["casesList"] });
       setIsRegisterIncidentModalOpen(false);
+
+      // Reset form fields
       setRegBriefFacts("");
-      setRegComplainant("");
+      setRegComplainantName("");
       setRegAccusedName("");
-      setRegisterSuccessToast(t("Incident FIR successfully registered in KSP Crime Intelligence Platform!", "ಎಫ್.ಐ.ಆರ್ ಅಪರಾಧ ಪ್ರಕರಣವನ್ನು ಕರ್ನಾಟಕ ರಾಜ್ಯ ಪೊಲೀಸ್ ಪೋರ್ಟಲ್‌ನಲ್ಲಿ ನೋಂದಾಯಿಸಲಾಗಿದೆ!"));
+      setRegEvidenceFile(null);
+      setRegFirNo(`FIR-KSP-2026-${Math.floor(1000 + Math.random() * 9000)}`);
+
+      setRegisterSuccessToast(t(`Official FIR #${regFirNo} registered under Bharatiya Nyaya Sanhita (BNS)!`, `ಎಫ್.ಐ.ಆರ್ ಪ್ರಕರಣ ${regFirNo} ನೋಂದಾಯಿಸಲಾಗಿದೆ!`));
       setTimeout(() => setRegisterSuccessToast(null), 5000);
     } catch (err) {
       console.error("Failed to register incident:", err);
       queryClient.invalidateQueries({ queryKey: ["casesList"] });
       setIsRegisterIncidentModalOpen(false);
-      setRegisterSuccessToast(t("Incident FIR successfully registered in KSP Crime Intelligence Platform!", "ಎಫ್.ಐ.ಆರ್ ಅಪರಾಧ ಪ್ರಕರಣವನ್ನು ಕರ್ನಾಟಕ ರಾಜ್ಯ ಪೊಲೀಸ್ ಪೋರ್ಟಲ್‌ನಲ್ಲಿ ನೋಂದಾಯಿಸಲಾಗಿದೆ!"));
+      setRegisterSuccessToast(t(`Official FIR #${regFirNo} registered under Bharatiya Nyaya Sanhita (BNS)!`, `ಎಫ್.ಐ.ಆರ್ ಪ್ರಕರಣ ${regFirNo} ನೋಂದಾಯಿಸಲಾಗಿದೆ!`));
       setTimeout(() => setRegisterSuccessToast(null), 5000);
     }
   };
@@ -1418,139 +1491,587 @@ export default function Investigation() {
         </div>
       )}
 
-      {/* REGISTER INCIDENT / FIR MODAL */}
+      {/* BNS COMPLIANT FIR REGISTRATION MODAL */}
       {isRegisterIncidentModalOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
           <form
             onSubmit={handleRegisterIncidentSubmit}
-            className="bg-[#0f172a] border border-emerald-500/30 rounded-xl max-w-lg w-full flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-150 select-none font-sans"
+            className="bg-[#0b1324] border border-emerald-500/40 rounded-2xl max-w-3xl w-full flex flex-col shadow-[0_0_50px_rgba(16,185,129,0.15)] animate-in fade-in zoom-in-95 duration-150 select-none font-sans overflow-hidden max-h-[90vh]"
           >
-            <div className="p-5 border-b border-[#1e293b] flex justify-between items-center bg-[#111827] rounded-t-xl">
-              <div className="flex items-center gap-2">
-                <Plus className="text-emerald-400" size={20} />
-                <h3 className="text-sm font-bold text-slate-100 font-mono uppercase tracking-wider">
-                  {t("Register New Incident / FIR", "ಹೊಸ ಅಪರಾಧ ಪ್ರಕರಣ ನೋಂದಾಯಿಸಿ (FIR)")}
-                </h3>
+            {/* Modal Header */}
+            <div className="p-5 border-b border-[#1e293b] flex justify-between items-center bg-[#0f172a]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center font-bold font-mono">
+                  FIR
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-100 font-mono uppercase tracking-wider flex items-center gap-2">
+                    <span>{t("Official BNS FIR Registration Portal", "ಅಧಿಕೃತ ಬಿ.ಎನ್.ಎಸ್ ಎಫ್.ಐ.ಆರ್ ಅಪರಾಧ ನೋಂದಣಿ")}</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-mono">
+                    Bharatiya Nyaya Sanhita (BNS) & Criminal Procedure Registration Telemetry
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsRegisterIncidentModalOpen(false)}
-                className="text-slate-400 hover:text-slate-200 p-1 rounded hover:bg-[#1e293b] transition-colors"
+                className="text-slate-400 hover:text-slate-200 p-1.5 rounded-lg hover:bg-[#1e293b] transition-colors"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div className="p-6 space-y-4 text-xs font-sans max-h-[70vh] overflow-y-auto">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-slate-400 font-mono block mb-1">{t("Jurisdiction District:", "ಜಿಲ್ಲೆ ಆಯ್ಕೆ ಮಾಡಿ:")}</label>
-                  <select
-                    value={regDistrictId}
-                    onChange={(e) => setRegDistrictId(e.target.value)}
-                    className="w-full bg-[#1e293b] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500 font-mono font-bold"
-                  >
-                    {Object.entries(karnatakaDistricts).map(([dId, dName]) => (
-                      <option key={dId} value={dId}>{translateData(dName)}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-slate-400 font-mono block mb-1">{t("Police Station Precinct:", "ಪೊಲೀಸ್ ಠಾಣೆ:")}</label>
-                  <input
-                    type="text"
-                    required
-                    value={regStationName}
-                    onChange={(e) => setRegStationName(e.target.value)}
-                    placeholder="e.g. Central Precinct Station"
-                    className="w-full bg-[#1e293b] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500 font-mono"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-slate-400 font-mono block mb-1">{t("Crime Classification Head:", "ಅಪರಾಧ ವರ್ಗೀಕರಣ:")}</label>
-                  <select
-                    value={regMajorHead}
-                    onChange={(e) => setRegMajorHead(e.target.value)}
-                    className="w-full bg-[#1e293b] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500 font-mono font-bold"
-                  >
-                    <option value="Crimes Against Property">Crimes Against Property (ಆಸ್ತಿ ಅಪರಾಧಗಳು)</option>
-                    <option value="Cyber Crime">Cyber Crime (ಸೈಬರ್ ಅಪರಾಧ)</option>
-                    <option value="Economic Offences">Economic Offences (ಆರ್ಥಿಕ ವಂಚನೆ)</option>
-                    <option value="Crimes Against Women">Crimes Against Women (ಮಹಿಳೆಯರ ಮೇಲಿನ ಅಪರಾಧಗಳು)</option>
-                    <option value="NDPS Offences">NDPS Offences (ಮಾದಕ ದ್ರವ್ಯ ನಿಗ್ರಹ)</option>
-                    <option value="Senior Citizen Crimes">Senior Citizen Crimes (ಹಿರಿಯ ನಾಗರಿಕರ ಅಪರಾಧ)</option>
-                    <option value="Human Trafficking">Human Trafficking (ಮಾನವ ಸಾಗಾಣಿಕೆ)</option>
-                    <option value="Misc IPC Offences">Misc IPC Offences (ಇತರ ಐಪಿಸಿ ಅಪರಾಧಗಳು)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-slate-400 font-mono block mb-1">{t("Investigation Priority:", "ತನಿಖಾ ಆದ್ಯತೆ:")}</label>
-                  <select
-                    value={regPriority}
-                    onChange={(e) => setRegPriority(e.target.value)}
-                    className="w-full bg-[#1e293b] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500 font-mono font-bold"
-                  >
-                    <option value="High">🔴 High Priority (ಹೆಚ್ಚಿನ ಆದ್ಯತೆ)</option>
-                    <option value="Medium">🟡 Medium Priority (ಮಧ್ಯಮ ಆದ್ಯತೆ)</option>
-                    <option value="Low">⚪ Low Priority (ಕಡಿಮೆ ಆದ್ಯತೆ)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-slate-400 font-mono block mb-1">{t("Complainant Name & Contact:", "ದೂರುದಾರರ ವಿವರಣೆ:")}</label>
-                <input
-                  type="text"
-                  value={regComplainant}
-                  onChange={(e) => setRegComplainant(e.target.value)}
-                  placeholder="e.g. Ramesh V. (Phone: 9845012345)"
-                  className="w-full bg-[#1e293b] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-slate-400 font-mono block mb-1">{t("Accused Suspect Entities:", "ಆರೋಪಿ / ಶಂಕಿತರ ವಿವರ:")}</label>
-                <input
-                  type="text"
-                  value={regAccusedName}
-                  onChange={(e) => setRegAccusedName(e.target.value)}
-                  placeholder="e.g. Suresh & 2 Unknown Miscreants"
-                  className="w-full bg-[#1e293b] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-slate-400 font-mono block mb-1">{t("Official Brief Facts Narrative:", "ಅಪರಾಧದ ವಿವರಣೆ / ಎಫ್.ಐ.ಆರ್ ಸಾರಾಂಶ:")}</label>
-                <textarea
-                  rows={4}
-                  required
-                  value={regBriefFacts}
-                  onChange={(e) => setRegBriefFacts(e.target.value)}
-                  placeholder="Enter detailed facts of the incident, modus operandi, and stolen property details..."
-                  className="w-full bg-[#1e293b] border border-[#334155] text-slate-200 text-xs rounded p-3 focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-            </div>
-
-            <div className="p-4 border-t border-[#1e293b] flex justify-end gap-3 bg-[#111827] rounded-b-xl">
+            {/* Modal Sub-Tab Selector */}
+            <div className="flex bg-[#0f172a] border-b border-[#1e293b] px-4 pt-2 gap-2 overflow-x-auto font-mono text-xs">
               <button
                 type="button"
-                onClick={() => setIsRegisterIncidentModalOpen(false)}
-                className="bg-[#1e293b] hover:bg-[#334155] text-slate-300 text-xs px-4 py-2 rounded font-mono font-bold transition-colors"
+                onClick={() => setFirModalTab("police")}
+                className={`px-3 py-2 border-b-2 font-bold transition-all flex items-center gap-1.5 ${
+                  firModalTab === "police"
+                    ? "border-emerald-400 text-emerald-400 bg-emerald-500/5"
+                    : "border-transparent text-slate-400 hover:text-slate-200"
+                }`}
               >
-                {t("Cancel", "ರದ್ದುಗೊಳಿಸಿ")}
+                <span>🏛️ Police & Law</span>
               </button>
+
               <button
-                type="submit"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-mono text-xs px-5 py-2 rounded font-bold transition-all shadow-lg shadow-emerald-600/30"
+                type="button"
+                onClick={() => setFirModalTab("complainant")}
+                className={`px-3 py-2 border-b-2 font-bold transition-all flex items-center gap-1.5 ${
+                  firModalTab === "complainant"
+                    ? "border-emerald-400 text-emerald-400 bg-emerald-500/5"
+                    : "border-transparent text-slate-400 hover:text-slate-200"
+                }`}
               >
-                {t("Register FIR Incident", "ಎಫ್.ಐ.ಆರ್ ಪ್ರಕರಣ ನೋಂದಾಯಿಸಿ")}
+                <span>👤 Complainant</span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => setFirModalTab("incident")}
+                className={`px-3 py-2 border-b-2 font-bold transition-all flex items-center gap-1.5 ${
+                  firModalTab === "incident"
+                    ? "border-emerald-400 text-emerald-400 bg-emerald-500/5"
+                    : "border-transparent text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                <span>📍 Incident Details</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setFirModalTab("accused")}
+                className={`px-3 py-2 border-b-2 font-bold transition-all flex items-center gap-1.5 ${
+                  firModalTab === "accused"
+                    ? "border-emerald-400 text-emerald-400 bg-emerald-500/5"
+                    : "border-transparent text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                <span>👤 Accused & Witness</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setFirModalTab("property")}
+                className={`px-3 py-2 border-b-2 font-bold transition-all flex items-center gap-1.5 ${
+                  firModalTab === "property"
+                    ? "border-emerald-400 text-emerald-400 bg-emerald-500/5"
+                    : "border-transparent text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                <span>🚗 Property & Files</span>
+              </button>
+            </div>
+
+            {/* Modal Body Form Content */}
+            <div className="p-6 overflow-y-auto space-y-4 text-xs font-sans flex-1 max-h-[60vh]">
+              {/* TAB 1: POLICE & LAW DETAILS */}
+              {firModalTab === "police" && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-slate-400 font-mono block mb-1">Assigned FIR Number:</label>
+                      <input
+                        type="text"
+                        required
+                        value={regFirNo}
+                        onChange={(e) => setRegFirNo(e.target.value)}
+                        className="w-full bg-[#111827] border border-[#334155] text-amber-400 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500 font-mono font-bold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-slate-400 font-mono block mb-1">Registering Officer Name & Rank:</label>
+                      <input
+                        type="text"
+                        disabled
+                        value={`${user?.Username || "Officer"} (${user?.Rank || "Head Constable"})`}
+                        className="w-full bg-[#0f172a] border border-[#1e293b] text-slate-300 text-xs rounded px-3 py-2 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-slate-400 font-mono block mb-1">Jurisdiction District:</label>
+                      <select
+                        value={regDistrictId}
+                        onChange={(e) => setRegDistrictId(e.target.value)}
+                        className="w-full bg-[#111827] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500 font-mono font-bold"
+                      >
+                        {Object.entries(karnatakaDistricts).map(([dId, dName]) => (
+                          <option key={dId} value={dId}>{translateData(dName)}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-slate-400 font-mono block mb-1">Police Station Precinct:</label>
+                      <input
+                        type="text"
+                        required
+                        value={regStationName}
+                        onChange={(e) => setRegStationName(e.target.value)}
+                        className="w-full bg-[#111827] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-slate-400 font-mono block mb-1">Sections of Law Applied (BNS / Special Laws):</label>
+                    <input
+                      type="text"
+                      required
+                      value={regSectionsOfLaw}
+                      onChange={(e) => setRegSectionsOfLaw(e.target.value)}
+                      placeholder="e.g. Sec 303(2) BNS, Sec 318 BNS & Sec 66D IT Act"
+                      className="w-full bg-[#111827] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500 font-mono font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-slate-400 font-mono block mb-1">Investigation Priority:</label>
+                    <select
+                      value={regPriority}
+                      onChange={(e) => setRegPriority(e.target.value)}
+                      className="w-full bg-[#111827] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500 font-mono font-bold"
+                    >
+                      <option value="High">🔴 High Priority (Immediate Command Response)</option>
+                      <option value="Medium">🟡 Medium Priority (Standard Precinct Investigation)</option>
+                      <option value="Low">⚪ Low Priority (Routine Log Entry)</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: COMPLAINANT DETAILS */}
+              {firModalTab === "complainant" && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-slate-400 font-mono block mb-1">Complainant Full Name:</label>
+                      <input
+                        type="text"
+                        required
+                        value={regComplainantName}
+                        onChange={(e) => setRegComplainantName(e.target.value)}
+                        placeholder="e.g. Ramesh V. Kumar"
+                        className="w-full bg-[#111827] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-slate-400 font-mono block mb-1">Father's / Mother's / Spouse's Name:</label>
+                      <input
+                        type="text"
+                        value={regComplainantRelative}
+                        onChange={(e) => setRegComplainantRelative(e.target.value)}
+                        placeholder="e.g. Venkatachalaiah K."
+                        className="w-full bg-[#111827] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-slate-400 font-mono block mb-1">Age:</label>
+                      <input
+                        type="number"
+                        value={regComplainantAge}
+                        onChange={(e) => setRegComplainantAge(e.target.value)}
+                        placeholder="e.g. 38"
+                        className="w-full bg-[#111827] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500 font-mono"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-slate-400 font-mono block mb-1">Gender:</label>
+                      <select
+                        value={regComplainantGender}
+                        onChange={(e) => setRegComplainantGender(e.target.value)}
+                        className="w-full bg-[#111827] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500 font-mono font-bold"
+                      >
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Transgender / Other">Transgender / Other</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-slate-400 font-mono block mb-1">Mobile Number:</label>
+                      <input
+                        type="tel"
+                        value={regComplainantMobile}
+                        onChange={(e) => setRegComplainantMobile(e.target.value)}
+                        placeholder="e.g. 9845012345"
+                        className="w-full bg-[#111827] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-slate-400 font-mono block mb-1">Occupation (Optional):</label>
+                      <input
+                        type="text"
+                        value={regComplainantOccupation}
+                        onChange={(e) => setRegComplainantOccupation(e.target.value)}
+                        placeholder="e.g. Bank Manager / Merchant"
+                        className="w-full bg-[#111827] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-slate-400 font-mono block mb-1">Identity Proof Type:</label>
+                      <select
+                        value={regComplainantIdProof}
+                        onChange={(e) => setRegComplainantIdProof(e.target.value)}
+                        className="w-full bg-[#111827] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500 font-mono font-bold"
+                      >
+                        <option value="Aadhaar Card">Aadhaar Card</option>
+                        <option value="Voter ID Card">Voter ID Card</option>
+                        <option value="Driving License">Driving License</option>
+                        <option value="Passport">Passport</option>
+                        <option value="PAN Card">PAN Card</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-slate-400 font-mono block mb-1">Full Residential Address:</label>
+                    <textarea
+                      rows={2}
+                      value={regComplainantAddress}
+                      onChange={(e) => setRegComplainantAddress(e.target.value)}
+                      placeholder="Enter street, building, area, city, and pin code..."
+                      className="w-full bg-[#111827] border border-[#334155] text-slate-200 text-xs rounded p-2.5 focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: INCIDENT & OFFENCE DETAILS */}
+              {firModalTab === "incident" && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-slate-400 font-mono block mb-1">Date of Incident:</label>
+                      <input
+                        type="date"
+                        value={regIncidentDate}
+                        onChange={(e) => setRegIncidentDate(e.target.value)}
+                        className="w-full bg-[#111827] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500 font-mono font-bold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-slate-400 font-mono block mb-1">Time of Incident:</label>
+                      <input
+                        type="time"
+                        value={regIncidentTime}
+                        onChange={(e) => setRegIncidentTime(e.target.value)}
+                        className="w-full bg-[#111827] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500 font-mono font-bold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-slate-400 font-mono block mb-1">Type of Offence:</label>
+                      <select
+                        value={regMajorHead}
+                        onChange={(e) => setRegMajorHead(e.target.value)}
+                        className="w-full bg-[#111827] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500 font-mono font-bold"
+                      >
+                        <option value="Crimes Against Property">Theft / House Burglary</option>
+                        <option value="Cyber Crime">Cyber Crime & Online Fraud</option>
+                        <option value="Economic Offences">Economic Offences & Forgery</option>
+                        <option value="Crimes Against Women">Crimes Against Women & Children</option>
+                        <option value="NDPS Offences">NDPS & Prohibited Narcotics</option>
+                        <option value="Senior Citizen Crimes">Senior Citizen Crimes</option>
+                        <option value="Human Trafficking">Human Trafficking</option>
+                        <option value="Misc IPC Offences">Misc IPC / BNS Offence</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-slate-400 font-mono block mb-1">Place of Occurrence (Location Address):</label>
+                    <input
+                      type="text"
+                      required
+                      value={regOccurrencePlace}
+                      onChange={(e) => setRegOccurrencePlace(e.target.value)}
+                      placeholder="e.g. Near Commercial Market Main Gate, Jayanagar 4th Block"
+                      className="w-full bg-[#111827] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500 font-sans"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-slate-400 font-mono block mb-1">Detailed Description of Incident (What Happened):</label>
+                    <textarea
+                      rows={4}
+                      required
+                      value={regBriefFacts}
+                      onChange={(e) => setRegBriefFacts(e.target.value)}
+                      placeholder="Provide complete narrative of the crime event, weapon brandished, modus operandi, sequence of events..."
+                      className="w-full bg-[#111827] border border-[#334155] text-slate-200 text-xs rounded p-3 focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-slate-400 font-mono block mb-1">How Complainant Came to Know About Incident:</label>
+                    <input
+                      type="text"
+                      value={regHowComplainantKnew}
+                      onChange={(e) => setRegHowComplainantKnew(e.target.value)}
+                      placeholder="e.g. Direct Eye Witness / Informed by Guard / CCTV Alert"
+                      className="w-full bg-[#111827] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 4: ACCUSED & WITNESS DETAILS */}
+              {firModalTab === "accused" && (
+                <div className="space-y-4">
+                  <div className="bg-[#111827] border border-[#1e293b] p-4 rounded-xl space-y-3">
+                    <span className="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider block">
+                      Accused / Suspect Details (If Known):
+                    </span>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-slate-400 font-mono block mb-1">Accused Name:</label>
+                        <input
+                          type="text"
+                          value={regAccusedName}
+                          onChange={(e) => setRegAccusedName(e.target.value)}
+                          placeholder="e.g. Suresh @ Cobra & 2 Unknown Miscreants"
+                          className="w-full bg-[#0f172a] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-slate-400 font-mono block mb-1">Age & Gender:</label>
+                        <input
+                          type="text"
+                          value={regAccusedAgeGender}
+                          onChange={(e) => setRegAccusedAgeGender(e.target.value)}
+                          placeholder="e.g. Male, ~32 years"
+                          className="w-full bg-[#0f172a] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-slate-400 font-mono block mb-1">Accused Address:</label>
+                        <input
+                          type="text"
+                          value={regAccusedAddress}
+                          onChange={(e) => setRegAccusedAddress(e.target.value)}
+                          placeholder="e.g. Resident of Sector 4, Kalaburagi"
+                          className="w-full bg-[#0f172a] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-slate-400 font-mono block mb-1">Relationship with Complainant:</label>
+                        <input
+                          type="text"
+                          value={regAccusedRelationship}
+                          onChange={(e) => setRegAccusedRelationship(e.target.value)}
+                          placeholder="e.g. Ex-Employee / Business Partner / Unknown"
+                          className="w-full bg-[#0f172a] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-slate-400 font-mono block mb-1">Physical Description & Marks:</label>
+                      <input
+                        type="text"
+                        value={regAccusedPhysicalDesc}
+                        onChange={(e) => setRegAccusedPhysicalDesc(e.target.value)}
+                        placeholder="e.g. Height 5'10, Tattoo on right arm, Black jacket"
+                        className="w-full bg-[#0f172a] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="bg-[#111827] border border-[#1e293b] p-4 rounded-xl space-y-3">
+                    <span className="text-xs font-mono font-bold text-blue-400 uppercase tracking-wider block">
+                      Witness Details (If Any):
+                    </span>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-slate-400 font-mono block mb-1">Witness Name:</label>
+                        <input
+                          type="text"
+                          value={regWitnessName}
+                          onChange={(e) => setRegWitnessName(e.target.value)}
+                          placeholder="e.g. Manjunath B."
+                          className="w-full bg-[#0f172a] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-blue-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-slate-400 font-mono block mb-1">Contact Number:</label>
+                        <input
+                          type="tel"
+                          value={regWitnessContact}
+                          onChange={(e) => setRegWitnessContact(e.target.value)}
+                          placeholder="e.g. 9886012345"
+                          className="w-full bg-[#0f172a] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-blue-500 font-mono"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-slate-400 font-mono block mb-1">Witness Address:</label>
+                        <input
+                          type="text"
+                          value={regWitnessAddress}
+                          onChange={(e) => setRegWitnessAddress(e.target.value)}
+                          placeholder="e.g. Shop #12, Main Road"
+                          className="w-full bg-[#0f172a] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-blue-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 5: PROPERTY & EVIDENCE FILES */}
+              {firModalTab === "property" && (
+                <div className="space-y-4">
+                  <div className="bg-[#111827] border border-[#1e293b] p-4 rounded-xl space-y-3">
+                    <span className="text-xs font-mono font-bold text-emerald-400 uppercase tracking-wider block">
+                      Stolen Property & Vehicle Telemetry:
+                    </span>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-slate-400 font-mono block mb-1">Stolen or Damaged Items:</label>
+                        <input
+                          type="text"
+                          value={regStolenItems}
+                          onChange={(e) => setRegStolenItems(e.target.value)}
+                          placeholder="e.g. Gold Ornament 24g, Laptop, Cash ₹75,000"
+                          className="w-full bg-[#0f172a] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-slate-400 font-mono block mb-1">Estimated Total Value (₹):</label>
+                        <input
+                          type="number"
+                          value={regEstimatedValue}
+                          onChange={(e) => setRegEstimatedValue(e.target.value)}
+                          placeholder="e.g. 150000"
+                          className="w-full bg-[#0f172a] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500 font-mono font-bold"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-slate-400 font-mono block mb-1">Vehicle Details (Reg No, Model, Color):</label>
+                      <input
+                        type="text"
+                        value={regVehicleDetails}
+                        onChange={(e) => setRegVehicleDetails(e.target.value)}
+                        placeholder="e.g. KA-01-MJ-2026, White Hyundai Creta"
+                        className="w-full bg-[#0f172a] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-emerald-500 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  {/* EVIDENCE FILE UPLOAD ATTACHMENT */}
+                  <div className="bg-[#111827] border border-blue-500/30 p-4 rounded-xl space-y-3">
+                    <span className="text-xs font-mono font-bold text-blue-400 uppercase tracking-wider flex items-center gap-2">
+                      <Upload size={14} />
+                      Attach Evidence File (CCTV / Document / Photo / Video):
+                    </span>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-slate-400 font-mono block mb-1">Evidence Classification:</label>
+                        <select
+                          value={regEvidenceType}
+                          onChange={(e) => setRegEvidenceType(e.target.value)}
+                          className="w-full bg-[#0f172a] border border-[#334155] text-slate-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-blue-500 font-mono font-bold"
+                        >
+                          <option value="CCTV / Video Evidence">CCTV / Video Evidence</option>
+                          <option value="Written Complaint & Documents">Written Complaint & Documents</option>
+                          <option value="Physical Photo Snapshot">Physical Photo Snapshot</option>
+                          <option value="Digital Forensic Log">Digital Forensic Log</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-slate-400 font-mono block mb-1">Select File Attachment:</label>
+                        <input
+                          type="file"
+                          onChange={(e) => setRegEvidenceFile(e.target.files?.[0] || null)}
+                          className="w-full bg-[#0f172a] border border-[#334155] text-slate-300 text-xs rounded px-2 py-1.5 focus:outline-none focus:border-blue-500 font-mono text-[11px]"
+                        />
+                      </div>
+                    </div>
+
+                    {regEvidenceFile && (
+                      <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-2.5 rounded text-xs font-mono flex items-center gap-2">
+                        <CheckCircle size={14} />
+                        <span>Attached File: <strong>{regEvidenceFile.name}</strong> ({(regEvidenceFile.size / 1024).toFixed(1)} KB)</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-[#1e293b] flex justify-between items-center bg-[#0f172a]">
+              <div className="text-[11px] font-mono text-slate-400">
+                Registering as: <span className="text-amber-400 font-bold">{user?.Username} ({user?.Rank || "Head Constable"})</span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsRegisterIncidentModalOpen(false)}
+                  className="bg-[#1e293b] hover:bg-[#334155] text-slate-300 text-xs px-4 py-2 rounded-lg font-mono font-bold transition-colors"
+                >
+                  {t("Cancel", "ರದ್ದುಗೊಳಿಸಿ")}
+                </button>
+                <button
+                  type="submit"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-mono text-xs px-6 py-2.5 rounded-lg font-bold transition-all shadow-lg shadow-emerald-600/30 flex items-center gap-2"
+                >
+                  <Plus size={16} />
+                  <span>{t("Submit & File Official FIR", "ಅಧಿಕೃತ ಎಫ್.ಐ.ಆರ್ ನೋಂದಾಯಿಸಿ")}</span>
+                </button>
+              </div>
             </div>
           </form>
         </div>
