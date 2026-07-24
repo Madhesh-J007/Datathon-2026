@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { caseService } from "../../services/caseService";
+import { courtService } from "../../services/courtService";
 import { useAuth } from "../../app/providers/AuthProvider";
 import { useLanguage } from "../../app/providers/LanguageContext";
 import DataTable from "../../components/common/DataTable";
@@ -90,10 +90,17 @@ export default function CourtCaseMonitoring() {
   // Local Court Cases Telemetry State (Supports Live Editing)
   const [localCourtOverrides, setLocalCourtOverrides] = useState<Record<number, any>>({});
 
-  // Fetch Cases Telemetry (Keep cache warm)
-  useQuery({
-    queryKey: ["courtCasesList"],
-    queryFn: () => caseService.getCases({ pageSize: 50 }),
+  // Fetch Backend Court Cases Database
+  const { data: dbCourtCases } = useQuery({
+    queryKey: ["courtCasesList", stageFilter, search],
+    queryFn: async () => {
+      try {
+        return await courtService.getCases(stageFilter, search);
+      } catch (err) {
+        console.warn("Backend court database offline, using fallback", err);
+        return null;
+      }
+    },
     enabled: Boolean(isExternalAccessAllowed),
   });
 
@@ -237,8 +244,44 @@ export default function CourtCaseMonitoring() {
     }
   ];
 
-  // Combine rawCases with hardcoded court cases so officers ALWAYS have 6+ court cases with full timelines
-  const courtCases = hardcodedCourtCases.map((hc: any) => {
+  // Map backend DB court cases into the court cases view model
+  const dbMappedCases = (dbCourtCases || []).map((dbC: any, idx: number) => ({
+    CaseMasterID: dbC.CourtCaseID || 500 + idx,
+    CaseNo: dbC.CaseNo,
+    DistrictID: 5,
+    PoliceStationName: dbC.PoliceStationName || "Precinct Station",
+    CourtName: dbC.CourtName,
+    ProsecutorName: dbC.PublicProsecutor || "Public Prosecutor",
+    TrialStage: dbC.TrialStage,
+    NextHearingDate: dbC.NextHearingDate || "Pending",
+    AccusedName: dbC.AccusedNames || "Accused",
+    WarrantStatus: dbC.CaseStatus || "Under Trial",
+    BenchName: dbC.JudgeBench || "Hon'ble Court",
+    ChargesheetNo: dbC.FIRNo || "FIR-2026",
+    BriefFacts: dbC.OffenceSummary || "BNS Offence Telemetry",
+    CourtOrderNote: dbC.OrderNotes || "Order Logged",
+    Milestones: dbC.Milestones && dbC.Milestones.length > 0 ? dbC.Milestones.map((m: any) => ({
+      date: m.date || "2026-07-24",
+      title: m.stage || m.title || "Court Action",
+      desc: m.note || m.desc || "Judicial event logged.",
+      status: m.status === "Completed" ? "completed" : m.status === "In Progress" ? "current" : "upcoming"
+    })) : [
+      { date: "2026-07-24", title: "Record Registered in DB", desc: "Seeded into PostgreSQL court_cases database.", status: "current" }
+    ]
+  }));
+
+  // Combine DB court cases with hardcoded cases
+  const allRawCourtCases = [...dbMappedCases, ...hardcodedCourtCases];
+
+  // De-duplicate by CaseNo
+  const uniqueCasesMap = new Map();
+  allRawCourtCases.forEach((item) => {
+    if (!uniqueCasesMap.has(item.CaseNo)) {
+      uniqueCasesMap.set(item.CaseNo, item);
+    }
+  });
+
+  const courtCases = Array.from(uniqueCasesMap.values()).map((hc: any) => {
     const override = localCourtOverrides[hc.CaseMasterID] || {};
 
     return {

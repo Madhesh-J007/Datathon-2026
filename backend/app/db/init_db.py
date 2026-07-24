@@ -482,6 +482,165 @@ def reset_db_sequences(db: Session):
         logger.error(f"Error resetting sequences: {e}")
 
 
+from app.models.court_case import CourtCase
+
+def seed_court_cases(db: Session):
+    if db.query(CourtCase).first() is not None:
+        logger.info("Table 'court_cases' is already seeded.")
+        return
+
+    logger.info("Seeding 'court_cases' table with Karnataka judicial monitoring records...")
+    cases = [
+        CourtCase(
+            CaseNo="KSP-2026-CT-101",
+            FIRNo="FIR-2025-0841",
+            DistrictName="Bengaluru Urban",
+            PoliceStationName="Vidhana Soudha PS",
+            CourtName="High Court of Karnataka (Bench 4)",
+            JudgeBench="Hon'ble Justice S. N. Patil",
+            PublicProsecutor="Adv. K. M. Nataraj",
+            DefenseCounsel="Adv. B. V. Acharya",
+            TrialStage="Cross Examination of Forensic Witnesses",
+            CaseStatus="Under Trial",
+            NextHearingDate="2026-08-12",
+            OrderNotes="FSL DNA Report marked as Exhibit P-42. Defense requested deferment for cross-examining Cyber Expert.",
+            OffenceSummary="Serial Cyber Fraud & Money Laundering under Sec 303(2) BNS & Sec 66D IT Act",
+            BNSSections="Sec 303(2) BNS, Sec 318 BNS, Sec 66D IT Act",
+            AccusedNames="Ramesh Kumar & 3 Others",
+            ComplainantName="State of Karnataka",
+            Milestones=[
+                {"stage": "FIR & Charge Sheet Submitted", "date": "2025-11-10", "status": "Completed", "note": "Charge Sheet filed under Sec 303(2) BNS & IT Act Sec 66D"},
+                {"stage": "Cognizance & Framing of Charges", "date": "2026-01-15", "status": "Completed", "note": "Court framed charges against 4 accused entities"},
+                {"stage": "Prosecution Evidence Logging", "date": "2026-04-20", "status": "Completed", "note": "P.W. 1 to P.W. 8 examined; 18 digital exhibits marked"},
+                {"stage": "Cross Examination of Forensic Witnesses", "date": "2026-07-20", "status": "In Progress", "note": "FSL DNA Report marked as Exhibit P-42; cross-examination active"}
+            ]
+        ),
+        CourtCase(
+            CaseNo="KSP-2025-CT-084",
+            FIRNo="FIR-2025-0112",
+            DistrictName="Mysuru",
+            PoliceStationName="Devaraja PS",
+            CourtName="IV Additional City Civil & Sessions Court, Mysuru",
+            JudgeBench="Hon'ble Judge R. H. Kalmath",
+            PublicProsecutor="Adv. Ramesh Hegde",
+            DefenseCounsel="Adv. M. S. Naik",
+            TrialStage="Arguments & Final Briefing",
+            CaseStatus="Reserved for Orders",
+            NextHearingDate="2026-08-05",
+            OrderNotes="Arguments concluded by Public Prosecutor. Judgment reserved for August 5, 2026.",
+            OffenceSummary="Armed Robbery & Dacoity Conspiracy under Sec 310 BNS & Arms Act",
+            BNSSections="Sec 310 BNS, Sec 311 BNS, Arms Act Sec 25",
+            AccusedNames="Venkatesh @ Cobra & Gang",
+            ComplainantName="State of Karnataka",
+            Milestones=[
+                {"stage": "Charges Framed", "date": "2025-08-12", "status": "Completed", "note": "Section 310 BNS charges formally framed"},
+                {"stage": "Prosecution Evidence Completed", "date": "2026-02-14", "status": "Completed", "note": "22 prosecution witnesses examined"},
+                {"stage": "Section 313 CrPC / BNSS Statement", "date": "2026-05-18", "status": "Completed", "note": "Accused statements recorded"},
+                {"stage": "Final Arguments Concluded", "date": "2026-07-15", "status": "Completed", "note": "Reserved for Judgment on 2026-08-05"}
+            ]
+        ),
+        CourtCase(
+            CaseNo="KSP-2026-CT-209",
+            FIRNo="FIR-2026-0045",
+            DistrictName="Mangaluru / Dakshina Kannada",
+            PoliceStationName="Urwa PS",
+            CourtName="District & Sessions Court, Mangaluru",
+            JudgeBench="Hon'ble Justice P. V. Bhat",
+            PublicProsecutor="Adv. Suresh M.",
+            DefenseCounsel="Adv. K. R. Rao",
+            TrialStage="Framing of Charges",
+            CaseStatus="Under Trial",
+            NextHearingDate="2026-08-18",
+            OrderNotes="Accused #1 produced via Video Conferencing from Central Jail Hindalga. Charges read over.",
+            OffenceSummary="Commercial NDPS Narcotic Contraband Seizure",
+            BNSSections="Sec 318 BNS, NDPS Act Sec 20(b)",
+            AccusedNames="Mohammed Imran @ Drug Kingpin",
+            ComplainantName="State of Karnataka (Narcotics Cell)",
+            Milestones=[
+                {"stage": "FIR Registered", "date": "2026-01-08", "status": "Completed", "note": "4.2kg Methamphetamine contraband seized"},
+                {"stage": "Charge Sheet Filed", "date": "2026-04-02", "status": "Completed", "note": "Submitted with Chemical FSL Report"},
+                {"stage": "Framing of Charges", "date": "2026-07-10", "status": "In Progress", "note": "Video conferencing link established with Hindalga Jail"}
+            ]
+        ),
+        CourtCase(
+            CaseNo="KSP-2025-CT-312",
+            FIRNo="FIR-2025-0552",
+            DistrictName="Hubballi-Dharwad",
+            PoliceStationName="Suburban PS Hubballi",
+            CourtName="III Addl. District Court, Hubballi",
+            JudgeBench="Hon'ble Judge A. K. Joshi",
+            PublicProsecutor="Adv. S. S. Patil",
+            DefenseCounsel="Adv. V. G. Kulkarni",
+            TrialStage="Summoning of Defense Witnesses",
+            CaseStatus="Under Trial",
+            NextHearingDate="2026-08-22",
+            OrderNotes="D.W. 1 summons issued. Bail petition of Accused #2 rejected.",
+            OffenceSummary="Extortion & Syndicate Organized Crime under BNS",
+            BNSSections="Sec 308 BNS, Sec 111 BNS (Organized Crime)",
+            AccusedNames="Sharath @ D-Gang Associate & 2 Others",
+            ComplainantName="State of Karnataka",
+            Milestones=[
+                {"stage": "Pre-Trial Conference", "date": "2025-10-04", "status": "Completed", "note": "Evidence admissibility settled"},
+                {"stage": "Prosecution Evidence", "date": "2026-03-12", "status": "Completed", "note": "Complainant and IO testimony concluded"},
+                {"stage": "Defense Evidence", "date": "2026-07-02", "status": "In Progress", "note": "Summons issued to D.W. 1"}
+            ]
+        ),
+        CourtCase(
+            CaseNo="KSP-2026-CT-405",
+            FIRNo="FIR-2026-0118",
+            DistrictName="Belagavi",
+            PoliceStationName="Camp PS Belagavi",
+            CourtName="II ACMM Court, Belagavi",
+            JudgeBench="Hon'ble Magistrate M. B. Deshpande",
+            PublicProsecutor="Adv. B. R. Patil",
+            DefenseCounsel="Adv. S. M. Kulkarni",
+            TrialStage="Cognizance & Pre-Trial Notice",
+            CaseStatus="Under Trial",
+            NextHearingDate="2026-08-28",
+            OrderNotes="Court took cognizance of BNS Charge Sheet. Summons issued to accused entities.",
+            OffenceSummary="High-Value Land Record Forgery & Impersonation",
+            BNSSections="Sec 336 BNS, Sec 338 BNS (Forgery)",
+            AccusedNames="Basavaraj & Property Syndicate",
+            ComplainantName="State of Karnataka",
+            Milestones=[
+                {"stage": "FIR Registered", "date": "2026-02-14", "status": "Completed", "note": "Fake Revenue Stamps & Land Documents seized"},
+                {"stage": "Charge Sheet Submitted", "date": "2026-06-01", "status": "Completed", "note": "Submitted to II ACMM Court"},
+                {"stage": "Cognizance Taken", "date": "2026-07-18", "status": "In Progress", "note": "Summons issued for initial appearance"}
+            ]
+        ),
+        CourtCase(
+            CaseNo="KSP-2025-CT-518",
+            FIRNo="FIR-2025-0922",
+            DistrictName="Kalaburagi",
+            PoliceStationName="Station Bazaar PS",
+            CourtName="Principal District Court, Kalaburagi",
+            JudgeBench="Hon'ble Justice G. S. Hiremath",
+            PublicProsecutor="Adv. H. G. Rathod",
+            DefenseCounsel="Adv. C. M. Biradar",
+            TrialStage="Verdict Announced - Conviction Executed",
+            CaseStatus="Convicted",
+            NextHearingDate="Disposed",
+            OrderNotes="Accused #1 & #2 convicted under Sec 303(2) BNS. Sentenced to 7 Years Rigorous Imprisonment with ₹1,00,000 fine each.",
+            OffenceSummary="Inter-State Armed Heist & Assault",
+            BNSSections="Sec 303(2) BNS, Sec 109 BNS",
+            AccusedNames="Santosh @ Gungloo & Anil",
+            ComplainantName="State of Karnataka",
+            Milestones=[
+                {"stage": "Charges Framed", "date": "2025-05-10", "status": "Completed", "note": "Armed Dacoity & Assault charges framed"},
+                {"stage": "Trial & Evidence Concluded", "date": "2026-01-20", "status": "Completed", "note": "19 witnesses and 34 exhibits evaluated"},
+                {"stage": "Judicial Verdict", "date": "2026-06-30", "status": "Completed", "note": "Guilty Verdict Pronounced - 7 Years RI Executed"}
+            ]
+        )
+    ]
+    try:
+        db.bulk_save_objects(cases)
+        db.commit()
+        logger.info(f"Successfully seeded {len(cases)} Court Monitoring cases into database!")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error seeding court cases: {e}")
+
+
 # --- Orchestrated Seeding Pipeline ---
 
 def seed_database(db: Session):
@@ -511,6 +670,7 @@ def seed_database(db: Session):
     # 6. Default Roles & Identity Seeding
     seed_roles_and_permissions(db)
     seed_users(db)
+    seed_court_cases(db)
 
     # 7. Sync Auto-increment Sequences
     reset_db_sequences(db)
