@@ -84,7 +84,7 @@ export default function Login() {
         )}
 
         {/* High-End Login Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
           {/* User ID Field */}
           <div>
             <label className="block text-[10px] uppercase font-bold font-mono tracking-wider text-slate-300 mb-1.5 flex items-center gap-1.5">
@@ -95,6 +95,8 @@ export default function Login() {
               <input
                 type="text"
                 required
+                name="ksp_officer_user_id"
+                autoComplete="off"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Enter Official User ID"
@@ -114,6 +116,8 @@ export default function Login() {
               <input
                 type={showPassword ? "text" : "password"}
                 required
+                name="ksp_officer_security_password"
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter Secure Password"
