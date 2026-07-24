@@ -8,6 +8,7 @@ export interface User {
   OfficerID: number;
   RoleID: number;
   Rank?: string;
+  GrantedScope?: string;
   IsActive: boolean;
   role?: {
     RoleID: number;

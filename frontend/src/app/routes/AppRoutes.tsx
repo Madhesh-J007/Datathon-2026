@@ -13,6 +13,7 @@ import Reports from "../../modules/reports";
 import Collaboration from "../../modules/collaboration";
 import Admin from "../../modules/admin";
 import TaskDelegationModule from "../../modules/delegation";
+import CourtCaseMonitoring from "../../modules/court";
 
 export default function AppRoutes() {
   return (
@@ -44,6 +45,9 @@ export default function AppRoutes() {
         
         {/* Analytics & Predictive */}
         <Route path="predictive" element={<Predictive />} />
+
+        {/* Court Case Monitoring */}
+        <Route path="court" element={<CourtCaseMonitoring />} />
         
         {/* Collaboration Requests */}
         <Route path="collaboration" element={<Collaboration />} />
