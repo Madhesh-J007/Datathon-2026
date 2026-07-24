@@ -55,6 +55,22 @@ export default function Investigation() {
     user?.Username?.includes("ed");
 
   const isConstable = !isSeniorOfficer && !isExternalOfficer;
+
+  const username = user?.Username?.toLowerCase() || "";
+  const roleName = user?.role?.RoleName || "";
+
+  // FIR Registration Permissions Rule:
+  // Admin: NO FIR registration (Supervisory only)
+  // External Agencies (CBI, FSL, ED): NO FIR registration
+  // Constable (PC) & ASI: NO FIR registration (Junior beat officers)
+  // Head Constable (HC), PSI, SI, SHO, PI, DySP, SP, DIG, IGP, ADGP, DGP: CAN REGISTER FIR!
+  const isJuniorConstableOrASI =
+    username.includes("suda") ||
+    username.includes("constable_officer") ||
+    username.includes("asi") ||
+    (roleName === "Constable" && !username.includes("hc"));
+
+  const canRegisterFIR = !isAdmin && !isExternalOfficer && !isJuniorConstableOrASI;
   
   const caseId = id ? parseInt(id) : null;
   const [activeSubTab, setActiveSubTab] = useState("overview");
@@ -312,7 +328,7 @@ export default function Investigation() {
 
           {/* TAB BAR FOR OFFICER WORKSPACE VS CASE REGISTRY */}
           <div className="flex flex-wrap items-center gap-2">
-            {!isExternalOfficer && (
+            {canRegisterFIR && (
               <button
                 onClick={() => setIsRegisterIncidentModalOpen(true)}
                 className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-mono text-xs font-bold px-3 py-2 rounded-lg transition-all shadow-lg shadow-emerald-600/30"
