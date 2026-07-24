@@ -17,7 +17,10 @@ interface AdminProps {
   activeTab?: "system" | "appointments";
 }
 
+import { useLanguage } from "../../app/providers/LanguageContext";
+
 export default function Admin({ activeTab: initialTab = "appointments" }: AdminProps) {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<"system" | "appointments">(initialTab);
 
   // User form states
@@ -168,11 +171,11 @@ export default function Admin({ activeTab: initialTab = "appointments" }: AdminP
           <div className="flex items-center gap-2">
             <ShieldCheck className="text-blue-500" size={22} />
             <h1 className="text-xl font-bold tracking-tight text-slate-100">
-              KSP Admin Command Console
+              {t("admin_title")}
             </h1>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            System administration, officer appointments, rank access management, and database telemetry.
+            {t("admin_sub")}
           </p>
         </div>
 
@@ -185,7 +188,7 @@ export default function Admin({ activeTab: initialTab = "appointments" }: AdminP
                 : "text-slate-400 hover:text-slate-200"
             }`}
           >
-            👮 Officer Appointments & Ranks
+            👮 {t("tab_appointments")}
           </button>
           <button
             onClick={() => setActiveTab("system")}
@@ -195,7 +198,7 @@ export default function Admin({ activeTab: initialTab = "appointments" }: AdminP
                 : "text-slate-400 hover:text-slate-200"
             }`}
           >
-            📊 System Telemetry & Logs
+            📊 {t("tab_system_health")}
           </button>
         </div>
       </div>

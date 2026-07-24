@@ -16,7 +16,7 @@ import {
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
-  const { t } = useLanguage();
+  const { t, translateData } = useLanguage();
   const location = useLocation();
 
   const roleName = user?.role?.RoleName || "Guest";
@@ -118,8 +118,8 @@ export default function Sidebar() {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-bold text-slate-200 truncate">{user?.Username}</p>
-            <p className="text-[10px] text-blue-400 font-mono font-bold truncate" title={officialRankTitle}>
-              {officialRankTitle}
+            <p className="text-[10px] text-blue-400 font-mono font-bold truncate" title={translateData(officialRankTitle)}>
+              {translateData(officialRankTitle)}
             </p>
           </div>
         </div>
@@ -128,7 +128,7 @@ export default function Sidebar() {
           className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded text-xs border border-red-500/20 text-red-400 hover:bg-red-500/10 transition-colors"
         >
           <LogOut size={12} />
-          <span>System Log Out</span>
+          <span>{t("btn_logout", "ಸಿಸ್ಟಮ್‌ನಿಂದ ನಿರ್ಗಮಿಸಿ")}</span>
         </button>
       </div>
     </aside>

@@ -15,7 +15,10 @@ import {
   Eye,
 } from "lucide-react";
 
+import { useLanguage } from "../../app/providers/LanguageContext";
+
 export default function Collaboration() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -207,17 +210,17 @@ export default function Collaboration() {
 
   // Navigation Tab Configurations
   const officerTabs = [
-    { id: "search", label: "🔍 Search Cases & Request Access" },
-    { id: "requests", label: "📋 My Submitted Access Requests" },
-    { id: "workspace", label: "💼 My Approved Cases Workspace" },
+    { id: "search", label: `🔍 ${t("btn_search", "ಶೋಧನೆ")} & ${t("btn_request", "ವಿನಂತಿ")}` },
+    { id: "requests", label: `📋 ${t("tab_requests", "ನನ್ನ ಪ್ರವೇಶ ವಿನಂತಿಗಳು")}` },
+    { id: "workspace", label: `💼 ${t("tab_workspace", "ಏಜೆನ್ಸಿ ಕೋಶದ ಕೆಲಸದ ಕ್ಷೇತ್ರ")}` },
   ];
 
   const adminTabs = [
-    { id: "requests", label: "🛡️ Access Requests Queue & Approvals" },
-    { id: "workspace", label: "💼 Active Granted Workspaces" },
-    { id: "officers", label: "🔑 Officer Credentials Directory" },
-    { id: "agencies", label: "🏢 External Agencies Registry" },
-    { id: "audit", label: "📋 Audit History Logs" },
+    { id: "requests", label: `🛡️ ${t("tab_requests", "ಪ್ರವೇಶ ವಿನಂತಿಗಳು ಮತ್ತು ಅನುಮೋದನೆಗಳು")}` },
+    { id: "workspace", label: `💼 ${t("tab_workspace", "ಸಕ್ರಿಯ ಪ್ರವೇಶ ಕ್ಷೇತ್ರಗಳು")}` },
+    { id: "agencies", label: `🏛️ ${t("tab_agencies", "ಸಂಯೋಜಿತ ಕೇಂದ್ರ ಏಜೆನ್ಸಿಗಳು")}` },
+    { id: "officers", label: `👮 ${t("tab_officers", "ಸಂಪರ್ಕ ಅಧಿಕಾರಿಗಳು")}` },
+    { id: "audit", label: `📋 ${t("tab_audit", "ಲೆಕ್ಕಪರಿಶೋಧನೆ ಲಾಗ್‌ಗಳು")}` },
   ];
 
   const currentTabs = isExternalOfficer ? officerTabs : adminTabs;

@@ -15,6 +15,8 @@ export const translations: Record<Language, Record<string, string>> = {
     nav_admin: "System Admin",
     nav_system_title: "KARNATAKA STATE POLICE",
     nav_system_sub: "Crime Intelligence System",
+    btn_logout: "System Log Out",
+    guide_btn: "Walkthrough Guide",
 
     // --- TopBar & Search ---
     search_placeholder: "Search Case #, Accused name, evidence...",
@@ -127,6 +129,30 @@ export const translations: Record<Language, Record<string, string>> = {
     task_portal_title: "Command & Task Delegation Portal",
     task_portal_sub: "Appoint operational directives and track real-time execution timelines for subordinate officers under your jurisdiction.",
     task_appoint_btn: "Appoint Directive / Task",
+    task_my_workspace: "📌 My Assigned Directives",
+    task_case_registry: "📁 Case Registry Files",
+
+    // --- Collaboration & Vault ---
+    collab_title: "Inter-Agency Intelligence Vault",
+    collab_sub: "Secure inter-agency collaboration portal for CBI, ED, FSL, and State Police.",
+    tab_requests: "Access Requests & Approvals",
+    tab_workspace: "Agency Vault Workspace",
+    tab_agencies: "Connected Federal Agencies",
+    tab_officers: "Liaison Officers",
+
+    // --- Admin ---
+    admin_title: "System Admin & Officer Appointments",
+    admin_sub: "Appoint new police officers, manage system credentials, and review platform telemetry.",
+    tab_appointments: "Officer Appointments",
+    tab_system_health: "System Health & Audit",
+
+    // --- GIS Hotspots & Network ---
+    hotspot_title: "GIS Crime Hotspot Prediction & Risk Analytics",
+    hotspot_sub: "Spatial density mapping, temporal hotspot forecasting, and proactive patrol routing across Karnataka.",
+    network_title: "Criminal Entity & Syndicate Network Analysis",
+    network_sub: "Link analysis, gang hierarchy visualization, and suspect relationship graphs.",
+    predictive_title: "AI Threat Forecasting & Repeat Offender Intelligence",
+    predictive_sub: "Machine learning risk scoring, repeat offender identification, and time-series crime trends.",
   },
 
   kn: {
@@ -143,6 +169,8 @@ export const translations: Record<Language, Record<string, string>> = {
     nav_admin: "ಸಿಸ್ಟಮ್ ನಿರ್ವಹಣೆ",
     nav_system_title: "ಕರ್ನಾಟಕ ರಾಜ್ಯ ಪೊಲೀಸ್",
     nav_system_sub: "ಅಪರಾಧ ಗುಪ್ತಚರ ವ್ಯವಸ್ಥೆ",
+    btn_logout: "ಸಿಸ್ಟಮ್‌ನಿಂದ ನಿರ್ಗಮಿಸಿ",
+    guide_btn: "ಮಾರ್ಗದರ್ಶಿ ಕೈಪಿಡಿ",
 
     // --- TopBar & Search ---
     search_placeholder: "ಪ್ರಕರಣದ ಸಂಖ್ಯೆ, ಆರೋಪಿಯ ಹೆಸರು, ಸಾಕ್ಷ್ಯಾಧಾರ ಶೋಧಿಸಿ...",
@@ -255,5 +283,29 @@ export const translations: Record<Language, Record<string, string>> = {
     task_portal_title: "ಆದೇಶ ಮತ್ತು ಕಾರ್ಯ ನಿಯೋಜನೆ ಪೋರ್ಟಲ್",
     task_portal_sub: "ನಿಮ್ಮ ಅಧಿಕಾರ ವ್ಯಾಪ್ತಿಯಲ್ಲಿರುವ ಅಧೀನ ಅಧಿಕಾರಿಗಳಿಗೆ ಕಾರ್ಯಾಚರಣೆಯ ಆದೇಶಗಳನ್ನು ನಿಯೋಜಿಸಿ ಮತ್ತು ಪ್ರಗತಿಯನ್ನು ವೀಕ್ಷಿಸಿ.",
     task_appoint_btn: "ಹೊಸ ಕಾರ್ಯ ನಿಯೋಜಿಸಿ",
+    task_my_workspace: "📌 ನನಗೆ ನಿಯೋಜಿಸಲಾದ ಕಾರ್ಯಾಚರಣೆಗಳು",
+    task_case_registry: "📁 ಪ್ರಕರಣಗಳ ನೋಂದಣಿ ಫೈಲ್‌ಗಳು",
+
+    // --- Collaboration & Vault ---
+    collab_title: "ಏಜೆನ್ಸಿಗಳ ಗುಪ್ತಚರ ಕೋಶ",
+    collab_sub: "ಸಿಬಿಐ, ಇಡಿ, ಎಫ್‌ಎಸ್‌ಎಲ್ ಮತ್ತು ರಾಜ್ಯ ಪೊಲೀಸರಿಗೆ ಸುರಕ್ಷಿತ ಮಾಹಿತಿ ವಿನಿಮಯ ಪೋರ್ಟಲ್.",
+    tab_requests: "ಪ್ರವೇಶ ವಿನಂತಿಗಳು ಮತ್ತು ಅನುಮೋದನೆಗಳು",
+    tab_workspace: "ಏಜೆನ್ಸಿ ಕೋಶದ ಕೆಲಸದ ಕ್ಷೇತ್ರ",
+    tab_agencies: "ಸಂಯೋಜಿತ ಕೇಂದ್ರ ಏಜೆನ್ಸಿಗಳು",
+    tab_officers: "ಸಂಪರ್ಕ ಅಧಿಕಾರಿಗಳು",
+
+    // --- Admin ---
+    admin_title: "ಸಿಸ್ಟಮ್ ನಿರ್ವಹಣೆ ಮತ್ತು ಅಧಿಕಾರಿಗಳ ನೇಮಕಾತಿ",
+    admin_sub: "ಹೊಸ ಪೊಲೀಸ್ ಅಧಿಕಾರಿಗಳನ್ನು ನೇಮಿಸಿ, ಖಾತೆಗಳನ್ನು ನಿರ್ವಹಿಸಿ ಮತ್ತು ತಾಂತ್ರಿಕ ವಿವರಗಳನ್ನು ಪರಿಶೀಲಿಸಿ.",
+    tab_appointments: "ಅಧಿಕಾರಿಗಳ ನೇಮಕಾತಿ",
+    tab_system_health: "ಸಿಸ್ಟಮ್ ಆರೋಗ್ಯ ಮತ್ತು ತನಿಖಾ ದಾಖಲೆಗಳು",
+
+    // --- GIS Hotspots & Network ---
+    hotspot_title: "ಜಿಐಎಸ್ ಅಪರಾಧ ಹಾಟ್‌ಸ್ಪಾಟ್ ಭವಿಷ್ಯವಾಣಿ ಮತ್ತು ರಿಸ್ಕ್ ವಿಶ್ಲೇಷಣೆ",
+    hotspot_sub: "ಕರ್ನಾಟಕದಾದ್ಯಂತ ನೈಜ ಸಮಯದ ಹಾಟ್‌ಸ್ಪಾಟ್ ಗುರುತಿಸುವಿಕೆ ಮತ್ತು ಗಸ್ತು ಮಾರ್ಗಗಳ ಯೋಜನೆ.",
+    network_title: "ಅಪರಾಧ ಸೂತ್ರಧಾರಿಗಳು ಮತ್ತು ಜಾಲಬಂಧ ವಿಶ್ಲೇಷಣೆ",
+    network_sub: "ಅಪರಾಧ ಜಾಲಗಳು, ಗ್ಯಾಂಗ್ ಬಾಂಧವ್ಯಗಳು ಮತ್ತು ಶಂಕಿತರ ಸಂಪರ್ಕ ವಿಶ್ಲೇಷಣೆ.",
+    predictive_title: "ಎಐ ಅಪರಾಧ ಭವಿಷ್ಯವಾಣಿ ಮತ್ತು ಅಭ್ಯಾಸಬಲ ಅಪರಾಧಿಗಳ ಪತ್ತೆ",
+    predictive_sub: "ಯಂತ್ರ ಕಲಿಕೆ ಆಧಾರಿತ ಅಪರಾಧಿಗಳ ರಿಸ್ಕ್ ಸ್ಕೋರಿಂಗ್ ಮತ್ತು ಅಪರಾಧ ಪ್ರವೃತ್ತಿಗಳ ಭವಿಷ್ಯವಾಣಿ.",
   }
 };

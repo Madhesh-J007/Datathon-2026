@@ -17,7 +17,10 @@ import {
   Package
 } from "lucide-react";
 
+import { useLanguage } from "../../app/providers/LanguageContext";
+
 export default function TaskDelegationModule() {
+  const { t } = useLanguage();
   const queryClient = useQueryClient();
 
   const [isAppointModalOpen, setIsAppointModalOpen] = useState(false);
@@ -155,11 +158,11 @@ export default function TaskDelegationModule() {
           <div className="flex items-center gap-2">
             <ClipboardList className="text-blue-500" size={24} />
             <h1 className="text-xl font-bold tracking-tight text-slate-100">
-              Command & Task Delegation Portal
+              {t("task_portal_title")}
             </h1>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Appoint operational directives and track real-time execution timelines for subordinate officers under your jurisdiction.
+            {t("task_portal_sub")}
           </p>
         </div>
 
@@ -168,7 +171,7 @@ export default function TaskDelegationModule() {
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-2.5 rounded-lg font-bold shadow-lg transition-all"
         >
           <Plus size={16} />
-          <span>Appoint Directive / Task</span>
+          <span>{t("task_appoint_btn")}</span>
         </button>
       </div>
 
