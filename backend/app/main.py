@@ -117,24 +117,25 @@ app.add_exception_handler(IntegrityError, db_integrity_error_handler)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(Exception, unhandled_exception_handler)
 
-# CORS middleware configuration
-if settings.CORS_ALLOWED_ORIGINS:
-    origins = [origin.strip() for origin in settings.CORS_ALLOWED_ORIGINS.split(",")]
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-else:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+# Permissive CORS middleware for cloud deployments & local development
+allowed_origins_list = [
+    "https://ksp-frontend-cvrhtldi.onslate.in",
+    "http://localhost:5173",
+    "http://localhost:3000"
+]
+if settings.CORS_ALLOWED_ORIGINS and settings.CORS_ALLOWED_ORIGINS != "*":
+    for o in settings.CORS_ALLOWED_ORIGINS.split(","):
+        if o.strip() and o.strip() not in allowed_origins_list:
+            allowed_origins_list.append(o.strip())
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins_list,
+    allow_origin_regex=r"https://.*\.onslate\.in|https://.*\.catalystappsail\.in|http://localhost:.*",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # OWASP Security Headers Middleware
 @app.middleware("http")
