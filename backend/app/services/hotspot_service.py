@@ -25,7 +25,7 @@ def get_predicted_hotspots(db: Session, current_user: User) -> dict:
     }
     result = None
     try:
-        with httpx.Client(timeout=5.0) as client:
+        with httpx.Client(timeout=2.0) as client:
             response = client.post(f"{settings.AI_ENGINE_BASE_URL}/ai/v1/hotspots/predict", json=payload)
             if response.status_code == 200:
                 result = response.json()
@@ -33,16 +33,21 @@ def get_predicted_hotspots(db: Session, current_user: User) -> dict:
         pass
 
     if not result:
-        # Local Kernel Density & Geographic Cluster Fallback
-        hotspots = []
-        for case in cases[:25]:
-            hotspots.append({
-                "latitude": float(case.latitude),
-                "longitude": float(case.longitude),
-                "confidence": float(round(case.AIRiskScore or 0.80, 2)),
-                "top_factors": ["High historical FIR density", "Diurnal evening peak hours", "Near transit corridor"]
-            })
-        result = {"model_version": "phase4-kde-hotspot-v1", "hotspots": hotspots}
+        # Load and run real ML KernelDensity prediction model directly
+        try:
+            import sys
+            import os
+            ai_engine_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "ai-engine"))
+            if ai_engine_path not in sys.path:
+                sys.path.insert(0, ai_engine_path)
+            from models.hotspot.predictor import predict_hotspots
+            hotspots = predict_hotspots(payload["cases"])
+            result = {"model_version": "phase4-kde-hotspot-v1", "hotspots": hotspots}
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"AI hotspot model execution error: {str(exc)}"
+            ) from exc
 
     ai_audit_service.log_ai_run(db, current_user.UserID, "hotspot_prediction", "kernel_density", result["model_version"], None, {"hotspot_count": len(result["hotspots"])})
     return result
