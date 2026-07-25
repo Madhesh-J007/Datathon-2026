@@ -30,40 +30,33 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         logger.warning(f"Audit listeners registration warning: {exc}")
 
-    logger.info("Initializing database schema...")
+    logger.info(f"Initializing database schema (Dialect: {engine.dialect.name})...")
     try:
-        # Enable database extensions safely if supported on cloud DB
-        try:
+        if engine.dialect.name == "postgresql":
+            logger.info("PostgreSQL dialect active. Executing PostgreSQL schema extensions and migrations...")
             with engine.begin() as conn:
                 try:
                     conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
                 except Exception as ext_err:
-                    logger.warning(f"Vector extension creation skipped: {ext_err}")
+                    logger.info(f"Vector extension note: {ext_err}")
                 try:
                     conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis;"))
                 except Exception as ext_err:
-                    logger.warning(f"PostGIS extension creation skipped: {ext_err}")
-        except Exception as conn_err:
-            logger.warning(f"Database extension setup warning: {conn_err}")
-
-        # Create all tables defined in SQLAlchemy models if they do not exist
-        try:
-            Base.metadata.create_all(bind=engine)
-        except Exception as table_err:
-            logger.warning(f"Base table creation warning: {table_err}")
-
-        try:
-            if "sqlite" not in str(engine.dialect.name).lower():
-                with engine.begin() as conn:
+                    logger.info(f"PostGIS extension note: {ext_err}")
+                try:
                     conn.execute(text('ALTER TABLE report_jobs ADD COLUMN IF NOT EXISTS "CreatedBy" INTEGER;'))
                     conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "FileName" VARCHAR;'))
                     conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "FilePath" VARCHAR;'))
                     conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "FileUrl" VARCHAR;'))
                     conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "FileSize" BIGINT;'))
                     conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "UploadedBy" INTEGER;'))
-        except Exception as alter_err:
-            logger.warning(f"Column alignment warning: {alter_err}")
+                except Exception as alter_err:
+                    logger.info(f"Column alignment note: {alter_err}")
+        else:
+            logger.info("SQLite dialect active. Skipping PostgreSQL-specific extensions and ALTER statements.")
 
+        # Create all tables defined in SQLAlchemy models if they do not exist
+        Base.metadata.create_all(bind=engine)
         logger.info("Database schema initialized successfully.")
         
         # Seed relational datasets asynchronously in a background thread so port 8000 opens instantly

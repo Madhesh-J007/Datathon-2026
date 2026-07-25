@@ -459,54 +459,51 @@ def reset_db_sequences(db: Session):
     Resets PostgreSQL auto-increment sequences to MAX(id) + 1 to prevent IntegrityErrors
     after bulk seeding with explicit IDs.
     """
-    try:
-        if db.bind and "sqlite" in str(db.bind.dialect.name).lower():
-            logger.info("SQLite dialect detected; sequence reset skipped.")
-            return
-    except Exception:
-        pass
-    # Dictionary mapping sequence name to (table, column)
-    seqs = {
-        "district_DistrictID_seq": ("district", "DistrictID"),
-        "crime_type_CrimeHeadID_seq": ("crime_type", "CrimeHeadID"),
-        "roles_RoleID_seq": ("roles", "RoleID"),
-        "permissions_PermissionID_seq": ("permissions", "PermissionID"),
-        "unit_type_UnitTypeID_seq": ("unit_type", "UnitTypeID"),
-        "case_category_CaseCategoryID_seq": ("case_category", "CaseCategoryID"),
-        "gravity_offence_GravityOffenceID_seq": ("gravity_offence", "GravityOffenceID"),
-        "case_status_master_CaseStatusID_seq": ("case_status_master", "CaseStatusID"),
-        "act_ActCode_seq": ("act", "ActCode"),
-        "police_station_UnitID_seq": ("police_station", "UnitID"),
-        "crime_sub_type_CrimeSubHeadID_seq": ("crime_sub_type", "CrimeSubHeadID"),
-        "section_SectionID_seq": ("section", "SectionID"),
-        "officer_OfficerID_seq": ("officer", "OfficerID"),
-        "users_UserID_seq": ("users", "UserID"),
-        "case_master_CaseMasterID_seq": ("case_master", "CaseMasterID"),
-        "user_jurisdictions_UserJurisdictionID_seq": ("user_jurisdictions", "UserJurisdictionID"),
-        "criminal_relationships_RelationshipID_seq": ("criminal_relationships", "RelationshipID"),
-        "audit_log_AuditLogID_seq": ("audit_log", "AuditLogID"),
-        "accused_AccusedMasterID_seq": ("accused", "AccusedMasterID"),
-        "victim_VictimMasterID_seq": ("victim", "VictimMasterID"),
-        "evidence_EvidenceID_seq": ("evidence", "EvidenceID"),
-        "vehicle_VehicleID_seq": ("vehicle", "VehicleID"),
-        "witness_WitnessMasterID_seq": ("witness", "WitnessMasterID"),
-        "case_assignments_CaseAssignmentID_seq": ("case_assignments", "CaseAssignmentID"),
-        "case_annotations_AnnotationID_seq": ("case_annotations", "AnnotationID"),
-        "case_embedding_EmbeddingID_seq": ("case_embedding", "EmbeddingID")
-    }
-    
-    from sqlalchemy import text
-    try:
-        for seq, (table, col) in seqs.items():
-            max_val_query = db.execute(text(f'SELECT MAX("{col}") FROM "{table}"'))
-            max_val = max_val_query.scalar()
-            if max_val is not None:
-                db.execute(text(f'SELECT setval(\'"{seq}"\', {max_val}, true)'))
-        db.commit()
-        logger.info("Successfully reset all auto-increment sequences!")
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Error resetting sequences: {e}")
+    if db.bind and db.bind.dialect.name == "postgresql":
+        logger.info("PostgreSQL dialect active. Resetting auto-increment sequences...")
+        seqs = {
+            "district_DistrictID_seq": ("district", "DistrictID"),
+            "crime_type_CrimeHeadID_seq": ("crime_type", "CrimeHeadID"),
+            "roles_RoleID_seq": ("roles", "RoleID"),
+            "permissions_PermissionID_seq": ("permissions", "PermissionID"),
+            "unit_type_UnitTypeID_seq": ("unit_type", "UnitTypeID"),
+            "case_category_CaseCategoryID_seq": ("case_category", "CaseCategoryID"),
+            "gravity_offence_GravityOffenceID_seq": ("gravity_offence", "GravityOffenceID"),
+            "case_status_master_CaseStatusID_seq": ("case_status_master", "CaseStatusID"),
+            "act_ActCode_seq": ("act", "ActCode"),
+            "police_station_UnitID_seq": ("police_station", "UnitID"),
+            "crime_sub_type_CrimeSubHeadID_seq": ("crime_sub_type", "CrimeSubHeadID"),
+            "section_SectionID_seq": ("section", "SectionID"),
+            "officer_OfficerID_seq": ("officer", "OfficerID"),
+            "users_UserID_seq": ("users", "UserID"),
+            "case_master_CaseMasterID_seq": ("case_master", "CaseMasterID"),
+            "user_jurisdictions_UserJurisdictionID_seq": ("user_jurisdictions", "UserJurisdictionID"),
+            "criminal_relationships_RelationshipID_seq": ("criminal_relationships", "RelationshipID"),
+            "audit_log_AuditLogID_seq": ("audit_log", "AuditLogID"),
+            "accused_AccusedMasterID_seq": ("accused", "AccusedMasterID"),
+            "victim_VictimMasterID_seq": ("victim", "VictimMasterID"),
+            "evidence_EvidenceID_seq": ("evidence", "EvidenceID"),
+            "vehicle_VehicleID_seq": ("vehicle", "VehicleID"),
+            "witness_WitnessMasterID_seq": ("witness", "WitnessMasterID"),
+            "case_assignments_CaseAssignmentID_seq": ("case_assignments", "CaseAssignmentID"),
+            "case_annotations_AnnotationID_seq": ("case_annotations", "AnnotationID"),
+            "case_embedding_EmbeddingID_seq": ("case_embedding", "EmbeddingID")
+        }
+
+        from sqlalchemy import text
+        try:
+            for seq, (table, col) in seqs.items():
+                max_val_query = db.execute(text(f'SELECT MAX("{col}") FROM "{table}"'))
+                max_val = max_val_query.scalar()
+                if max_val is not None:
+                    db.execute(text(f'SELECT setval(\'"{seq}"\', {max_val}, true)'))
+            db.commit()
+            logger.info("Successfully reset all PostgreSQL auto-increment sequences!")
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error resetting sequences: {e}")
+    else:
+        logger.info("SQLite dialect active. Auto-increment sequence reset skipped.")
 
 
 from app.models.court_case import CourtCase
