@@ -32,9 +32,20 @@ def seed_table(db: Session, model_class, csv_filename, mapper_func):
         logger.info(f"Table '{model_class.__tablename__}' is already seeded.")
         return
 
-    csv_path = f"/database/seeds/data/{csv_filename}"
-    if not os.path.exists(csv_path):
-        logger.warning(f"Seed file not found at {csv_path}. Skipping.")
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    candidate_paths = [
+        os.path.join(base_dir, "database", "seeds", "data", csv_filename),
+        os.path.join(os.path.dirname(base_dir), "database", "seeds", "data", csv_filename),
+        f"/database/seeds/data/{csv_filename}"
+    ]
+    csv_path = None
+    for p in candidate_paths:
+        if os.path.exists(p):
+            csv_path = p
+            break
+
+    if not csv_path:
+        logger.warning(f"Seed file for {csv_filename} not found. Skipping.")
         return
 
     logger.info(f"Seeding '{model_class.__tablename__}' from {csv_path}...")
