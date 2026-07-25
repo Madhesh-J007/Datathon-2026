@@ -3,7 +3,6 @@ import axios from "axios";
 const getApiBaseUrl = () => {
   const envUrl = (import.meta as any).env?.VITE_API_BASE_URL;
   if (envUrl && envUrl.trim() !== "" && envUrl.startsWith("http")) {
-    // If explicitly pointing to backend
     return envUrl;
   }
   return "https://ksp-backend-50044331349.development.catalystappsail.in/api/v1";
@@ -13,16 +12,20 @@ const API_BASE_URL = getApiBaseUrl();
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
 });
 
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("access_token");
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (token) {
+      if (config.method?.toLowerCase() === "get") {
+        config.params = { ...(config.params || {}), token };
+        if (config.headers) {
+          delete config.headers.Authorization;
+        }
+      } else if (config.headers) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
@@ -58,7 +61,11 @@ apiClient.interceptors.response.use(
           failedQueue.push({ resolve, reject });
         })
           .then((token) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
+            if (originalRequest.method?.toLowerCase() === "get") {
+              originalRequest.params = { ...(originalRequest.params || {}), token };
+            } else {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+            }
             return apiClient(originalRequest);
           })
           .catch((err) => Promise.reject(err));
@@ -104,4 +111,3 @@ apiClient.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-

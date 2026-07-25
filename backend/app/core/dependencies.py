@@ -1,4 +1,4 @@
-from typing import Generator
+from typing import Generator, Optional
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -8,8 +8,8 @@ from app.crud import user_crud
 from app.models.user import User
 from app.models.officer import Officer
 
-# OAuth2 Scheme mapping to the versioned authentication endpoint
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
+# OAuth2 Scheme mapping to the versioned authentication endpoint (auto_error=False for fallback query param support)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login", auto_error=False)
 
 def get_db() -> Generator:
     """
@@ -22,16 +22,26 @@ def get_db() -> Generator:
     finally:
         db.close()
 
-def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)) -> User:
+def get_current_user(
+    request: Request,
+    db: Session = Depends(get_db),
+    header_token: Optional[str] = Depends(oauth2_scheme)
+) -> User:
     """
-    Dependency that decodes the access token and returns the current authenticated User.
-    Raises 401 Unauthorized if the token is invalid or expired.
+    Dependency that decodes the access token from Authorization header or query parameter 'token'.
+    Raises 401 Unauthorized if the token is invalid, missing, or expired.
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    
+    # Check Authorization header first, fallback to query parameter 'token'
+    token = header_token or request.query_params.get("token")
+    if not token:
+        raise credentials_exception
+
     payload = security.decode_token(token)
     if not payload or payload.get("type") != "access":
         raise credentials_exception
