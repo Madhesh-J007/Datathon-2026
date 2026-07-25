@@ -104,8 +104,11 @@ def get_current_officer(db: Session = Depends(get_db), current_user: User = Depe
 
 def rate_limit_dependency(request: Request):
     """
-    Dependency that enforces rate limiting based on client IP.
+    Dependency that enforces rate limiting based on client IP (skipping OPTIONS preflight).
     """
+    if request.method == "OPTIONS":
+        return
+
     import logging
     logger = logging.getLogger("ksp_backend")
     client_ip = request.client.host if request.client else "unknown"

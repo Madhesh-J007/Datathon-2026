@@ -17,6 +17,9 @@ class AuditLoggingMiddleware(BaseHTTPMiddleware):
         method = request.method
         url_path = request.url.path
         
+        if method == "OPTIONS":
+            return await call_next(request)
+        
         try:
             response = await call_next(request)
             process_time = (time.time() - start_time) * 1000
