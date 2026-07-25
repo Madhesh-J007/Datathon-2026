@@ -71,7 +71,7 @@ export default function Sidebar() {
     { name: t("nav_predictive"), path: "/predictive", icon: Brain, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
     { name: t("nav_court"), path: "/court", icon: Scale, roles: ["Admin", "SCRB_Officer", "SHO", "Constable", "ExternalAgencyOfficer"] },
     { name: t("nav_reports"), path: "/reports", icon: FileBarChart, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
-    { name: t("nav_collaboration"), path: "/collaboration", icon: FolderSync, roles: ["Admin", "SCRB_Officer", "SHO", "ExternalAgencyOfficer"] },
+    { name: t("nav_collaboration"), path: "/collaboration", icon: FolderSync, roles: ["Admin", "ExternalAgencyOfficer"] },
     { name: t("nav_delegation"), path: "/delegation", icon: ClipboardList, roles: ["SCRB_Officer", "SHO"] },
     { name: t("nav_admin"), path: "/admin", icon: UserCog, roles: ["Admin"] },
   ];

@@ -23,15 +23,38 @@ export default function Collaboration() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
+  const isAdmin = user?.role?.RoleName === "Admin" || user?.Username === "ksp_admin";
   const isExternalOfficer =
     user?.role?.RoleName === "ExternalAgencyOfficer" ||
     user?.Username?.includes("cbi") ||
     user?.Username?.includes("fsl") ||
     user?.Username?.includes("ed");
 
+  if (!isAdmin && !isExternalOfficer) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[65vh] bg-[#0b1324] border border-red-500/30 rounded-2xl p-8 text-center space-y-4 shadow-2xl font-mono select-none">
+        <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 flex items-center justify-center text-3xl font-extrabold shadow-lg">
+          🔒
+        </div>
+        <h2 className="text-base font-bold text-red-400 uppercase tracking-wider">
+          Inter-Agency Vault — Access Restricted
+        </h2>
+        <p className="text-xs text-slate-300 max-w-lg leading-relaxed font-sans">
+          The Inter-Agency Vault is strictly reserved for <strong>External Agency Officers</strong> (CBI, FSL, ED) for cross-agency case requests, and the <strong>System Administrator</strong> for configuring and granting access permissions. Regular police officials do not have access to this vault.
+        </p>
+        <button
+          onClick={() => navigate("/dashboard")}
+          className="mt-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-600/30 font-mono"
+        >
+          Return to Officer Dashboard
+        </button>
+      </div>
+    );
+  }
+
   // Default active tab is "requests" for Admin, "search" for External Officer
   const [activeTab, setActiveTab] = useState<"search" | "requests" | "workspace" | "agencies" | "officers" | "audit">(
-    "requests"
+    isExternalOfficer ? "search" : "requests"
   );
 
   // Search Case State for External Officer

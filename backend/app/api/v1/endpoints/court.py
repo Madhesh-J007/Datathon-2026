@@ -3,9 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
-from app.db.session import get_db
+from app.core.dependencies import get_db, get_current_active_user
 from app.models.court_case import CourtCase
-from app.api.v1.endpoints.auth import get_current_user
 from app.models.user import User
 
 router = APIRouter()
@@ -32,7 +31,7 @@ class CourtCaseCreateSchema(BaseModel):
 @router.get("/cases", response_model=List[dict])
 def get_court_cases(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
     case_status: Optional[str] = Query(None),
     search: Optional[str] = Query(None)
 ):
@@ -79,7 +78,7 @@ def get_court_cases(
 def create_court_case(
     payload: CourtCaseCreateSchema,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     existing = db.query(CourtCase).filter(CourtCase.CaseNo == payload.CaseNo).first()
     if existing:
