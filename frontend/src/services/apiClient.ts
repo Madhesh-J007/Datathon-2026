@@ -6,7 +6,7 @@ const getApiBaseUrl = () => {
     // If explicitly pointing to backend
     return envUrl;
   }
-  return "/api/v1";
+  return "https://ksp-backend-50044331349.development.catalystappsail.in/api/v1";
 };
 
 const API_BASE_URL = getApiBaseUrl();

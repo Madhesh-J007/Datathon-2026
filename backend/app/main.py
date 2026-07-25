@@ -114,8 +114,8 @@ app.add_exception_handler(Exception, unhandled_exception_handler)
 # Permissive CORS middleware for cloud deployments & local development
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"https://.*\.onslate\.in|https://.*\.catalystappsail\.in|http://localhost:.*",
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
