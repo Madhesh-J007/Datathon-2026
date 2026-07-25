@@ -30,9 +30,8 @@ def get_discovered_db_url() -> str:
         os.environ["DATABASE_URL"] = raw_url
         return raw_url
 
-    # Fallback to local SQLite only if no DATABASE_URL variable is set in os.environ at all
-    sqlite_db_path = os.path.join(BASE_DIR, "ksp_crime_intel.db")
-    default_url = f"sqlite:///{sqlite_db_path}"
+    # Default to Supabase IPv4 Session Pooler if no DATABASE_URL variable is set in os.environ
+    default_url = "postgresql://postgres.vgflwpabareqxudaehbe:KSPdatabase2026@aws-1-ap-south-1.pooler.supabase.com:5432/postgres?sslmode=require"
     os.environ["DATABASE_URL"] = default_url
     return default_url
 
