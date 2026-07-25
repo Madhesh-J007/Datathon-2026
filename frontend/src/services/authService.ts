@@ -14,7 +14,14 @@ export const authService = {
     return response.data;
   },
   async logout(refreshToken: string) {
-    await apiClient.post("/auth/logout", { refresh_token: refreshToken });
+    const params = new URLSearchParams({
+      refresh_token: refreshToken || "",
+    });
+    await apiClient.post("/auth/logout", params, {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    });
   },
   async getMe() {
     const response = await apiClient.get("/auth/me");

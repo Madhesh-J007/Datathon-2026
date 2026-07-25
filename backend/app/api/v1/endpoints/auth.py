@@ -35,11 +35,21 @@ def refresh(request: TokenRefreshRequest, db: Session = Depends(get_db)):
     return auth_service.refresh_access_token(db, request)
 
 @router.post("/logout", status_code=204, summary="User Logout")
-def logout(request: TokenRefreshRequest):
+async def logout(request: Request):
     """
-    Revokes the provided refresh token, invalidating the session in Redis.
+    Revokes the provided refresh token via application/x-www-form-urlencoded or application/json.
     """
-    auth_service.logout_user(request.refresh_token)
+    content_type = request.headers.get("content-type", "")
+    if "application/x-www-form-urlencoded" in content_type:
+        form_data = await request.form()
+        refresh_token = str(form_data.get("refresh_token") or "")
+    else:
+        try:
+            body = await request.json()
+            refresh_token = body.get("refresh_token", "")
+        except Exception:
+            refresh_token = ""
+    auth_service.logout_user(refresh_token)
 
 @router.get("/me", response_model=UserOut, summary="Get Current User Profile")
 def get_me(
