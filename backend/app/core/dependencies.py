@@ -39,6 +39,11 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
     user_id_str = payload.get("sub")
     if not user_id_str:
         raise credentials_exception
+
+    try:
+        user_id = int(user_id_str)
+    except (TypeError, ValueError):
+        raise credentials_exception
         
     try:
         user = user_crud.get_user_by_id(db, user_id)
