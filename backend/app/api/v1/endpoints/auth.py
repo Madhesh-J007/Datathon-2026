@@ -13,18 +13,36 @@ async def login(
     db: Session = Depends(get_db)
 ):
     """
-    Authenticates a user/officer via application/x-www-form-urlencoded or application/json.
+    Authenticates a user/officer supporting application/x-www-form-urlencoded, application/json, or query params.
     """
+    username = ""
+    password = ""
     content_type = request.headers.get("content-type", "")
+
     if "application/x-www-form-urlencoded" in content_type:
-        form_data = await request.form()
-        login_req = LoginRequest(
-            Username=str(form_data.get("Username") or form_data.get("username", "")),
-            Password=str(form_data.get("Password") or form_data.get("password", ""))
-        )
-    else:
-        body = await request.json()
-        login_req = LoginRequest(**body)
+        try:
+            form_data = await request.form()
+            username = str(form_data.get("Username") or form_data.get("username") or "")
+            password = str(form_data.get("Password") or form_data.get("password") or "")
+        except Exception:
+            pass
+
+    if not username and not password:
+        try:
+            body = await request.json()
+            username = str(body.get("Username") or body.get("username") or "")
+            password = str(body.get("Password") or body.get("password") or "")
+        except Exception:
+            pass
+
+    if not username and not password:
+        username = request.query_params.get("username") or request.query_params.get("Username") or ""
+        password = request.query_params.get("password") or request.query_params.get("Password") or ""
+
+    login_req = LoginRequest(
+        Username=username,
+        Password=password
+    )
     return auth_service.authenticate_user(db, login_req)
 
 @router.post("/refresh", response_model=TokenResponse, summary="Refresh Access Token")

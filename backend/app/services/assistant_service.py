@@ -125,9 +125,10 @@ def query_assistant(db: Session, query: str, current_user: User) -> dict:
     full_context_lines = telemetry_lines + search_lines
     context_str = "\n".join(full_context_lines)
 
+    payload = {"query": query, "context": context_str}
     result = None
     try:
-        with httpx.Client(timeout=5.0) as client:
+        with httpx.Client(timeout=10.0) as client:
             response = client.post(f"{settings.AI_ENGINE_BASE_URL}/ai/v1/assistant/query", json=payload)
             if response.status_code == 200:
                 result = response.json()

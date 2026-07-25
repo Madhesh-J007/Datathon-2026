@@ -107,3 +107,47 @@ def download_pdf_report(
         media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename=case_dossier_{job.CaseMasterID}.pdf"}
     )
+
+
+@router.get("/export/csv", summary="Export Cases CSV Dataset")
+def export_csv(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(verify_permission("cases:read"))
+):
+    """Downloads jurisdiction-scoped case dataset in CSV format."""
+    csv_bytes = report_service.export_cases_csv(db, current_user)
+    return Response(
+        content=csv_bytes,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=ksp_cases_dataset.csv"}
+    )
+
+
+@router.get("/export/excel/{case_id}", summary="Export Case Excel Dossier")
+def export_excel(
+    case_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(verify_permission("cases:read"))
+):
+    """Downloads detailed case dossier in Excel-compatible TSV format."""
+    excel_bytes = report_service.export_case_excel(db, case_id, current_user)
+    return Response(
+        content=excel_bytes,
+        media_type="application/vnd.ms-excel",
+        headers={"Content-Disposition": f"attachment; filename=case_dossier_{case_id}.xls"}
+    )
+
+
+@router.get("/export/docx/{case_id}", summary="Export Case Word Document")
+def export_docx(
+    case_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(verify_permission("cases:read"))
+):
+    """Downloads case dossier in Word document format."""
+    docx_bytes = report_service.export_case_docx(db, case_id, current_user)
+    return Response(
+        content=docx_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f"attachment; filename=case_dossier_{case_id}.docx"}
+    )
