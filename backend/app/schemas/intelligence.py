@@ -46,7 +46,11 @@ class ForecastPoint(BaseModel):
     predicted_count: float
 
 
+from pydantic import BaseModel, ConfigDict
+
 class CrimeTrendForecastResponse(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     model_version: str
     trend: str
     points: List[ForecastPoint]

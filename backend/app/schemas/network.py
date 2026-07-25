@@ -66,7 +66,11 @@ class GraphEdgeData(BaseModel):
     evidence_source: Optional[str] = None
 
 
+from pydantic import BaseModel, ConfigDict
+
 class NetworkGraphResponse(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     nodes: List[GraphNodeData]
     edges: List[GraphEdgeData]
     total_nodes: int

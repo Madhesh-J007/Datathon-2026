@@ -51,7 +51,11 @@ class XAIExplanation(BaseModel):
     data_sources: str
 
 
+from pydantic import BaseModel, ConfigDict
+
 class PredictiveDashboardResponse(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     total_cases_analyzed: int
     predicted_30day_cases: int
     growth_rate_pct: float
@@ -84,6 +88,8 @@ class HotspotDetail(BaseModel):
 
 
 class HotspotRankingResponse(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     total_hotspots: int
     hotspots: List[HotspotDetail]
     model_version: str = "ksp-kde-hotspot-v3"
