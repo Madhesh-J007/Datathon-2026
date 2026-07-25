@@ -30,10 +30,16 @@ export default function Login() {
     } catch (err: any) {
       console.error("Login error details:", err);
       const detail = err.response?.data?.detail;
-      if (detail) {
+      if (typeof detail === "string") {
         setError(detail);
+      } else if (Array.isArray(detail)) {
+        setError(detail.map((d: any) => d.msg).join(", "));
+      } else if (err.response?.status === 401) {
+        setError("Invalid User ID or Password. Please verify your officer credentials.");
+      } else if (err.response?.status === 500) {
+        setError("Backend server initializing or database error (Status 500). Please retry in a few seconds.");
       } else if (err.message) {
-        setError(`Connection Error (${err.message}). Ensure system services are active.`);
+        setError(`Connection Error (${err.message}). Ensure backend API is active.`);
       } else {
         setError("Invalid User ID or Password. Please verify your officer credentials.");
       }
