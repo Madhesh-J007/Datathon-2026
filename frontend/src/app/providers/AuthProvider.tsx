@@ -76,6 +76,11 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem("access_token", access_token);
       localStorage.setItem("refresh_token", refresh_token);
       setToken(access_token);
+      
+      // Immediately fetch and populate user profile so ProtectedRoute has full user object before navigation
+      const profile = await authService.getMe();
+      setUser(profile);
+      setIsLoading(false);
       return data;
     } catch (err) {
       setIsLoading(false);
