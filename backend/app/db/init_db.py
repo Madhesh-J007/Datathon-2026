@@ -459,7 +459,12 @@ def reset_db_sequences(db: Session):
     Resets PostgreSQL auto-increment sequences to MAX(id) + 1 to prevent IntegrityErrors
     after bulk seeding with explicit IDs.
     """
-    logger.info("Resetting database auto-increment sequences...")
+    try:
+        if db.bind and "sqlite" in str(db.bind.dialect.name).lower():
+            logger.info("SQLite dialect detected; sequence reset skipped.")
+            return
+    except Exception:
+        pass
     # Dictionary mapping sequence name to (table, column)
     seqs = {
         "district_DistrictID_seq": ("district", "DistrictID"),

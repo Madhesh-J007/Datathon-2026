@@ -5,7 +5,7 @@ from app.db.base_class import Base
 class AuditLog(Base):
     __tablename__ = "audit_log"
 
-    AuditLogID = Column(BigInteger, primary_key=True, index=True)
+    AuditLogID = Column(Integer, primary_key=True, autoincrement=True, index=True)
     Timestamp = Column(DateTime(timezone=True), default=func.now(), nullable=False, index=True)
     UserID = Column(Integer, ForeignKey("users.UserID"), nullable=True, index=True)
     Action = Column(String, nullable=False)
