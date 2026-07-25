@@ -20,7 +20,15 @@ def authenticate_user(db: Session, request: LoginRequest) -> TokenResponse:
             detail="Account locked due to too many failed login attempts. Please try again in 15 minutes."
         )
 
-    user = user_crud.get_user_by_username(db, request.Username)
+    try:
+        user = user_crud.get_user_by_username(db, request.Username)
+    except Exception as e:
+        logger.warning(f"Database error during user query: {e}")
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        user = None
     
     # Allow default passwords
     allowed_passwords = ["change_me", "admin123", "cbi@password2026", "fsl@password2026", "ed@password2026", "password123", "ksp@2026"]
