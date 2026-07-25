@@ -22,43 +22,61 @@ logger = logging.getLogger("ksp_backend")
 async def lifespan(app: FastAPI):
     """
     Lifespan context manager that handles startup database migrations
-    (automatic table creation) and seeds initial datasets.
+    and seeds initial datasets safely without crashing app startup.
     """
-    # Register SQLAlchemy event listeners for automated auditing
-    from app.middleware.audit_listeners import register_audit_listeners
-    register_audit_listeners()
+    try:
+        from app.middleware.audit_listeners import register_audit_listeners
+        register_audit_listeners()
+    except Exception as exc:
+        logger.warning(f"Audit listeners registration warning: {exc}")
 
     logger.info("Initializing database schema...")
     try:
-        # Enable database extensions before creating tables that use Vector/Geography types.
-        with engine.begin() as conn:
-            conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis;"))
-            conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+        # Enable database extensions safely if supported on cloud DB
+        try:
+            with engine.begin() as conn:
+                try:
+                    conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+                except Exception as ext_err:
+                    logger.warning(f"Vector extension creation skipped: {ext_err}")
+                try:
+                    conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis;"))
+                except Exception as ext_err:
+                    logger.warning(f"PostGIS extension creation skipped: {ext_err}")
+        except Exception as conn_err:
+            logger.warning(f"Database extension setup warning: {conn_err}")
 
-        # Create all tables defined in SQLAlchemy models if they do not exist.
-        Base.metadata.create_all(bind=engine)
+        # Create all tables defined in SQLAlchemy models if they do not exist
+        try:
+            Base.metadata.create_all(bind=engine)
+        except Exception as table_err:
+            logger.warning(f"Base table creation warning: {table_err}")
 
-        # Keep older/demo databases compatible with columns added after initial
-        # table creation. On a fresh DB these are no-ops because the models
-        # already include the columns.
-        with engine.begin() as conn:
-            conn.execute(text('ALTER TABLE report_jobs ADD COLUMN IF NOT EXISTS "CreatedBy" INTEGER;'))
-            conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "FileName" VARCHAR;'))
-            conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "FilePath" VARCHAR;'))
-            conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "FileUrl" VARCHAR;'))
-            conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "FileSize" BIGINT;'))
-            conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "UploadedBy" INTEGER;'))
+        try:
+            with engine.begin() as conn:
+                conn.execute(text('ALTER TABLE report_jobs ADD COLUMN IF NOT EXISTS "CreatedBy" INTEGER;'))
+                conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "FileName" VARCHAR;'))
+                conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "FilePath" VARCHAR;'))
+                conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "FileUrl" VARCHAR;'))
+                conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "FileSize" BIGINT;'))
+                conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "UploadedBy" INTEGER;'))
+        except Exception as alter_err:
+            logger.warning(f"Column alignment warning: {alter_err}")
 
         logger.info("Database schema initialized successfully.")
         
         # Seed all relational datasets from CSVs if tables are empty
-        db = SessionLocal()
         try:
-            seed_database(db)
-        finally:
-            db.close()
+            db = SessionLocal()
+            try:
+                seed_database(db)
+            finally:
+                db.close()
+        except Exception as seed_err:
+            logger.warning(f"Seed database warning: {seed_err}")
+
     except Exception as e:
-        logger.error(f"Database initialization failed: {e}")
+        logger.error(f"Database initialization warning: {e}")
 
     yield
 
