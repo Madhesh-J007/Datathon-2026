@@ -45,9 +45,10 @@ except ImportError as missing_err:
     req_path = os.path.join(backend_dir, "requirements.txt")
     if os.path.exists(req_path):
         subprocess.run([sys.executable, "-m", "pip", "install", "-r", req_path, "--no-warn-script-location"], check=False)
+        import importlib
         add_catalyst_paths()
-        logger.info("Re-executing Python process with freshly installed packages...")
-        os.execv(sys.executable, [sys.executable] + sys.argv)
+        importlib.invalidate_caches()
+        logger.info("Site-packages refreshed and import caches invalidated.")
     else:
         logger.error(f"requirements.txt not found at {req_path}")
 
