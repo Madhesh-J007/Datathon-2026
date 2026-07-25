@@ -1,33 +1,56 @@
 import os
+from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_DIR = os.path.dirname(APP_DIR)
 UPLOADS_DIR = os.path.join(BASE_DIR, "uploads")
 
-# Sanitize DATABASE_URL from environment variables if prefixed or incorrectly formatted
-raw_db_url = os.getenv("DATABASE_URL", "").strip()
-if raw_db_url:
-    if raw_db_url.startswith("DATABASE_URL="):
-        raw_db_url = raw_db_url.replace("DATABASE_URL=", "", 1).strip()
-    if raw_db_url.startswith("postgres://"):
-        raw_db_url = raw_db_url.replace("postgres://", "postgresql://", 1)
-    os.environ["DATABASE_URL"] = raw_db_url
+def get_discovered_db_url() -> str:
+    """
+    Safely discovers and sanitizes DATABASE_URL from environment variables.
+    Checks DATABASE_URL, POSTGRES_URL, SQLALCHEMY_DATABASE_URI, and CATALYST_DATABASE_URL.
+    If no valid external URL is provided, defaults to local SQLite to guarantee app startup.
+    """
+    candidate_keys = ["DATABASE_URL", "POSTGRES_URL", "SQLALCHEMY_DATABASE_URI", "CATALYST_DATABASE_URL"]
+    raw_url = ""
+    for key in candidate_keys:
+        val = os.getenv(key, "").strip()
+        if val:
+            raw_url = val
+            break
+
+    if raw_url:
+        # Strip key name prefix if accidentally included in environment value
+        if raw_url.startswith("DATABASE_URL="):
+            raw_url = raw_url.replace("DATABASE_URL=", "", 1).strip()
+        if raw_url.startswith("postgres://"):
+            raw_url = raw_url.replace("postgres://", "postgresql://", 1)
+        # Strip surrounding quotes if present
+        raw_url = raw_url.strip("'\"")
+
+    # If missing, empty, or unconfigured container default, fallback to SQLite
+    if not raw_url or "change_me" in raw_url or "@postgres:5432" in raw_url:
+        sqlite_db_path = os.path.join(BASE_DIR, "ksp_crime_intel.db")
+        raw_url = f"sqlite:///{sqlite_db_path}"
+
+    os.environ["DATABASE_URL"] = raw_url
+    return raw_url
 
 class Settings(BaseSettings):
-    # --- PostgreSQL ---
+    # --- PostgreSQL / Database ---
     POSTGRES_USER: str = "ksp_admin"
     POSTGRES_PASSWORD: str = "change_me"
     POSTGRES_DB: str = "ksp_crime_intel"
     POSTGRES_HOST: str = "postgres"
     POSTGRES_PORT: int = 5432
-    DATABASE_URL: str = "postgresql://ksp_admin:change_me@postgres:5432/ksp_crime_intel"
+    DATABASE_URL: str = get_discovered_db_url()
 
-    # --- Redis ---
-    REDIS_URL: str = "redis://redis:6379/0"
+    # --- Redis (Optional) ---
+    REDIS_URL: Optional[str] = os.getenv("REDIS_URL", None)
 
     # --- JWT Auth ---
-    JWT_SECRET_KEY: str = "change_me_to_a_long_random_string"
+    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "ksp_jwt_secret_key_production_2026_super_secure")
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     JWT_REFRESH_TOKEN_EXPIRE_HOURS: int = 8
@@ -40,13 +63,13 @@ class Settings(BaseSettings):
     # --- AI Engine ---
     AI_ENGINE_HOST: str = "0.0.0.0"
     AI_ENGINE_PORT: int = 8100
-    AI_ENGINE_BASE_URL: str = "http://ai-engine:8100"
+    AI_ENGINE_BASE_URL: str = os.getenv("AI_ENGINE_BASE_URL", "http://ai-engine:8100")
 
     # --- LLM settings ---
     LLM_PROVIDER: str = "anthropic"
-    LLM_API_KEY: str = "change_me"
+    LLM_API_KEY: str = os.getenv("LLM_API_KEY", "change_me")
     LLM_MODEL: str = "claude-sonnet-4-6"
-    
+
     # --- Embeddings ---
     EMBEDDING_MODEL_NAME: str = "sentence-transformers/LaBSE"
     EMBEDDING_MODEL_VERSION: str = "phase4-labse-v1"

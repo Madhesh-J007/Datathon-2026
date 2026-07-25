@@ -269,9 +269,20 @@ def seed_officers(db: Session):
         logger.info("Table 'officer' is already seeded.")
         return
 
-    csv_path = "/database/seeds/data/Officer.csv"
-    if not os.path.exists(csv_path):
-        logger.warning(f"Seed file not found at {csv_path}. Skipping.")
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    candidate_paths = [
+        os.path.join(base_dir, "database", "seeds", "data", "Officer.csv"),
+        os.path.join(os.path.dirname(base_dir), "database", "seeds", "data", "Officer.csv"),
+        "/database/seeds/data/Officer.csv"
+    ]
+    csv_path = None
+    for p in candidate_paths:
+        if os.path.exists(p):
+            csv_path = p
+            break
+
+    if not csv_path:
+        logger.warning("Seed file for Officer.csv not found. Skipping.")
         return
 
     # Query a valid police station and district to use as fallbacks for placeholders

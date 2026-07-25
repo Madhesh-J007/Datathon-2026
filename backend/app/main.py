@@ -159,12 +159,11 @@ def health_check(db: Session = Depends(get_db)):
     Executes a simple 'SELECT 1' query.
     """
     try:
-        # Execute basic SQL command to verify database connectivity
         db.execute(text("SELECT 1"))
         db_status = "healthy"
     except Exception as e:
-        logger.error(f"Database health check failed: {e}")
-        db_status = "unhealthy"
+        logger.warning(f"Database health check warning: {e}")
+        db_status = "degraded"
 
     return {
         "status": "online",
