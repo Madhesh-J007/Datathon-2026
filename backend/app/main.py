@@ -91,6 +91,28 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# 1. CORSMiddleware MUST be the VERY FIRST middleware added to FastAPI app
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=r"https://.*\.onslate\.in|https://.*\.catalystappsail\.in|http://localhost:.*",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"]
+)
+
+# 2. Audit & custom HTTP middlewares added after CORS
+from app.middleware.audit_hook import AuditLoggingMiddleware
+app.add_middleware(AuditLoggingMiddleware)
+
+@app.middleware("http")
+async def add_security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    return response
+
 # Static uploads directory for evidence files (CCTV, images, docs)
 from app.core.config import UPLOADS_DIR
 os.makedirs(UPLOADS_DIR, exist_ok=True)
@@ -111,28 +133,7 @@ app.add_exception_handler(IntegrityError, db_integrity_error_handler)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(Exception, unhandled_exception_handler)
 
-# Permissive CORS middleware for cloud deployments & local development
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# OWASP Security Headers Middleware
-@app.middleware("http")
-async def add_security_headers(request, call_next):
-    response = await call_next(request)
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
-    return response
-
-# Include v1 router prefix
-from app.middleware.audit_hook import AuditLoggingMiddleware
-app.add_middleware(AuditLoggingMiddleware)
-
+# Include v1 router prefix AFTER CORS middleware setup
 app.include_router(api_router, prefix="/api/v1")
 
 @app.get("/")
