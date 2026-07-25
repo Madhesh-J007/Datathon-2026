@@ -4,5 +4,11 @@
       "name": "ksp-frontend",
       "source": "C:\\Project\\KSP\\Datathon-2026\\frontend"
     }
+  ],
+  "appsail": [
+    {
+      "name": "ksp-backend",
+      "source": "C:\\Project\\KSP\\Datathon-2026\\backend"
+    }
   ]
 }
