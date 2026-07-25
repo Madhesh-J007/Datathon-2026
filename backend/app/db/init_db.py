@@ -485,8 +485,13 @@ def reset_db_sequences(db: Session):
 from app.models.court_case import CourtCase
 
 def seed_court_cases(db: Session):
-    if db.query(CourtCase).first() is not None:
-        logger.info("Table 'court_cases' is already seeded.")
+    try:
+        if db.query(CourtCase).first() is not None:
+            logger.info("Table 'court_cases' is already seeded.")
+            return
+    except Exception as e:
+        logger.warning(f"Could not query 'court_cases' table: {e}")
+        db.rollback()
         return
 
     logger.info("Seeding 'court_cases' table with Karnataka judicial monitoring records...")

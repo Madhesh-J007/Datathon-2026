@@ -44,6 +44,7 @@ from app.models.collaboration_request import CollaborationRequest
 from app.models.external_agency import ExternalAgency
 from app.models.external_agency_officer import ExternalAgencyOfficer
 from app.models.collaboration_access import CollaborationAccess
+from app.models.court_case import CourtCase
 
 # Export all models for Alembic and Base metadata detection
 __all__ = [
@@ -82,5 +83,6 @@ __all__ = [
     "CollaborationRequest",
     "ExternalAgency",
     "ExternalAgencyOfficer",
-    "CollaborationAccess"
+    "CollaborationAccess",
+    "CourtCase"
 ]
