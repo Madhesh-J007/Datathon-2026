@@ -2,5 +2,5 @@
   "name": "ksp-backend",
   "stack": "python_3_12",
   "build_path": "./",
-  "command": "sh -c \"python main.py\""
+  "command": "python3 main.py"
 }
