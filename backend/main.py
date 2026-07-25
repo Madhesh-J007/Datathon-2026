@@ -60,13 +60,13 @@ except ImportError:
     os.execv(sys.executable, [sys.executable] + sys.argv)
 
 from app.main import app
+import uvicorn
 
-if __name__ == "__main__":
-    port_str = os.getenv("X_ZOHO_CATALYST_LISTEN_PORT") or os.getenv("PORT") or "8000"
-    try:
-        port = int(port_str)
-    except ValueError:
-        port = 8000
+port_str = os.getenv("X_ZOHO_CATALYST_LISTEN_PORT") or os.getenv("PORT") or "8000"
+try:
+    port = int(port_str)
+except ValueError:
+    port = 8000
 
-    logger.info(f"Starting KSP Backend FastAPI on host 0.0.0.0, port {port}...")
-    uvicorn.run(app, host="0.0.0.0", port=port)
+logger.info(f"Starting KSP Backend FastAPI on host 0.0.0.0, port {port}...")
+uvicorn.run(app, host="0.0.0.0", port=port)
