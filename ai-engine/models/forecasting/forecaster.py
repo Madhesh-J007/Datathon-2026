@@ -1,9 +1,21 @@
-"""Lightweight trend forecasting over daily crime registrations with statistical checks."""
-
-from datetime import timedelta
-import numpy as np
 import pandas as pd
+import numpy as np
+from datetime import timedelta
 from sklearn.linear_model import Ridge
+from functools import lru_cache
+
+@lru_cache(maxsize=1)
+def _get_forecasting_model():
+    """Load serialized Ridge forecasting model. Fail-fast if absent."""
+    import joblib
+    from pathlib import Path
+    model_path = Path(__file__).parents[2] / "saved_models" / "forecasting_model.joblib"
+    if not model_path.exists():
+        raise FileNotFoundError(
+            f"Required ML artifact 'forecasting_model.joblib' is missing from {model_path.parent}. "
+            f"Run 'python train_and_save_all_models.py' before deploying to Catalyst AppSail."
+        )
+    return joblib.load(model_path)
 
 
 def forecast_crime_trend(registration_dates: list[str], horizon_days: int) -> dict:
@@ -16,7 +28,12 @@ def forecast_crime_trend(registration_dates: list[str], horizon_days: int) -> di
 
     dates = pd.to_datetime(pd.Series(registration_dates), errors="coerce").dropna().dt.normalize()
     if len(dates) < 2:
-        return {"model_version": "phase4-trend-regression-v2", "trend": "stable", "points": []}
+        today_dt = pd.Timestamp.now().normalize()
+        points = [
+            {"date": (today_dt + timedelta(days=i+1)).date().isoformat(), "predicted_count": 1.0}
+            for i in range(min(horizon_days, 14))
+        ]
+        return {"model_version": "phase4-trend-regression-v2", "trend": "stable", "points": points}
 
     daily = dates.value_counts().sort_index()
     full_index = pd.date_range(daily.index.min(), daily.index.max(), freq="D")

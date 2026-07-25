@@ -1,7 +1,19 @@
-"""KDE-based predicted hotspot generation with adaptive bandwidth & spatial grid merging."""
-
 import numpy as np
 from sklearn.neighbors import KernelDensity
+from functools import lru_cache
+
+@lru_cache(maxsize=1)
+def _get_hotspot_model():
+    """Load serialized KDE spatial hotspot model. Fail-fast if absent."""
+    import joblib
+    from pathlib import Path
+    model_path = Path(__file__).parents[2] / "saved_models" / "hotspot_model.joblib"
+    if not model_path.exists():
+        raise FileNotFoundError(
+            f"Required ML artifact 'hotspot_model.joblib' is missing from {model_path.parent}. "
+            f"Run 'python train_and_save_all_models.py' before deploying to Catalyst AppSail."
+        )
+    return joblib.load(model_path)
 
 
 CRIME_HEAD_LABELS = {
@@ -82,7 +94,7 @@ def predict_hotspots(cases: list[dict], max_hotspots: int = 25) -> list[dict]:
         # Calculate cluster crime statistics from nearby cases in database (radius ~0.035 deg ~ 3.5km)
         nearby_cases = [
             c for c in case_objects
-            if np.sqrt((c["latitude"] - pt[0])**2 + (c["longitude"] - pt[1])**2) <= 0.035
+            if c.get("latitude") is not None and c.get("longitude") is not None and np.sqrt((float(c["latitude"]) - pt[0])**2 + (float(c["longitude"]) - pt[1])**2) <= 0.035
         ]
         
         crime_counts = {}
@@ -111,8 +123,7 @@ def predict_hotspots(cases: list[dict], max_hotspots: int = 25) -> list[dict]:
             "latitude": float(pt[0]),
             "longitude": float(pt[1]),
             "confidence": round(float(densities[index] / max_density), 4),
-            "top_factors": top_factors,
-            "nearby_case_count": len(nearby_cases)
+            "top_factors": top_factors
         })
 
     return hotspots

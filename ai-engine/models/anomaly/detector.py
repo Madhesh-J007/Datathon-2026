@@ -1,7 +1,19 @@
-"""Isolation Forest anomaly detection over engineered case signals."""
-
 import numpy as np
 from sklearn.ensemble import IsolationForest
+from functools import lru_cache
+
+@lru_cache(maxsize=1)
+def _get_anomaly_model():
+    """Load serialized IsolationForest anomaly detector model. Fail-fast if absent."""
+    import joblib
+    from pathlib import Path
+    model_path = Path(__file__).parents[2] / "saved_models" / "anomaly_detector.joblib"
+    if not model_path.exists():
+        raise FileNotFoundError(
+            f"Required ML artifact 'anomaly_detector.joblib' is missing from {model_path.parent}. "
+            f"Run 'python train_and_save_all_models.py' before deploying to Catalyst AppSail."
+        )
+    return joblib.load(model_path)
 
 
 def detect_anomalies(cases: list[dict]) -> list[dict]:
@@ -51,7 +63,8 @@ def detect_anomalies(cases: list[dict]) -> list[dict]:
             continue
 
         # Calibrate score as anomaly confidence scaled to [0.5, 1.0]
-        confidence = 0.5 + 0.5 * ((score - threshold) / (max_score - threshold)) if max_score > threshold else 0.5
+        denom = max(0.0001, max_score - threshold)
+        confidence = 0.5 + 0.5 * ((score - threshold) / denom)
 
         # 4. Generate granular explanation factors
         factors = []

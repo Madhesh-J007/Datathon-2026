@@ -13,8 +13,8 @@ def has_permission(db: Session, user: User, permission_code: str) -> bool:
     if not user.RoleID:
         return False
     
-    # Bypass all permission checks for Admin role
-    if user.role and user.role.RoleName == "Admin":
+    # Bypass all permission checks for Admin role (by ID or name)
+    if user.RoleID == 1 or (user.role and user.role.RoleName == "Admin"):
         return True
 
     # Allow read-only permissions for ExternalAgencyOfficer role

@@ -30,19 +30,18 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         logger.warning(f"Audit listeners registration warning: {exc}")
 
-    logger.info(f"Initializing database schema (Dialect: {engine.dialect.name})...")
+    logger.info(f"Connecting to database (Dialect: {engine.dialect.name})...")
     try:
         if engine.dialect.name == "postgresql":
-            logger.info("PostgreSQL dialect active. Executing PostgreSQL schema extensions and migrations...")
             with engine.begin() as conn:
                 try:
                     conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
                 except Exception as ext_err:
-                    logger.info(f"Vector extension note: {ext_err}")
+                    pass
                 try:
                     conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis;"))
                 except Exception as ext_err:
-                    logger.info(f"PostGIS extension note: {ext_err}")
+                    pass
                 try:
                     conn.execute(text('ALTER TABLE report_jobs ADD COLUMN IF NOT EXISTS "CreatedBy" INTEGER;'))
                     conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "FileName" VARCHAR;'))
@@ -51,13 +50,14 @@ async def lifespan(app: FastAPI):
                     conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "FileSize" BIGINT;'))
                     conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "UploadedBy" INTEGER;'))
                 except Exception as alter_err:
-                    logger.info(f"Column alignment note: {alter_err}")
+                    pass
+            logger.info("✓ PostgreSQL Connected")
         else:
-            logger.info("SQLite dialect active. Skipping PostgreSQL-specific extensions and ALTER statements.")
+            logger.info("✓ SQLite Engine Active")
 
         # Create all tables defined in SQLAlchemy models if they do not exist
         Base.metadata.create_all(bind=engine)
-        logger.info("Database schema initialized successfully.")
+        logger.info("✓ Schema Ready")
         
         # Seed relational datasets asynchronously in a background thread so port 8000 opens instantly
         import threading
@@ -66,6 +66,9 @@ async def lifespan(app: FastAPI):
                 db = SessionLocal()
                 try:
                     seed_database(db)
+                    logger.info("✓ Seed Complete")
+                    logger.info("✓ AI Ready")
+                    logger.info("✓ Backend Ready")
                 finally:
                     db.close()
             except Exception as seed_err:

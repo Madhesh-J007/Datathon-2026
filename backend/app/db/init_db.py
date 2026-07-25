@@ -334,52 +334,66 @@ def seed_officers(db: Session):
 
 def seed_roles_and_permissions(db: Session):
     """
-    Seeds core RBAC roles, permissions, and grants permissions to roles.
+    Seeds core RBAC roles, permissions, and grants permissions to roles idempotently.
     """
-    if db.query(Role).first() is not None:
-        logger.info("Table 'roles' is already seeded.")
-        return
-
     logger.info("Seeding roles and permissions...")
     try:
-        # 1. Create Roles
-        admin_role = Role(RoleName="Admin", Description="Super Administrator with full statewide scope and access.")
-        scrb_role = Role(RoleName="SCRB_Officer", Description="State Crime Records Bureau officer with statewide read scope.")
-        sho_role = Role(RoleName="SHO", Description="Station House Officer scoped to police station jurisdiction.")
-        constable_role = Role(RoleName="Constable", Description="Beat constable scoped to police station jurisdiction.")
-
-        db.add_all([admin_role, scrb_role, sho_role, constable_role])
-        db.flush()  # Flush to populate RoleIDs
-
-        # 2. Create Permissions
-        permissions = {
-            "cases:read": Permission(PermissionCode="cases:read", Description="Allow reading case file registries."),
-            "cases:create": Permission(PermissionCode="cases:create", Description="Allow registering new crime cases."),
-            "cases:update": Permission(PermissionCode="cases:update", Description="Allow updating existing crime cases."),
-            "cases:delete": Permission(PermissionCode="cases:delete", Description="Allow soft deleting crime cases."),
-            "cases:annotate": Permission(PermissionCode="cases:annotate", Description="Allow writing case journal annotations."),
-            "users:manage": Permission(PermissionCode="users:manage", Description="Allow managing user accounts, roles, and boundaries.")
-        }
-        db.add_all(permissions.values())
-        db.flush()
-
-        # 3. Grant Permissions to Roles
-        # SCRB_Officer gets read permission
-        db.add(RolePermission(RoleID=scrb_role.RoleID, PermissionID=permissions["cases:read"].PermissionID))
+        roles_data = [
+            ("Admin", "Super Administrator with full statewide scope and access."),
+            ("SCRB_Officer", "State Crime Records Bureau officer with statewide read scope."),
+            ("SHO", "Station House Officer scoped to police station jurisdiction."),
+            ("Constable", "Beat constable scoped to police station jurisdiction."),
+            ("ExternalAgencyOfficer", "External agency officer with specialized cross-agency access.")
+        ]
         
-        # SHO gets read, create, update, annotate
-        db.add_all([
-            RolePermission(RoleID=sho_role.RoleID, PermissionID=permissions["cases:read"].PermissionID),
-            RolePermission(RoleID=sho_role.RoleID, PermissionID=permissions["cases:create"].PermissionID),
-            RolePermission(RoleID=sho_role.RoleID, PermissionID=permissions["cases:update"].PermissionID),
-            RolePermission(RoleID=sho_role.RoleID, PermissionID=permissions["cases:annotate"].PermissionID),
-        ])
+        role_map = {}
+        for name, desc in roles_data:
+            role = db.query(Role).filter(Role.RoleName == name).first()
+            if not role:
+                role = Role(RoleName=name, Description=desc)
+                db.add(role)
+                db.flush()
+            role_map[name] = role
 
-        # Constable gets read, annotate
-        db.add_all([
-            RolePermission(RoleID=constable_role.RoleID, PermissionID=permissions["cases:read"].PermissionID),
-            RolePermission(RoleID=constable_role.RoleID, PermissionID=permissions["cases:annotate"].PermissionID),
-        ])
+        perms_data = [
+            ("cases:read", "Allow reading case file registries."),
+            ("cases:create", "Allow registering new crime cases."),
+            ("cases:update", "Allow updating existing crime cases."),
+            ("cases:delete", "Allow soft deleting crime cases."),
+            ("cases:annotate", "Allow writing case journal annotations."),
+            ("users:manage", "Allow managing user accounts, roles, and boundaries.")
+        ]
+
+        perm_map = {}
+        for code, desc in perms_data:
+            perm = db.query(Permission).filter(Permission.PermissionCode == code).first()
+            if not perm:
+                perm = Permission(PermissionCode=code, Description=desc)
+                db.add(perm)
+                db.flush()
+            perm_map[code] = perm
+
+        # Role-Permission Mapping
+        mappings = [
+            ("SCRB_Officer", ["cases:read"]),
+            ("SHO", ["cases:read", "cases:create", "cases:update", "cases:annotate"]),
+            ("Constable", ["cases:read", "cases:annotate"]),
+            ("Admin", ["cases:read", "cases:create", "cases:update", "cases:delete", "cases:annotate", "users:manage"]),
+            ("ExternalAgencyOfficer", ["cases:read"])
+        ]
+
+        for r_name, p_codes in mappings:
+            r_obj = role_map.get(r_name)
+            if r_obj:
+                for p_code in p_codes:
+                    p_obj = perm_map.get(p_code)
+                    if p_obj:
+                        exists = db.query(RolePermission).filter(
+                            RolePermission.RoleID == r_obj.RoleID,
+                            RolePermission.PermissionID == p_obj.PermissionID
+                        ).first()
+                        if not exists:
+                            db.add(RolePermission(RoleID=r_obj.RoleID, PermissionID=p_obj.PermissionID))
 
         db.commit()
         logger.info("Successfully seeded roles, permissions, and role-permission junctions!")
@@ -390,28 +404,30 @@ def seed_roles_and_permissions(db: Session):
 
 def seed_users(db: Session):
     """
-    Seeds and permanently updates default officer user accounts.
+    Seeds and permanently updates default officer user accounts dynamically resolving role IDs.
     """
     from app.models.officer import Officer
 
-    admin_role = db.query(Role).filter(Role.RoleName == "Admin").first()
-    scrb_role = db.query(Role).filter(Role.RoleName == "SCRB_Officer").first()
-    sho_role = db.query(Role).filter(Role.RoleName == "SHO").first()
-    constable_role = db.query(Role).filter(Role.RoleName == "Constable").first()
-    ext_role = db.query(Role).filter(Role.RoleName == "ExternalAgencyOfficer").first()
+    roles = {r.RoleName: r.RoleID for r in db.query(Role).all()}
+
+    admin_role_id = roles.get("Admin", 1)
+    scrb_role_id = roles.get("SCRB_Officer", 2)
+    sho_role_id = roles.get("SHO", 3)
+    constable_role_id = roles.get("Constable", 4)
+    ext_role_id = roles.get("ExternalAgencyOfficer", 5)
 
     preset_users = [
-        ("ksp_admin", "change_me", "admin@ksp.gov.in", admin_role.RoleID if admin_role else 1, "System Administrator"),
-        ("Bharathvaj", "change_me", "bharathvaj@ksp.gov.in", scrb_role.RoleID if scrb_role else 2, "DGP — Director General of Police"),
-        ("ramesh", "change_me", "ramesh@ksp.gov.in", scrb_role.RoleID if scrb_role else 2, "SP — Superintendent of Police"),
-        ("dysp_officer", "change_me", "dysp@ksp.gov.in", scrb_role.RoleID if scrb_role else 2, "DySP — Deputy Superintendent of Police"),
-        ("pi_officer", "change_me", "pi@ksp.gov.in", sho_role.RoleID if sho_role else 3, "PI — Police Inspector"),
-        ("sho_officer", "change_me", "si@ksp.gov.in", sho_role.RoleID if sho_role else 3, "PSI — Sub Inspector of Police"),
-        ("constable_officer", "change_me", "asi@ksp.gov.in", constable_role.RoleID if constable_role else 4, "ASI — Assistant Sub Inspector"),
-        ("suda", "change_me", "suda@ksp.gov.in", constable_role.RoleID if constable_role else 4, "PC — Police Constable"),
-        ("cbi_sp_verma", "cbi@password2026", "verma@cbi.gov.in", ext_role.RoleID if ext_role else 5, "SP — Central Bureau of Investigation"),
-        ("fsl_dna_sunita", "fsl@password2026", "sunita@fsl.gov.in", ext_role.RoleID if ext_role else 5, "FSL — Forensic Science Specialist"),
-        ("ed_jd_hegde", "ed@password2026", "hegde@ed.gov.in", ext_role.RoleID if ext_role else 5, "JD — Enforcement Directorate"),
+        ("ksp_admin", "change_me", "admin@ksp.gov.in", admin_role_id, "System Administrator"),
+        ("Bharathvaj", "change_me", "bharathvaj@ksp.gov.in", scrb_role_id, "DGP — Director General of Police"),
+        ("ramesh", "change_me", "ramesh@ksp.gov.in", scrb_role_id, "SP — Superintendent of Police"),
+        ("dysp_officer", "change_me", "dysp@ksp.gov.in", scrb_role_id, "DySP — Deputy Superintendent of Police"),
+        ("pi_officer", "change_me", "pi@ksp.gov.in", sho_role_id, "PI — Police Inspector"),
+        ("sho_officer", "change_me", "si@ksp.gov.in", sho_role_id, "PSI — Sub Inspector of Police"),
+        ("constable_officer", "change_me", "asi@ksp.gov.in", constable_role_id, "ASI — Assistant Sub Inspector"),
+        ("suda", "change_me", "suda@ksp.gov.in", constable_role_id, "PC — Police Constable"),
+        ("cbi_sp_verma", "cbi@password2026", "verma@cbi.gov.in", ext_role_id, "SP — Central Bureau of Investigation"),
+        ("fsl_dna_sunita", "fsl@password2026", "sunita@fsl.gov.in", ext_role_id, "FSL — Forensic Science Specialist"),
+        ("ed_jd_hegde", "ed@password2026", "hegde@ed.gov.in", ext_role_id, "JD — Enforcement Directorate"),
     ]
 
     logger.info("Seeding and syncing preset officer user accounts...")

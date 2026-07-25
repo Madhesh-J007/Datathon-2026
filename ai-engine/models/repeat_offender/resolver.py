@@ -1,4 +1,17 @@
-"""Explainable record-linkage model for repeat offender identification using Jaro-Winkler."""
+from functools import lru_cache
+
+@lru_cache(maxsize=1)
+def _get_repeat_offender_model():
+    """Load serialized TF-IDF repeat offender linkage model. Fail-fast if absent."""
+    import joblib
+    from pathlib import Path
+    model_path = Path(__file__).parents[2] / "saved_models" / "repeat_offender.joblib"
+    if not model_path.exists():
+        raise FileNotFoundError(
+            f"Required ML artifact 'repeat_offender.joblib' is missing from {model_path.parent}. "
+            f"Run 'python train_and_save_all_models.py' before deploying to Catalyst AppSail."
+        )
+    return joblib.load(model_path)
 
 
 def jaro_winkler(s1: str, s2: str) -> float:

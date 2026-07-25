@@ -70,9 +70,10 @@ def predict_crime_hotspots(payload: HotspotPredictionRequest) -> HotspotPredicti
 def forecast_crime(payload: ForecastRequest) -> ForecastResponse:
     """Forecast registration volume for the requested 1-90 day horizon."""
     try:
-        return ForecastResponse(**forecast_crime_trend(payload.registration_dates, payload.horizon_days))
+        res_dict = forecast_crime_trend(payload.registration_dates, payload.horizon_days)
+        return ForecastResponse(**res_dict)
     except Exception as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Forecast requires valid registration dates.") from exc
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Forecast error: {str(exc)}") from exc
 
 
 @router.post("/repeat-offenders/resolve", response_model=RepeatOffenderResponse)

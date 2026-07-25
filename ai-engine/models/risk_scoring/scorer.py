@@ -20,8 +20,16 @@ FEATURES = [
 
 @lru_cache(maxsize=1)
 def _model() -> RandomForestClassifier:
-    """Load or train the model."""
-    return train_risk_model(settings.TRAINING_DATA_PATH)
+    """Load serialized risk scoring model. Fail-fast if absent."""
+    import joblib
+    from pathlib import Path
+    model_path = Path(__file__).parents[2] / "saved_models" / "risk_scoring_rf.joblib"
+    if not model_path.exists():
+        raise FileNotFoundError(
+            f"Required ML artifact 'risk_scoring_rf.joblib' is missing from {model_path.parent}. "
+            f"Run 'python train_and_save_all_models.py' before deploying to Catalyst AppSail."
+        )
+    return joblib.load(model_path)
 
 
 def predict_risk(payload: dict) -> dict:

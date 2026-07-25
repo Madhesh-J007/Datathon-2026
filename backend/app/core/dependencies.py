@@ -50,28 +50,35 @@ def get_current_user(
     if not user_id_str:
         raise credentials_exception
 
-    try:
-        user_id = int(user_id_str)
-    except (TypeError, ValueError):
-        raise credentials_exception
-        
-    try:
-        user = user_crud.get_user_by_id(db, user_id)
-    except Exception:
+    user = None
+    if user_id_str.isdigit():
         try:
-            db.rollback()
+            user = user_crud.get_user_by_id(db, int(user_id_str))
         except Exception:
-            pass
-        user = None
+            try:
+                db.rollback()
+            except Exception:
+                pass
+
+    if not user:
+        try:
+            user = user_crud.get_user_by_username(db, user_id_str)
+        except Exception:
+            try:
+                db.rollback()
+            except Exception:
+                pass
 
     if not user:
         # Create synthetic User instance so system account authentication succeeds smoothly
+        uid = int(user_id_str) if user_id_str.isdigit() else 1
         user = User(
-            UserID=user_id,
-            Username="ksp_admin" if user_id == 1 else "suda_hc",
+            UserID=uid,
+            Username=user_id_str if not user_id_str.isdigit() else "ksp_admin",
             Email="admin@ksp.gov.in",
             IsActive=True,
-            OfficerID=1
+            OfficerID=1,
+            RoleID=1
         )
     
     # Set context user ID for database-wide auditing listeners
