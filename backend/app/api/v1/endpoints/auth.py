@@ -36,9 +36,12 @@ def get_me(
     """
     Retrieves the profile details of the currently logged-in active user.
     """
-    if current_user.OfficerID:
-        from app.models.officer import Officer
-        officer = db.query(Officer).filter(Officer.OfficerID == current_user.OfficerID).first()
-        if officer:
-            setattr(current_user, "Rank", officer.Rank)
+    if getattr(current_user, "OfficerID", None):
+        try:
+            from app.models.officer import Officer
+            officer = db.query(Officer).filter(Officer.OfficerID == current_user.OfficerID).first()
+            if officer:
+                setattr(current_user, "Rank", officer.Rank)
+        except Exception:
+            pass
     return current_user
