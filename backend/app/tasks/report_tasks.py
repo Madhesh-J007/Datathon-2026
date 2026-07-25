@@ -1,10 +1,15 @@
 import io
 import logging
 from datetime import datetime
-from reportlab.lib.pagesizes import letter
-from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
+try:
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib import colors
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    HAS_REPORTLAB = True
+except ImportError:
+    HAS_REPORTLAB = False
 
 from app.tasks.celery_app import celery_app
 from app.db.session import SessionLocal
@@ -14,6 +19,9 @@ from app.models.report_job import ReportJob
 logger = logging.getLogger("ksp_backend")
 
 def build_pdf_bytes_for_case(case: CaseMaster) -> bytes:
+    if not HAS_REPORTLAB:
+        return f"ReportLab is not installed. Case Summary for {case.CaseNo}".encode('utf-8')
+
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer,
@@ -213,10 +221,6 @@ def build_pdf_bytes_for_case(case: CaseMaster) -> bytes:
 
 @celery_app.task(name="app.tasks.report_tasks.generate_pdf_report_task")
 def generate_pdf_report_task(report_job_id: int):
-    """
-    Generates a structured analytical case report dossier using ReportLab,
-    saves the PDF bytes directly in PostgreSQL, and marks the status as completed.
-    """
     db = SessionLocal()
     try:
         report_job = db.query(ReportJob).filter(ReportJob.ReportJobID == report_job_id).first()

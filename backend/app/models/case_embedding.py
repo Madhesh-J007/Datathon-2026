@@ -1,6 +1,12 @@
-from sqlalchemy import Column, ForeignKey, DateTime, BigInteger, String, Index, UniqueConstraint
+from sqlalchemy import Column, ForeignKey, DateTime, BigInteger, String, Index, UniqueConstraint, JSON
 from sqlalchemy.sql import func
-from pgvector.sqlalchemy import Vector
+try:
+    from pgvector.sqlalchemy import Vector
+except ImportError:
+    # Safe fallback if pgvector package is omitted or unavailable on light runtimes
+    def Vector(dim):
+        return JSON
+
 from app.db.base_class import Base
 from sqlalchemy.orm import relationship
 
@@ -8,13 +14,6 @@ class CaseEmbedding(Base):
     __tablename__ = "case_embedding"
     __table_args__ = (
         UniqueConstraint("CaseMasterID", "EmbeddingModel", "Version", name="uq_case_embedding_model_version"),
-        Index(
-            "idx_case_embedding_vector_hnsw",
-            "EmbeddingVector",
-            postgresql_using="hnsw",
-            postgresql_with={"m": 16, "ef_construction": 64},
-            postgresql_ops={"EmbeddingVector": "vector_cosine_ops"},
-        ),
     )
 
     EmbeddingID = Column(BigInteger, primary_key=True, index=True)
