@@ -137,6 +137,11 @@ app.add_exception_handler(Exception, unhandled_exception_handler)
 # Include v1 router prefix AFTER CORS middleware setup
 app.include_router(api_router, prefix="/api/v1")
 
+@app.options("/cors-test")
+def cors_test_endpoint():
+    logger.info("========== OPTIONS REACHED FASTAPI ==========")
+    return {"message": "OPTIONS reached FastAPI"}
+
 @app.get("/")
 def root():
     """
