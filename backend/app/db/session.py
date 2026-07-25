@@ -1,3 +1,4 @@
+print("========== SESSION.PY VERSION e1b3c73 ==========")
 import os
 import sys
 import socket
@@ -9,6 +10,7 @@ from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 
 logger = logging.getLogger("ksp_backend")
+logger.warning("========== SESSION.PY VERSION e1b3c73 ==========")
 
 def get_masked_url(url: str) -> str:
     """Masks password in connection URL for safe logging."""

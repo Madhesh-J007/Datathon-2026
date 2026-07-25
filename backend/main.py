@@ -1,3 +1,4 @@
+print("========== MAIN.PY VERSION e1b3c73 ==========")
 import os
 import sys
 import site
