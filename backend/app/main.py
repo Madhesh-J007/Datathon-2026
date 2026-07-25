@@ -65,15 +65,19 @@ async def lifespan(app: FastAPI):
 
         logger.info("Database schema initialized successfully.")
         
-        # Seed all relational datasets from CSVs if tables are empty
-        try:
-            db = SessionLocal()
+        # Seed relational datasets asynchronously in a background thread so port 8000 opens instantly
+        import threading
+        def run_background_seed():
             try:
-                seed_database(db)
-            finally:
-                db.close()
-        except Exception as seed_err:
-            logger.warning(f"Seed database warning: {seed_err}")
+                db = SessionLocal()
+                try:
+                    seed_database(db)
+                finally:
+                    db.close()
+            except Exception as seed_err:
+                logger.warning(f"Background database seed warning: {seed_err}")
+
+        threading.Thread(target=run_background_seed, daemon=True).start()
 
     except Exception as e:
         logger.error(f"Database initialization warning: {e}")
