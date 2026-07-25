@@ -10,7 +10,6 @@ def get_discovered_db_url() -> str:
     """
     Safely discovers and sanitizes DATABASE_URL from environment variables.
     Checks DATABASE_URL, POSTGRES_URL, SQLALCHEMY_DATABASE_URI, and CATALYST_DATABASE_URL.
-    If no valid external URL is provided, defaults to local SQLite to guarantee app startup.
     """
     candidate_keys = ["DATABASE_URL", "POSTGRES_URL", "SQLALCHEMY_DATABASE_URI", "CATALYST_DATABASE_URL"]
     raw_url = ""
@@ -28,14 +27,14 @@ def get_discovered_db_url() -> str:
             raw_url = raw_url.replace("postgres://", "postgresql://", 1)
         # Strip surrounding quotes if present
         raw_url = raw_url.strip("'\"")
+        os.environ["DATABASE_URL"] = raw_url
+        return raw_url
 
-    # If missing, empty, or unconfigured container default, fallback to SQLite
-    if not raw_url or "change_me" in raw_url or "@postgres:5432" in raw_url:
-        sqlite_db_path = os.path.join(BASE_DIR, "ksp_crime_intel.db")
-        raw_url = f"sqlite:///{sqlite_db_path}"
-
-    os.environ["DATABASE_URL"] = raw_url
-    return raw_url
+    # Fallback to local SQLite only if no DATABASE_URL variable is set in os.environ at all
+    sqlite_db_path = os.path.join(BASE_DIR, "ksp_crime_intel.db")
+    default_url = f"sqlite:///{sqlite_db_path}"
+    os.environ["DATABASE_URL"] = default_url
+    return default_url
 
 class Settings(BaseSettings):
     # --- PostgreSQL / Database ---
