@@ -2,7 +2,15 @@ import { apiClient } from "./apiClient";
 
 export const authService = {
   async login(payload: any) {
-    const response = await apiClient.post("/auth/login", payload);
+    const params = new URLSearchParams({
+      Username: payload.Username || payload.username || "",
+      Password: payload.Password || payload.password || "",
+    });
+    const response = await apiClient.post("/auth/login", params, {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    });
     return response.data;
   },
   async logout(refreshToken: string) {

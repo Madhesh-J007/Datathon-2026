@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 from app.core.dependencies import get_db, get_current_active_user
 from app.schemas.auth import LoginRequest, TokenResponse, TokenRefreshRequest, UserOut
@@ -8,11 +8,24 @@ from app.models.user import User
 router = APIRouter()
 
 @router.post("/login", response_model=TokenResponse, summary="User Login")
-def login(request: LoginRequest, db: Session = Depends(get_db)):
+async def login(
+    request: Request,
+    db: Session = Depends(get_db)
+):
     """
-    Authenticates a user/officer and returns JWT access and refresh tokens.
+    Authenticates a user/officer via application/x-www-form-urlencoded or application/json.
     """
-    return auth_service.authenticate_user(db, request)
+    content_type = request.headers.get("content-type", "")
+    if "application/x-www-form-urlencoded" in content_type:
+        form_data = await request.form()
+        login_req = LoginRequest(
+            Username=str(form_data.get("Username") or form_data.get("username", "")),
+            Password=str(form_data.get("Password") or form_data.get("password", ""))
+        )
+    else:
+        body = await request.json()
+        login_req = LoginRequest(**body)
+    return auth_service.authenticate_user(db, login_req)
 
 @router.post("/refresh", response_model=TokenResponse, summary="Refresh Access Token")
 def refresh(request: TokenRefreshRequest, db: Session = Depends(get_db)):
