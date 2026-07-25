@@ -1,10 +1,18 @@
 import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
 
 APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_DIR = os.path.dirname(APP_DIR)
 UPLOADS_DIR = os.path.join(BASE_DIR, "uploads")
+
+# Sanitize DATABASE_URL from environment variables if prefixed or incorrectly formatted
+raw_db_url = os.getenv("DATABASE_URL", "").strip()
+if raw_db_url:
+    if raw_db_url.startswith("DATABASE_URL="):
+        raw_db_url = raw_db_url.replace("DATABASE_URL=", "", 1).strip()
+    if raw_db_url.startswith("postgres://"):
+        raw_db_url = raw_db_url.replace("postgres://", "postgresql://", 1)
+    os.environ["DATABASE_URL"] = raw_db_url
 
 class Settings(BaseSettings):
     # --- PostgreSQL ---
@@ -27,7 +35,7 @@ class Settings(BaseSettings):
     # --- Backend settings ---
     BACKEND_HOST: str = "0.0.0.0"
     BACKEND_PORT: int = 8000
-    CORS_ALLOWED_ORIGINS: str = "http://localhost:5173"
+    CORS_ALLOWED_ORIGINS: str = "*"
 
     # --- AI Engine ---
     AI_ENGINE_HOST: str = "0.0.0.0"
@@ -40,7 +48,6 @@ class Settings(BaseSettings):
     LLM_MODEL: str = "claude-sonnet-4-6"
     
     # --- Embeddings ---
-    # CaseEmbedding uses pgvector(768); LaBSE provides vectors of that size.
     EMBEDDING_MODEL_NAME: str = "sentence-transformers/LaBSE"
     EMBEDDING_MODEL_VERSION: str = "phase4-labse-v1"
 
