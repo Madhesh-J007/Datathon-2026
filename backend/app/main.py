@@ -30,17 +30,25 @@ async def lifespan(app: FastAPI):
 
     logger.info("Initializing database schema...")
     try:
-        # Enable pgvector extension before creating tables that use the Vector type
+        # Enable database extensions before creating tables that use Vector/Geography types.
         with engine.begin() as conn:
+            conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis;"))
             conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+
+        # Create all tables defined in SQLAlchemy models if they do not exist.
+        Base.metadata.create_all(bind=engine)
+
+        # Keep older/demo databases compatible with columns added after initial
+        # table creation. On a fresh DB these are no-ops because the models
+        # already include the columns.
+        with engine.begin() as conn:
             conn.execute(text('ALTER TABLE report_jobs ADD COLUMN IF NOT EXISTS "CreatedBy" INTEGER;'))
             conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "FileName" VARCHAR;'))
             conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "FilePath" VARCHAR;'))
             conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "FileUrl" VARCHAR;'))
             conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "FileSize" BIGINT;'))
             conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "UploadedBy" INTEGER;'))
-        # Create all tables defined in SQLAlchemy models if they do not exist
-        Base.metadata.create_all(bind=engine)
+
         logger.info("Database schema initialized successfully.")
         
         # Seed all relational datasets from CSVs if tables are empty
@@ -120,6 +128,17 @@ from app.middleware.audit_hook import AuditLoggingMiddleware
 app.add_middleware(AuditLoggingMiddleware)
 
 app.include_router(api_router, prefix="/api/v1")
+
+@app.get("/")
+def root():
+    """
+    Root endpoint for cloud platform (Catalyst AppSail) health checks.
+    """
+    return {
+        "status": "online",
+        "service": "KSP Crime Intelligence Platform API Backend",
+        "version": "1.0.0"
+    }
 
 @app.get("/health")
 def health_check(db: Session = Depends(get_db)):
