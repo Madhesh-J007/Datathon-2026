@@ -18,9 +18,43 @@ from app.models.report_job import ReportJob
 
 logger = logging.getLogger("ksp_backend")
 
+def generate_fallback_pdf(case: CaseMaster) -> bytes:
+    """Generates a valid binary PDF 1.4 stream if ReportLab is not present in runtime."""
+    case_no = case.CaseNo or str(case.CaseMasterID)
+    facts = (case.BriefFacts or "No facts recorded.").replace("\n", " ").replace("(", "[").replace(")", "]")[:200]
+    stream_text = (
+        f"BT /F1 16 Tf 50 750 Td (KARNATAKA STATE POLICE) Tj ET\n"
+        f"BT /F1 12 Tf 50 725 Td (EXECUTIVE DOSSIER - FIR #{case_no}) Tj ET\n"
+        f"BT /F1 10 Tf 50 695 Td (Registration Date: {str(case.CrimeRegisteredDate)[:10]}) Tj ET\n"
+        f"BT /F1 10 Tf 50 675 Td (Investigation Priority: {case.InvestigationPriority or 'Medium'}) Tj ET\n"
+        f"BT /F1 10 Tf 50 655 Td (AI Risk Score: {int((case.AIRiskScore or 0.55)*100)}%) Tj ET\n"
+        f"BT /F1 9 Tf 50 625 Td (Brief Facts: {facts[:75]}) Tj ET\n"
+    ).encode("latin-1", errors="ignore")
+
+    stream_len = len(stream_text)
+    return (
+        b"%PDF-1.4\n"
+        b"1 0 obj <</Type /Catalog /Pages 2 0 R>> endobj\n"
+        b"2 0 obj <</Type /Pages /Count 1 /Kids [3 0 R]>> endobj\n"
+        b"3 0 obj <</Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources <</Font <</F1 4 0 R>>>> /Contents 5 0 R>> endobj\n"
+        b"4 0 obj <</Type /Font /Subtype /Type1 /BaseFont /Helvetica>> endobj\n"
+        b"5 0 obj <</Length " + str(stream_len).encode() + b">>\nstream\n" +
+        stream_text +
+        b"\nendstream\nendobj\n"
+        b"xref\n0 6\n"
+        b"0000000000 65535 f \n"
+        b"0000000009 00000 n \n"
+        b"0000000058 00000 n \n"
+        b"0000000115 00000 n \n"
+        b"0000000244 00000 n \n"
+        b"0000000319 00000 n \n"
+        b"trailer <</Size 6 /Root 1 0 R>>\n"
+        b"startxref\n400\n%%EOF"
+    )
+
 def build_pdf_bytes_for_case(case: CaseMaster) -> bytes:
     if not HAS_REPORTLAB:
-        return f"ReportLab is not installed. Case Summary for {case.CaseNo}".encode('utf-8')
+        return generate_fallback_pdf(case)
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(

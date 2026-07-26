@@ -61,8 +61,8 @@ def compile_case_report(
     """
     Triggers PDF dossier compilation by Case ID or Case Number string (e.g. '202600006' or '4823').
     """
-    case_input = payload.get("case_input") or payload.get("case_id") or payload.get("case_no")
-    if not case_input:
+    case_input = payload.get("case_input") or payload.get("case_id") or payload.get("CaseMasterID") or payload.get("case_no") or payload.get("CaseNo") or payload.get("id") or payload.get("crime_no")
+    if case_input is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Please provide a valid Case ID or Case Number.")
     return report_service.create_report_job(db, case_input, current_user)
 

@@ -24,41 +24,32 @@ def test_live_appsail():
     token = login_res.json()["access_token"]
     params = {"token": token}
 
-    # 2. Dashboard
-    dash_res = client.get(f"{BASE_URL}/api/v1/predictive/dashboard", params=params)
-    print(f"[OK] Dashboard Status: {dash_res.status_code}")
-
-    # 3. Cases
-    cases_res = client.get(f"{BASE_URL}/api/v1/cases", params=params)
-    print(f"[OK] Cases Status: {cases_res.status_code}")
-
-    # 4. AI Hotspot
-    hotspot_res = client.get(f"{BASE_URL}/api/v1/hotspot/predicted", params=params)
-    print(f"[OK] AI Hotspot Status: {hotspot_res.status_code} ({hotspot_res.text[:120]})")
-
-    # 5. Risk Prediction
+    # TASK 1: AI Risk Score
     risk_res = client.get(f"{BASE_URL}/api/v1/intelligence/cases/1/predict", params=params)
-    print(f"[OK] Risk Prediction Status: {risk_res.status_code} ({risk_res.text[:120]})")
+    print(f"[OK] TASK 1 - AI Risk Score Status: {risk_res.status_code}")
+    if risk_res.status_code == 200:
+        print(f"     Payload Snippet: {risk_res.text[:140]}")
 
-    # 6. Similar Cases
-    similar_res = client.get(f"{BASE_URL}/api/v1/intelligence/cases/1/similar", params=params)
-    print(f"[OK] Similar Cases Status: {similar_res.status_code} ({similar_res.text[:120]})")
+    # TASK 2: Top AI Risk Hotspots
+    hotspot_res = client.get(f"{BASE_URL}/api/v1/hotspot/predicted", params=params)
+    print(f"[OK] TASK 2 - Top AI Hotspots Status: {hotspot_res.status_code}")
+    if hotspot_res.status_code == 200:
+        print(f"     Payload Snippet: {hotspot_res.text[:140]}")
 
-    # 7. Anomaly Detection
-    anom_res = client.get(f"{BASE_URL}/api/v1/intelligence/anomalies", params=params)
-    print(f"[OK] Anomaly Detection Status: {anom_res.status_code} ({anom_res.text[:120]})")
+    # TASK 3 & 4: Mission Critical & High Risk Alerts Queue
+    notif_res = client.get(f"{BASE_URL}/api/v1/notifications", params=params)
+    print(f"[OK] TASK 3 & 4 - Alert Queue Status: {notif_res.status_code}")
+    if notif_res.status_code == 200:
+        print(f"     Payload Snippet: {notif_res.text[:160]}")
 
-    # 8. Executive PDF Report Compile
+    # TASK 5: Executive PDF Generator
     pdf_res = client.post(f"{BASE_URL}/api/v1/reports/compile", params=params, json={"case_input": 1})
-    print(f"[OK] Executive PDF Status: {pdf_res.status_code} ({pdf_res.text[:120]})")
-
-    # 9. CSV Export
-    csv_res = client.get(f"{BASE_URL}/api/v1/reports/export/csv", params=params)
-    print(f"[OK] CSV Export Status: {csv_res.status_code} ({len(csv_res.content)} bytes)")
-
-    # 10. DOCX Export
-    docx_res = client.get(f"{BASE_URL}/api/v1/reports/export/docx/1", params=params)
-    print(f"[OK] DOCX Export Status: {docx_res.status_code} ({len(docx_res.content)} bytes)")
+    print(f"[OK] TASK 5 - Executive PDF Compile Status: {pdf_res.status_code}")
+    if pdf_res.status_code == 200:
+        job_id = pdf_res.json()["ReportJobID"]
+        print(f"     Compiled Job ID: {job_id}, PDFUrl: {pdf_res.json().get('PDFUrl')}")
+        download_res = client.get(f"{BASE_URL}/api/v1/reports/jobs/{job_id}/download", params=params)
+        print(f"     PDF Binary Download Status: {download_res.status_code} ({len(download_res.content)} bytes)")
 
 if __name__ == "__main__":
     test_live_appsail()

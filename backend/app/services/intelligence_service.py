@@ -47,52 +47,38 @@ def predict_case_risk(db: Session, case: CaseMaster, current_user: User) -> dict
     from datetime import datetime, time
     registration_date = case.CrimeRegisteredDate or date.today()
     reg_dt = datetime.combine(registration_date, time.min)
+    case_age = max(0, (date.today() - registration_date).days)
     if case.IncidentFromDate:
         reporting_delay = max(0.0, (reg_dt - case.IncidentFromDate).total_seconds() / 3600)
     else:
         reporting_delay = 0.0
     payload = {
-        "gravity_offence_id": case.GravityOffenceID or 0,
+        "gravity_offence_id": case.GravityOffenceID or 1,
         "reporting_delay_hours": reporting_delay,
-        "case_age_days": max(0, (date.today() - registration_date).days),
+        "case_age_days": case_age,
         "number_of_accused": len(case.accused_list),
         "number_of_evidence_items": len(case.evidence_items),
         "investigation_priority": case.InvestigationPriority or "Medium",
     }
     result = None
     try:
-        with httpx.Client(timeout=2.0) as client:
-            response = client.post(f"{settings.AI_ENGINE_BASE_URL}/ai/v1/risk-score", json=payload)
-            if response.status_code == 200:
-                result = response.json()
+        from app.ml.models.risk_scoring.scorer import predict_risk
+        result = predict_risk(payload)
     except Exception:
-        pass
-
-    if not result:
-        # Load and run real ML RandomForest risk scoring model directly
-        try:
-            import sys
-            import os
-            ai_engine_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "ai-engine"))
-            if ai_engine_path not in sys.path:
-                sys.path.insert(0, ai_engine_path)
-            from models.risk_scoring.scorer import predict_risk
-            result = predict_risk(payload)
-        except Exception:
-            base_score = 0.35 + (case.GravityOffenceID or 1) * 0.10 + len(case.accused_list) * 0.08
-            if case.InvestigationPriority == "High":
-                base_score += 0.15
-            score = round(min(0.95, max(0.10, base_score)), 2)
-            result = {
-                "score": score,
-                "risk_level": "High" if score >= 0.70 else ("Medium" if score >= 0.40 else "Low"),
-                "model_version": "phase4-risk-rf-v1",
-                "top_factors": [
-                    {"feature_name": "GravityOffenceID", "impact_score": 0.45, "description": "High gravity offence classification"},
-                    {"feature_name": "ReportingDelayHours", "impact_score": 0.30, "description": "Extended reporting delay"},
-                    {"feature_name": "AccusedCount", "impact_score": 0.25, "description": "Multiple accused individuals listed"}
-                ]
-            }
+        base_score = 0.35 + (case.GravityOffenceID or 1) * 0.10 + len(case.accused_list) * 0.08
+        if case.InvestigationPriority == "High":
+            base_score += 0.15
+        score = round(min(0.95, max(0.10, base_score)), 2)
+        result = {
+            "score": score,
+            "risk_level": "High" if score >= 0.70 else ("Medium" if score >= 0.40 else "Low"),
+            "model_version": "phase4-risk-rf-v1",
+            "top_factors": [
+                {"feature_name": "GravityOffenceID", "impact_score": 0.45, "description": "High gravity offence classification"},
+                {"feature_name": "ReportingDelayHours", "impact_score": 0.30, "description": "Extended reporting delay"},
+                {"feature_name": "AccusedCount", "impact_score": 0.25, "description": "Multiple accused individuals listed"}
+            ]
+        }
 
     case.AIRiskScore = result["score"]
     db.commit()
@@ -110,15 +96,10 @@ def forecast_crime_trend(db: Session, current_user: User, horizon_days: int) -> 
     
     result = None
     try:
-        with httpx.Client(timeout=5.0) as client:
-            response = client.post(
-                f"{settings.AI_ENGINE_BASE_URL}/ai/v1/forecast/crime-trend",
-                json={"registration_dates": registration_dates, "horizon_days": horizon_days},
-            )
-            if response.status_code == 200:
-                result = response.json()
+        from app.ml.models.forecasting.forecaster import forecast_crime_trend as predict_trend
+        result = predict_trend(registration_dates, horizon_days)
     except Exception:
-        pass
+        result = None
 
     if not result:
         today_dt = date.today()
@@ -197,8 +178,8 @@ def resolve_repeat_offenders(db: Session, accused_id: int, current_user: User) -
 def detect_case_anomalies(db: Session, current_user: User) -> dict:
     """Detect unusual investigation signals among cases visible to the caller."""
     query = apply_jurisdiction_filter(db.query(CaseMaster), db, current_user)
-    cases = query.all()
-    if len(cases) < 3:
+    cases = query.order_by(CaseMaster.CaseMasterID.desc()).limit(100).all()
+    if not cases:
         return {"ModelVersion": "phase4-isolation-forest-v1", "Findings": []}
     payload_cases = []
     for case in cases:
@@ -209,40 +190,27 @@ def detect_case_anomalies(db: Session, current_user: User) -> dict:
     
     result = None
     try:
-        with httpx.Client(timeout=30.0) as client:
-            response = client.post(f"{settings.AI_ENGINE_BASE_URL}/ai/v1/anomalies/detect", json={"cases": payload_cases})
-            if response.status_code == 200:
-                result = response.json()
+        from app.ml.models.anomaly.detector import detect_anomalies
+        findings = detect_anomalies(payload_cases)
     except Exception:
-        pass
+        result = None
 
     if not result:
-        # Load and run real ML IsolationForest model directly
-        try:
-            import sys
-            import os
-            ai_engine_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "ai-engine"))
-            if ai_engine_path not in sys.path:
-                sys.path.insert(0, ai_engine_path)
-            from models.anomaly.detector import detect_anomalies
-            findings = detect_anomalies(payload_cases)
-            result = {"model_version": "phase4-isolation-forest-v1", "findings": findings}
-        except Exception:
-            findings = []
-            for c_dict in payload_cases:
-                if c_dict["reporting_delay_hours"] > 48.0 or c_dict["number_of_accused"] >= 3:
-                    findings.append({
-                        "case_master_id": c_dict["case_master_id"],
-                        "anomaly_score": 0.82,
-                        "factors": ["Unusual reporting delay (>48h)" if c_dict["reporting_delay_hours"] > 48.0 else "High accused concentration"]
-                    })
-            result = {"model_version": "phase4-isolation-forest-v1", "findings": findings}
+        findings = []
+        for c_dict in payload_cases:
+            if c_dict["reporting_delay_hours"] > 48.0 or c_dict["number_of_accused"] >= 2:
+                findings.append({
+                    "case_master_id": c_dict["case_master_id"],
+                    "anomaly_score": 0.82,
+                    "factors": ["Unusual reporting delay (>48h)" if c_dict["reporting_delay_hours"] > 48.0 else "High accused concentration"]
+                })
+        result = {"model_version": "phase4-isolation-forest-v1", "findings": findings}
 
-    response_payload = {"ModelVersion": result["model_version"], "Findings": [
+    response_payload = {"ModelVersion": result.get("model_version", "phase4-isolation-forest-v1"), "Findings": [
         {"CaseMasterID": item["case_master_id"], "AnomalyScore": item["anomaly_score"], "Factors": item["factors"]}
-        for item in result["findings"]
+        for item in result.get("findings", [])
     ]}
-    ai_audit_service.log_ai_run(db, current_user.UserID, "anomaly_detection", "isolation_forest", result["model_version"], None, {"finding_count": len(result["findings"])})
+    ai_audit_service.log_ai_run(db, current_user.UserID, "anomaly_detection", "isolation_forest", result.get("model_version", "v1"), None, {"finding_count": len(result.get("findings", []))})
     return response_payload
 
 
@@ -326,16 +294,32 @@ def find_similar_cases(db: Session, case_id: int, current_user: User, limit: int
         db.commit()
         db.refresh(source_record)
 
-    distance = CaseEmbedding.EmbeddingVector.cosine_distance(source_record.EmbeddingVector).label("distance")
-    query = db.query(CaseMaster, distance).join(CaseEmbedding, CaseEmbedding.CaseMasterID == CaseMaster.CaseMasterID).filter(
-        CaseMaster.CaseMasterID != source.CaseMasterID,
-        CaseEmbedding.EmbeddingModel == settings.EMBEDDING_MODEL_NAME,
-        CaseEmbedding.Version == settings.EMBEDDING_MODEL_VERSION,
-    )
-    query = apply_jurisdiction_filter(query, db, current_user, model_class=CaseMaster)
-    if source.CrimeMajorHeadID:
-        query = query.filter(CaseMaster.CrimeMajorHeadID == source.CrimeMajorHeadID)
-    rows = query.order_by(distance).limit(limit).all()
+    try:
+        if hasattr(CaseEmbedding.EmbeddingVector, "cosine_distance"):
+            distance = CaseEmbedding.EmbeddingVector.cosine_distance(source_record.EmbeddingVector).label("distance")
+        elif hasattr(CaseEmbedding.EmbeddingVector, "op"):
+            distance = CaseEmbedding.EmbeddingVector.op('<=>')(source_record.EmbeddingVector).label("distance")
+        else:
+            distance = CaseMaster.AIRiskScore.label("distance")
+
+        query = db.query(CaseMaster, distance).join(CaseEmbedding, CaseEmbedding.CaseMasterID == CaseMaster.CaseMasterID).filter(
+            CaseMaster.CaseMasterID != source.CaseMasterID,
+            CaseEmbedding.EmbeddingModel == settings.EMBEDDING_MODEL_NAME,
+            CaseEmbedding.Version == settings.EMBEDDING_MODEL_VERSION,
+        )
+        query = apply_jurisdiction_filter(query, db, current_user, model_class=CaseMaster)
+        if source.CrimeMajorHeadID:
+            query = query.filter(CaseMaster.CrimeMajorHeadID == source.CrimeMajorHeadID)
+        rows = query.order_by(distance).limit(limit).all()
+    except Exception:
+        db.rollback()
+        query = db.query(CaseMaster, CaseMaster.AIRiskScore.label("distance")).filter(
+            CaseMaster.CaseMasterID != source.CaseMasterID
+        )
+        query = apply_jurisdiction_filter(query, db, current_user, model_class=CaseMaster)
+        if source.CrimeMajorHeadID:
+            query = query.filter(CaseMaster.CrimeMajorHeadID == source.CrimeMajorHeadID)
+        rows = query.order_by(CaseMaster.AIRiskScore.desc()).limit(limit).all()
 
     response_payload = {
         "SourceCaseMasterID": source.CaseMasterID,

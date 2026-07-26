@@ -1,5 +1,5 @@
 {
-  "name": "ksp-backend",
+  "name": "ksp-platform",
   "stack": "python_3_12",
   "build_path": "./",
   "command": "python3 main.py",

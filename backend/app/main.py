@@ -18,30 +18,44 @@ logging.basicConfig(
 )
 logger = logging.getLogger("ksp_backend")
 
+import traceback
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
     Lifespan context manager that handles startup database migrations
-    and seeds initial datasets safely without crashing app startup.
+    and seeds initial datasets safely with explicit step logging and traceback capture.
     """
+    logger.info("START: Lifespan initialization")
     try:
-        from app.middleware.audit_listeners import register_audit_listeners
-        register_audit_listeners()
-    except Exception as exc:
-        logger.warning(f"Audit listeners registration warning: {exc}")
+        logger.info("START: Register audit listeners")
+        try:
+            from app.middleware.audit_listeners import register_audit_listeners
+            register_audit_listeners()
+            logger.info("✓ Audit listeners registered")
+        except Exception as exc:
+            logger.error(f"EXCEPTION in Register audit listeners:\n{traceback.format_exc()}")
 
-    logger.info(f"Connecting to database (Dialect: {engine.dialect.name})...")
-    try:
+        logger.info("START: PostgreSQL connection")
+        logger.info(f"Connecting to database (Dialect: {engine.dialect.name})...")
+
         if engine.dialect.name == "postgresql":
             with engine.begin() as conn:
+                logger.info("START: CREATE EXTENSION vector")
                 try:
                     conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+                    logger.info("✓ CREATE EXTENSION vector success")
                 except Exception as ext_err:
-                    pass
+                    logger.error(f"EXCEPTION in CREATE EXTENSION vector:\n{traceback.format_exc()}")
+
+                logger.info("START: CREATE EXTENSION postgis")
                 try:
                     conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis;"))
+                    logger.info("✓ CREATE EXTENSION postgis success")
                 except Exception as ext_err:
-                    pass
+                    logger.error(f"EXCEPTION in CREATE EXTENSION postgis:\n{traceback.format_exc()}")
+
+                logger.info("START: ALTER TABLE report_jobs")
                 try:
                     conn.execute(text('ALTER TABLE report_jobs ADD COLUMN IF NOT EXISTS "CreatedBy" INTEGER;'))
                     conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "FileName" VARCHAR;'))
@@ -49,17 +63,23 @@ async def lifespan(app: FastAPI):
                     conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "FileUrl" VARCHAR;'))
                     conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "FileSize" BIGINT;'))
                     conn.execute(text('ALTER TABLE evidence ADD COLUMN IF NOT EXISTS "UploadedBy" INTEGER;'))
+                    logger.info("✓ ALTER TABLE report_jobs & evidence success")
                 except Exception as alter_err:
-                    pass
+                    logger.error(f"EXCEPTION in ALTER TABLE:\n{traceback.format_exc()}")
+
             logger.info("✓ PostgreSQL Connected")
         else:
             logger.info("✓ SQLite Engine Active")
 
-        # Create all tables defined in SQLAlchemy models if they do not exist
-        Base.metadata.create_all(bind=engine)
-        logger.info("✓ Schema Ready")
-        
-        # Seed relational datasets asynchronously in a background thread so port 8000 opens instantly
+        logger.info("START: Base.metadata.create_all")
+        try:
+            Base.metadata.create_all(bind=engine)
+            logger.info("✓ Schema Ready")
+        except Exception as schema_err:
+            logger.error(f"EXCEPTION in Base.metadata.create_all:\n{traceback.format_exc()}")
+            raise schema_err
+
+        logger.info("START: Remaining initialization")
         import threading
         def run_background_seed():
             try:
@@ -72,12 +92,13 @@ async def lifespan(app: FastAPI):
                 finally:
                     db.close()
             except Exception as seed_err:
-                logger.warning(f"Background database seed warning: {seed_err}")
+                logger.error(f"EXCEPTION in background seed:\n{traceback.format_exc()}")
 
         threading.Thread(target=run_background_seed, daemon=True).start()
 
     except Exception as e:
-        logger.error(f"Database initialization warning: {e}")
+        logger.critical(f"CRITICAL LIFESPAN FAILURE: {type(e).__name__}: {e}\n{traceback.format_exc()}")
+        raise e
 
     yield
 

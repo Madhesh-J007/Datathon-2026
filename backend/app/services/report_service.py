@@ -1,6 +1,6 @@
 import logging
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import or_, cast, String
 from fastapi import HTTPException, status
 from app.models.report_job import ReportJob
 from app.models.case_master import CaseMaster
@@ -19,9 +19,18 @@ def create_report_job(db: Session, case_input: str | int, current_user: User) ->
     input_str = str(case_input).strip()
     if input_str.isdigit():
         case_id_val = int(input_str)
-        case_query = case_query.filter(or_(CaseMaster.CaseMasterID == case_id_val, CaseMaster.CaseNo == input_str, CaseMaster.CaseNo.ilike(f"%{input_str}%")))
+        case_query = case_query.filter(or_(
+            CaseMaster.CaseMasterID == case_id_val,
+            CaseMaster.CaseNo == input_str,
+            CaseMaster.CaseNo.ilike(f"%{input_str}%"),
+            CaseMaster.CrimeNo == case_id_val,
+            cast(CaseMaster.CrimeNo, String).ilike(f"%{input_str}%")
+        ))
     else:
-        case_query = case_query.filter(CaseMaster.CaseNo.ilike(f"%{input_str}%"))
+        case_query = case_query.filter(or_(
+            CaseMaster.CaseNo.ilike(f"%{input_str}%"),
+            cast(CaseMaster.CrimeNo, String).ilike(f"%{input_str}%")
+        ))
 
     case_query = apply_jurisdiction_filter(case_query, db, current_user)
     case = case_query.first()

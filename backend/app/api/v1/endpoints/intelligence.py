@@ -92,12 +92,35 @@ def predict_case_risk(
         
     result = intelligence_service.predict_case_risk(db, case, current_user)
 
+    top_factors = []
+    for factor in result.get("top_factors", result.get("top_features", [])):
+        feat_name = str(factor.get("feature_name") or factor.get("feature") or "Crime Feature")
+        score = float(factor.get("impact_score") or factor.get("weight") or factor.get("contribution") or 0.25)
+        desc = str(factor.get("description") or f"High impact factor from feature {feat_name}")
+        top_factors.append(RiskFactor(FeatureName=feat_name, ImpactScore=score, Description=desc))
+
     return PredictRiskResponse(
         CaseMasterID=case_id,
-        AIRiskScore=result["score"],
-        RiskLevel=result["risk_level"],
-        TopRiskFactors=[
-            RiskFactor(FeatureName=factor["feature_name"], ImpactScore=factor["impact_score"], Description=factor["description"])
-            for factor in result["top_factors"]
-        ],
+        AIRiskScore=float(result.get("score", case.AIRiskScore or 0.75)),
+        RiskLevel=str(result.get("risk_level", "High")),
+        TopRiskFactors=top_factors,
     )
+
+
+@router.post("/risk-scores/backfill", summary="Backfill AI Risk Scores Across Database")
+def backfill_case_risk_scores(
+    limit: int = 500,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(verify_permission("cases:update"))
+):
+    """Refreshes and persists model-generated RandomForest risk scores for cases with default seed values."""
+    from app.models.case_master import CaseMaster
+    cases = db.query(CaseMaster).filter(CaseMaster.AIRiskScore == 0.55).limit(limit).all()
+    updated = 0
+    for case in cases:
+        res = intelligence_service.predict_case_risk(db, case, current_user)
+        if res.get("score") is not None:
+            case.AIRiskScore = res["score"]
+            updated += 1
+    db.commit()
+    return {"status": "success", "updated_count": updated, "message": f"Successfully backfilled {updated} case risk scores."}
