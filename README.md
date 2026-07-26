@@ -21,6 +21,26 @@
 
 ---
 
+## 🔑 Preset Demo Login Credentials
+
+For testing and hackathon evaluation, use any of the following pre-configured officer accounts:
+
+| Role / Jurisdiction Scope | Username | Password | Rank & Title |
+| :--- | :--- | :--- | :--- |
+| **👑 System Admin** | `ksp_admin` | `change_me` | System Administrator |
+| **⭐ DGP (Statewide Command)** | `Bharathvaj` | `change_me` | DGP — Director General of Police |
+| **🎖️ SP (District Officer)** | `ramesh` | `change_me` | SP — Superintendent of Police |
+| **🛡️ DySP Officer** | `dysp_officer` | `change_me` | DySP — Deputy Superintendent of Police |
+| **👮 Police Inspector (PI)** | `pi_officer` | `change_me` | PI — Police Inspector |
+| **🚔 Sub-Inspector (SHO)** | `sho_officer` | `change_me` | PSI — Sub Inspector of Police |
+| **📋 Assistant Sub Inspector** | `constable_officer` | `change_me` | ASI — Assistant Sub Inspector |
+| **🚓 Police Constable** | `suda` | `change_me` | PC — Police Constable |
+| **🔍 External Agency (CBI)** | `cbi_sp_verma` | `cbi@password2026` | SP — Central Bureau of Investigation |
+| **🔬 External Agency (FSL)** | `fsl_dna_sunita` | `fsl@password2026` | FSL — Forensic Science Specialist |
+| **⚖️ External Agency (ED)** | `ed_jd_hegde` | `ed@password2026` | JD — Enforcement Directorate |
+
+---
+
 ## 📋 Executive Overview
 
 The **Karnataka State Police (KSP) Crime Intelligence & Investigation Platform** is an enterprise-grade, end-to-end AI system designed to transform raw historical crime registers and FIR telemetry into actionable, real-time tactical intelligence.
