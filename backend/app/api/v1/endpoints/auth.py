@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, Request
+from typing import Optional
+from fastapi import APIRouter, Depends, Request, Body
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.core.dependencies import get_db, get_current_active_user
 from app.schemas.auth import LoginRequest, TokenResponse, TokenRefreshRequest, UserOut
@@ -13,17 +15,17 @@ async def login(
     db: Session = Depends(get_db)
 ):
     """
-    Authenticates a user/officer supporting application/x-www-form-urlencoded, application/json, or query params.
+    Authenticates a user/officer supporting Swagger OAuth2 Authorize form (application/x-www-form-urlencoded), application/json, or query params.
     """
     username = ""
     password = ""
     content_type = request.headers.get("content-type", "")
 
-    if "application/x-www-form-urlencoded" in content_type:
+    if "application/x-www-form-urlencoded" in content_type or "multipart/form-data" in content_type:
         try:
-            form_data = await request.form()
-            username = str(form_data.get("Username") or form_data.get("username") or "")
-            password = str(form_data.get("Password") or form_data.get("password") or "")
+            raw_form = await request.form()
+            username = str(raw_form.get("username") or raw_form.get("Username") or "")
+            password = str(raw_form.get("password") or raw_form.get("Password") or "")
         except Exception:
             pass
 

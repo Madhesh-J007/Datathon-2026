@@ -2,13 +2,13 @@
   "slate": [
     {
       "name": "ksp-frontend",
-      "source": "C:\\Project\\KSP\\Datathon-2026\\frontend"
+      "source": "frontend"
     }
   ],
   "appsail": [
     {
       "name": "ksp-backend",
-      "source": "C:\\Project\\KSP\\Datathon-2026\\backend"
+      "source": "backend"
     }
   ]
 }

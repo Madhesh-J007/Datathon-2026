@@ -82,10 +82,10 @@ export default function DataTable({
                   if (priority === undefined && gravity === undefined && risk === undefined) {
                     return "bg-transparent";
                   }
-                  if (gravity === 1 || priority === "High" || (risk && risk >= 0.7)) {
+                  if (gravity === 1 || priority === "High" || (risk && risk >= 0.60)) {
                     return "bg-red-500";
                   }
-                  if (gravity === 2 || priority === "Medium" || (risk && risk >= 0.4)) {
+                  if (gravity === 2 || priority === "Medium" || (risk && risk >= 0.30)) {
                     return "bg-amber-500";
                   }
                   return "bg-emerald-500";

@@ -5,7 +5,7 @@ const getApiBaseUrl = () => {
   if (envUrl && envUrl.trim() !== "" && envUrl.startsWith("http")) {
     return envUrl;
   }
-  return "https://ksp-backend-50044331349.development.catalystappsail.in/api/v1";
+  return "https://ksp-docker-backend-50044331349.development.catalystappsail.in/api/v1";
 };
 
 const API_BASE_URL = getApiBaseUrl();

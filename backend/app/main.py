@@ -87,6 +87,12 @@ async def lifespan(app: FastAPI):
                 try:
                     seed_database(db)
                     logger.info("✓ Seed Complete")
+                    try:
+                        from backfill_risk_scores import backfill_all_risk_scores
+                        backfill_all_risk_scores()
+                        logger.info("✓ AI Risk Scores Backfill Complete")
+                    except Exception as bf_err:
+                        logger.error(f"Backfill notice: {bf_err}")
                     logger.info("✓ AI Ready")
                     logger.info("✓ Backend Ready")
                 finally:

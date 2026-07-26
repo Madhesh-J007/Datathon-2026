@@ -119,6 +119,34 @@ export default function Reports() {
               )}
             </button>
           </form>
+
+          {/* Quick Dataset Exports */}
+          <div className="border-t border-[#1e293b] pt-4 space-y-2">
+            <h4 className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-bold">Multi-Format Dataset Exports</h4>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => reportService.downloadCsv()}
+                className="bg-[#1e293b] hover:bg-slate-700 text-emerald-400 border border-emerald-500/30 rounded py-1.5 px-2 text-[11px] font-mono font-bold flex items-center justify-center gap-1 transition-colors"
+              >
+                <span>CSV</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => reportService.downloadExcel(Number(caseInput) || 1)}
+                className="bg-[#1e293b] hover:bg-slate-700 text-blue-400 border border-blue-500/30 rounded py-1.5 px-2 text-[11px] font-mono font-bold flex items-center justify-center gap-1 transition-colors"
+              >
+                <span>XLS</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => reportService.downloadDocx(Number(caseInput) || 1)}
+                className="bg-[#1e293b] hover:bg-slate-700 text-indigo-400 border border-indigo-500/30 rounded py-1.5 px-2 text-[11px] font-mono font-bold flex items-center justify-center gap-1 transition-colors"
+              >
+                <span>DOCX</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* History log / Side section */}

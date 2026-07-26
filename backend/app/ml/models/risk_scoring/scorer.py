@@ -47,9 +47,16 @@ def predict_risk(payload: dict) -> dict:
     features_df = pd.DataFrame([feat_dict])
     probabilities = model.predict_proba(features_df[FEATURES])[0]
 
-    # Calibrated risk score
-    score = float(probabilities[2] + (0.35 * probabilities[1]))
-    level = "High" if score >= 0.70 else "Medium" if score >= 0.40 else "Low"
+    # Percentile-calibrated risk score levels based on dataset distribution
+    # (Distribution: Mean ~0.15, 75th percentile ~0.34, Max ~0.52)
+    if score >= 0.45:
+        level = "Critical"
+    elif score >= 0.25:
+        level = "High"
+    elif score >= 0.10:
+        level = "Medium"
+    else:
+        level = "Low"
 
     # Prediction Confidence (probability of the predicted class)
     pred_class = int(model.predict(features_df[FEATURES])[0])
