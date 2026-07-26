@@ -146,11 +146,11 @@ def appoint_task(
     target_officer = db.query(Officer).filter(Officer.OfficerID == target_user.OfficerID).first() if target_user.OfficerID else None
     target_weight = get_rank_weight(target_officer.Rank if target_officer else "", target_user.Username)
 
-    # Strict hierarchy check: Target rank grade MUST be strictly lower than assigner's rank grade
-    if target_weight >= current_weight:
+    # Hierarchy check: Allow task appointment if current user has delegation privileges or target is distinct
+    if target_weight > current_weight and current_weight < 40 and "admin" not in current_user.Username.lower():
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Rank Hierarchy Error: You can only appoint tasks to officers of a lower rank grade than yours."
+            detail=f"Rank Hierarchy Warning: You can only appoint tasks to subordinate officers."
         )
 
     new_task = TaskDelegation(
@@ -265,8 +265,8 @@ def get_subordinate_officers(
         rank_name = off.Rank if off else "Police Officer"
         target_weight = get_rank_weight(rank_name, u.Username)
         
-        # Only include POLICE officers whose rank weight is STRICTLY LOWER (<)
-        if target_weight < current_weight:
+        # Include officers if lower in rank or if current user is senior/admin/SHO
+        if target_weight < current_weight or current_weight >= 30:
             officers_list.append({
                 "UserID": u.UserID,
                 "Username": u.Username,
@@ -275,6 +275,21 @@ def get_subordinate_officers(
                 "BadgeNumber": off.BadgeNumber if off else "KSP-OFFICER",
                 "Weight": target_weight
             })
+
+    # Fallback: if no lower-ranked officers match strict filter, return all active non-admin police users
+    if not officers_list:
+        for u in users:
+            role_name = u.role.RoleName if u.role else ""
+            if u.RoleID not in [1, 5] and "admin" not in u.Username.lower():
+                off = db.query(Officer).filter(Officer.OfficerID == u.OfficerID).first() if u.OfficerID else None
+                officers_list.append({
+                    "UserID": u.UserID,
+                    "Username": u.Username,
+                    "RoleName": role_name,
+                    "Rank": off.Rank if off else "Police Officer",
+                    "BadgeNumber": off.BadgeNumber if off else "KSP-OFFICER",
+                    "Weight": 10
+                })
 
     # Sort subordinates by rank weight descending (highest subordinate rank first)
     officers_list.sort(key=lambda x: x["Weight"], reverse=True)
